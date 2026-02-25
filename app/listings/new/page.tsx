@@ -116,8 +116,9 @@ export default function NewListingPage() {
       }
 
       router.push(`/listings/${listing.id}`)
-    } catch (err: any) {
-      setError(err.message || 'Error al crear el anuncio')
+    } catch (err) {
+      const error = err as Error
+      setError(error.message || 'Error al crear el anuncio')
       setLoading(false)
     }
   }

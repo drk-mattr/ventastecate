@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
-export default async function ListingDetailPage({ params }: { params: { id: string } }) {
+export default async function ListingDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   const supabase = await createClient()
   
   const { data: listing } = await supabase
@@ -27,7 +28,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
         created_at
       )
     `)
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (!listing) {
@@ -43,6 +44,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
     currency: 'MXN',
   }).format(listing.price)
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sortedImages = listing.images.sort((a: any, b: any) => a.order_index - b.order_index)
   const memberSince = new Date(listing.profile.created_at).toLocaleDateString('es-MX', {
     year: 'numeric',
@@ -76,6 +78,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
                 </div>
                 {sortedImages.length > 1 && (
                   <div className="grid grid-cols-4 gap-2">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {sortedImages.slice(1).map((image: any) => (
                       <div key={image.id} className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
                         <Image

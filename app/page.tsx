@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
@@ -62,7 +63,7 @@ export default async function Home() {
                 No hay anuncios disponibles en este momento.
               </p>
               <Button asChild>
-                <a href="/listings/new">Publica el primer anuncio</a>
+                <Link href="/listings/new">Publica el primer anuncio</Link>
               </Button>
             </div>
           )}

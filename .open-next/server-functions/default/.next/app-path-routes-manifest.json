@@ -1,0 +1,14 @@
+{
+  "/favicon.ico/route": "/favicon.ico",
+  "/_not-found/page": "/_not-found",
+  "/messages/page": "/messages",
+  "/page": "/",
+  "/listings/new/page": "/listings/new",
+  "/profile/edit/page": "/profile/edit",
+  "/search/page": "/search",
+  "/users/[username]/page": "/users/[username]",
+  "/signup/page": "/signup",
+  "/login/page": "/login",
+  "/my-listings/page": "/my-listings",
+  "/listings/[id]/page": "/listings/[id]"
+}

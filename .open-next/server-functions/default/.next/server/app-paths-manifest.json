@@ -1,0 +1,14 @@
+{
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/messages/page": "app/messages/page.js",
+  "/page": "app/page.js",
+  "/listings/new/page": "app/listings/new/page.js",
+  "/profile/edit/page": "app/profile/edit/page.js",
+  "/search/page": "app/search/page.js",
+  "/users/[username]/page": "app/users/[username]/page.js",
+  "/signup/page": "app/signup/page.js",
+  "/login/page": "app/login/page.js",
+  "/my-listings/page": "app/my-listings/page.js",
+  "/listings/[id]/page": "app/listings/[id]/page.js"
+}

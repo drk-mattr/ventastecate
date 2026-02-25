@@ -5,18 +5,18 @@ import { SearchFilters } from '@/components/search/search-filters'
 import { ListingWithImages } from '@/lib/types/database'
 
 interface SearchPageProps {
-  searchParams: {
+  searchParams: Promise<{
     q?: string
     category?: string
     location?: string
     minPrice?: string
     maxPrice?: string
-  }
+  }>
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const supabase = await createClient()
-  const { q, category, location, minPrice, maxPrice } = searchParams
+  const { q, category, location, minPrice, maxPrice } = await searchParams
 
   // Build query
   let query = supabase

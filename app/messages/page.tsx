@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -34,6 +35,7 @@ function MessagesContent() {
     }
     
     fetchConversations()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   useEffect(() => {
@@ -41,6 +43,7 @@ function MessagesContent() {
       // Create or get existing conversation
       createOrGetConversation(listingId, sellerId)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listingId, sellerId, user])
 
   useEffect(() => {
@@ -49,6 +52,7 @@ function MessagesContent() {
       // Mark messages as read
       markMessagesAsRead(selectedConversation.id)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedConversation])
 
   const fetchConversations = async () => {
@@ -158,6 +162,16 @@ function MessagesContent() {
         .from('conversations')
         .update({ updated_at: new Date().toISOString() })
         .eq('id', selectedConversation.id)
+      
+      // Send email notification (async, don't wait)
+      fetch('/api/send-message-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConversation.id,
+          messageId: data.id,
+        }),
+      }).catch(err => console.error('Failed to send email notification:', err))
     }
   }
 

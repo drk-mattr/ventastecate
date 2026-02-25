@@ -32,7 +32,8 @@ export default function EditProfilePage() {
       setDisplayName(profile.display_name || '')
       setBio(profile.bio || '')
     }
-  }, [user, profile, router])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, profile])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

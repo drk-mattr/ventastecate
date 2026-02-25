@@ -153,7 +153,7 @@ export default function PrivacyPage() {
             <p>
               Podemos actualizar esta política de privacidad ocasionalmente. Te notificaremos de 
               cualquier cambio significativo publicando la nueva política en esta página y actualizando 
-              la fecha de "última actualización".
+              la fecha de &quot;última actualización&quot;.
             </p>
           </section>
 

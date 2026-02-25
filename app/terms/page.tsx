@@ -89,7 +89,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold mb-3">8. Limitación de Responsabilidad</h2>
             <p>
-              Ventas Tecate se proporciona "tal cual" sin garantías de ningún tipo. No nos hacemos 
+              Ventas Tecate se proporciona &quot;tal cual&quot; sin garantías de ningún tipo. No nos hacemos 
               responsables por:
             </p>
             <ul className="list-disc pl-6 mt-2 space-y-1">

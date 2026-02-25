@@ -19,15 +19,15 @@ export function SearchBar() {
   }
 
   return (
-    <form onSubmit={handleSearch} className="max-w-2xl mx-auto flex gap-2">
+    <form onSubmit={handleSearch} className="max-w-xl mx-auto flex gap-2">
       <Input
         type="search"
-        placeholder="Buscar productos..."
-        className="flex-1"
+        placeholder="Buscar..."
+        className="flex-1 h-9 text-sm"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
-      <Button type="submit">Buscar</Button>
+      <Button type="submit" size="sm" className="h-9 px-4">Buscar</Button>
     </form>
   )
 }

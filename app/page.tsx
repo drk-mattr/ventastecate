@@ -32,38 +32,35 @@ export default async function Home() {
   const listingsWithImages: ListingWithImages[] = listings || []
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <Header />
       <main>
         {/* Hero Section */}
-        <div className="bg-white border-b">
-          <div className="container mx-auto px-4 py-12">
-            <h1 className="text-4xl font-bold text-center mb-2">
+        <div className="bg-gray-50 border-b">
+          <div className="container mx-auto px-4 py-8">
+            <h1 className="text-2xl font-semibold text-center mb-6">
               Compra y Vende en Tecate
             </h1>
-            <p className="text-gray-600 text-center mb-8">
-              Tu mercado local para encontrar lo que necesitas
-            </p>
             <SearchBar />
           </div>
         </div>
 
         {/* Listings Grid */}
-        <div className="container mx-auto px-4 py-8">
-          <h2 className="text-2xl font-bold mb-6">Anuncios Recientes</h2>
+        <div className="container mx-auto px-4 py-6">
+          <h2 className="text-base font-medium mb-4 text-gray-700">Anuncios Recientes</h2>
           {listingsWithImages.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {listingsWithImages.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}
             </div>
           ) : (
             <div className="text-center py-12">
-              <p className="text-gray-500 mb-4">
-                No hay anuncios disponibles en este momento.
+              <p className="text-sm text-gray-500 mb-4">
+                No hay anuncios disponibles.
               </p>
-              <Button asChild>
-                <Link href="/listings/new">Publica el primer anuncio</Link>
+              <Button asChild size="sm">
+                <Link href="/listings/new">Publicar anuncio</Link>
               </Button>
             </div>
           )}

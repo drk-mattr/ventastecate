@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
+import { Footer } from '@/components/layout/footer'
 import { ListingCard } from '@/components/listings/listing-card'
 import { ListingWithImages } from '@/lib/types/database'
 import { Button } from '@/components/ui/button'
@@ -32,9 +33,9 @@ export default async function Home() {
   const listingsWithImages: ListingWithImages[] = listings || []
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       <Header />
-      <main>
+      <main className="flex-1">
         {/* Hero Section */}
         <div className="bg-gray-50 border-b">
           <div className="container mx-auto px-4 py-8">
@@ -66,6 +67,7 @@ export default async function Home() {
           )}
         </div>
       </main>
+      <Footer />
     </div>
   )
 }

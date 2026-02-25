@@ -14,6 +14,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -24,6 +25,13 @@ export default function SignupPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+
+    // Check if terms are accepted
+    if (!acceptedTerms) {
+      setError('Debes aceptar los Términos de Servicio y la Política de Privacidad para continuar')
+      setLoading(false)
+      return
+    }
 
     // Validate username format
     if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
@@ -121,6 +129,26 @@ export default function SignupPage() {
                 placeholder="••••••••"
               />
               <p className="text-xs text-gray-500">Mínimo 6 caracteres</p>
+            </div>
+            <div className="flex items-start space-x-2">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-gray-300"
+                required
+              />
+              <label htmlFor="terms" className="text-xs text-gray-600">
+                Acepto los{' '}
+                <Link href="/terms" target="_blank" className="text-blue-600 hover:underline">
+                  Términos de Servicio
+                </Link>
+                {' '}y la{' '}
+                <Link href="/privacy" target="_blank" className="text-blue-600 hover:underline">
+                  Política de Privacidad
+                </Link>
+              </label>
             </div>
             {error && (
               <div className="text-sm text-red-600 bg-red-50 p-3 rounded">

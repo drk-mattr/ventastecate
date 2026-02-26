@@ -8,11 +8,10 @@ import { useRouter } from 'next/navigation'
 
 interface FollowButtonProps {
   profileId: string
-  username: string
   initialIsFollowing?: boolean
 }
 
-export function FollowButton({ profileId, username, initialIsFollowing = false }: FollowButtonProps) {
+export function FollowButton({ profileId, initialIsFollowing = false }: FollowButtonProps) {
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing)
   const [loading, setLoading] = useState(false)
   const { user } = useAuth()

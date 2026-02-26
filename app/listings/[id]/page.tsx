@@ -6,8 +6,6 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -138,7 +136,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     '@type': 'Product',
     name: listing.title,
     description: listing.description,
-    image: sortedImages.map((img: any) => img.image_url),
+    image: sortedImages.map((img: { image_url: string }) => img.image_url),
     offers: {
       '@type': 'Offer',
       price: listing.price,
@@ -188,7 +186,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             </div>
             {/* Thumbnail grid - 2 columns, 2 rows */}
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {sortedImages.slice(1, 5).map((image: any, index: number) => (
+            {sortedImages.slice(1, 5).map((image: any) => (
               <div key={image.id} className="relative bg-gray-100">
                 <Image
                   src={image.image_url}

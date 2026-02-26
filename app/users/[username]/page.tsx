@@ -4,9 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { FollowButton } from '@/components/user/follow-button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 export default async function UserProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params
   const supabase = await createClient()
@@ -86,7 +84,7 @@ export default async function UserProfilePage({ params }: { params: Promise<{ us
                 <Link href="/profile/edit">Editar Perfil</Link>
               </Button>
             ) : (
-              <FollowButton profileId={profile.id} username={profile.username} />
+              <FollowButton profileId={profile.id} />
             )}
           </div>
         </div>

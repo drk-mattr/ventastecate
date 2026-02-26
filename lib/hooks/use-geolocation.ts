@@ -18,32 +18,43 @@ export function useGeolocation() {
   })
 
   useEffect(() => {
+    let isMounted = true
+
     if (!navigator.geolocation) {
-      setLocation({
-        latitude: null,
-        longitude: null,
-        error: 'Geolocation is not supported by your browser',
-        loading: false,
-      })
+      if (isMounted) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setLocation({
+          latitude: null,
+          longitude: null,
+          error: 'Geolocation is not supported by your browser',
+          loading: false,
+        })
+      }
       return
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          error: null,
-          loading: false,
-        })
+        if (isMounted) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            error: null,
+            loading: false,
+          })
+        }
       },
       (error) => {
-        setLocation({
-          latitude: null,
-          longitude: null,
-          error: error.message,
-          loading: false,
-        })
+        if (isMounted) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setLocation({
+            latitude: null,
+            longitude: null,
+            error: error.message,
+            loading: false,
+          })
+        }
       },
       {
         enableHighAccuracy: true,
@@ -51,6 +62,10 @@ export function useGeolocation() {
         maximumAge: 0,
       }
     )
+
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   return location

@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useGeolocation, getNearestLocation } from '@/lib/hooks/use-geolocation'
 import { MapPin } from 'lucide-react'
 
@@ -59,11 +58,14 @@ export function SearchFilters({
   const geoLocation = useGeolocation()
 
   useEffect(() => {
-    if (geoLocation.latitude && geoLocation.longitude) {
+    if (geoLocation.latitude && geoLocation.longitude && !geoLocation.loading) {
       const nearest = getNearestLocation(geoLocation.latitude, geoLocation.longitude)
-      setDetectedLocation(nearest)
+      if (nearest && nearest !== detectedLocation) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setDetectedLocation(nearest)
+      }
     }
-  }, [geoLocation.latitude, geoLocation.longitude])
+  }, [geoLocation.latitude, geoLocation.longitude, geoLocation.loading, detectedLocation])
 
   const handleSearch = () => {
     const params = new URLSearchParams()

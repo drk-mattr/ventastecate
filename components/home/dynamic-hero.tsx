@@ -9,13 +9,14 @@ export function DynamicHero() {
   const geoLocation = useGeolocation()
 
   useEffect(() => {
-    if (geoLocation.latitude && geoLocation.longitude) {
+    if (geoLocation.latitude && geoLocation.longitude && !geoLocation.loading) {
       const nearest = getNearestLocation(geoLocation.latitude, geoLocation.longitude)
-      if (nearest) {
+      if (nearest && nearest !== locationText) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLocationText(nearest)
       }
     }
-  }, [geoLocation.latitude, geoLocation.longitude])
+  }, [geoLocation.latitude, geoLocation.longitude, geoLocation.loading, locationText])
 
   return (
     <div className="bg-gray-50 border-b">

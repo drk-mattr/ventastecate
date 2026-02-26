@@ -3,9 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { ListingCard } from '@/components/listings/listing-card'
+import { DynamicHero } from '@/components/home/dynamic-hero'
 import { ListingWithImages } from '@/lib/types/database'
 import { Button } from '@/components/ui/button'
-import { SearchBar } from '@/components/search/search-bar'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -36,15 +36,8 @@ export default async function Home() {
     <div className="min-h-screen bg-white flex flex-col">
       <Header />
       <main className="flex-1">
-        {/* Hero Section */}
-        <div className="bg-gray-50 border-b">
-          <div className="container mx-auto px-4 py-8">
-            <h1 className="text-2xl font-semibold text-center mb-6">
-              Compra y Vende en Tecate
-            </h1>
-            <SearchBar />
-          </div>
-        </div>
+        {/* Hero Section with Dynamic Location */}
+        <DynamicHero />
 
         {/* Listings Grid */}
         <div className="container mx-auto px-4 py-6">

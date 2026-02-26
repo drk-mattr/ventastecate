@@ -32,11 +32,11 @@ export const metadata: Metadata = {
   authors: [{ name: 'Ventas Tecate' }],
   creator: 'Ventas Tecate',
   publisher: 'Ventas Tecate',
-  metadataBase: new URL('https://ventastecate.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://ventastecate.com'),
   openGraph: {
     type: 'website',
     locale: 'es_MX',
-    url: 'https://ventastecate.com',
+    url: process.env.NEXT_PUBLIC_APP_URL || 'https://ventastecate.com',
     siteName: 'Ventas Tecate',
     title: 'Ventas Tecate - Compra y Vende en Tecate',
     description: 'Marketplace local de Tecate. Compra y vende productos en tu comunidad.',

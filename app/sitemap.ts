@@ -18,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .select('username, updated_at')
     .limit(1000)
 
-  const baseUrl = 'https://ventastecate.com'
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ventastecate.com'
 
   // Static pages
   const routes = [

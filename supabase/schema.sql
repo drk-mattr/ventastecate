@@ -216,6 +216,10 @@ create trigger handle_conversations_updated_at
 insert into storage.buckets (id, name, public)
 values ('listing-images', 'listing-images', true);
 
+-- Create storage bucket for user avatars
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true);
+
 -- Storage policies for listing images
 create policy "Anyone can view listing images"
   on storage.objects for select
@@ -239,5 +243,32 @@ create policy "Users can delete their own images"
   on storage.objects for delete
   using (
     bucket_id = 'listing-images'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+-- Storage policies for avatars
+create policy "Anyone can view avatars"
+  on storage.objects for select
+  using (bucket_id = 'avatars');
+
+create policy "Authenticated users can upload avatars"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'avatars'
+    and auth.role() = 'authenticated'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+create policy "Users can update their own avatar"
+  on storage.objects for update
+  using (
+    bucket_id = 'avatars'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+create policy "Users can delete their own avatar"
+  on storage.objects for delete
+  using (
+    bucket_id = 'avatars'
     and auth.uid()::text = (storage.foldername(name))[1]
   );

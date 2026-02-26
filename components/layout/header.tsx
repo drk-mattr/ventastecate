@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuth } from '@/lib/auth/auth-context'
 import { Button } from '@/components/ui/button'
 import {
@@ -56,8 +57,17 @@ export function Header() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0">
-                    <div className="h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium">
-                      {profile ? getInitials(profile.display_name) : 'U'}
+                    <div className="relative h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium overflow-hidden">
+                      {profile?.avatar_url ? (
+                        <Image
+                          src={profile.avatar_url}
+                          alt={profile.display_name}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        profile ? getInitials(profile.display_name) : 'U'
+                      )}
                     </div>
                   </Button>
                 </DropdownMenuTrigger>

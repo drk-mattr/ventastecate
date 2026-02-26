@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import Image from 'next/image'
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { FollowButton } from '@/components/user/follow-button'
@@ -56,8 +57,17 @@ export default async function UserProfilePage({ params }: { params: Promise<{ us
         {/* Profile Header */}
         <div className="border-b pb-6 mb-6">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-            <div className="h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-semibold">
-              {profile.display_name[0].toUpperCase()}
+            <div className="relative h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-semibold overflow-hidden">
+              {profile.avatar_url ? (
+                <Image
+                  src={profile.avatar_url}
+                  alt={profile.display_name}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                profile.display_name[0].toUpperCase()
+              )}
             </div>
             <div className="flex-1">
               <h1 className="text-2xl font-semibold mb-1">{profile.display_name}</h1>

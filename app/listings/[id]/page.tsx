@@ -1,11 +1,12 @@
 import { notFound } from 'next/navigation'
-import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { ListingImageGallery } from '@/components/listings/listing-image-gallery'
+import Image from 'next/image'
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -44,7 +45,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const primaryImage = sortedImages[0]?.image_url
 
   const description = `${listing.title} - ${formattedPrice}. ${listing.description.substring(0, 155)}...`
-  const url = `https://ventastecate.com/listings/${id}`
+  const url = `${process.env.NEXT_PUBLIC_APP_URL || 'https://ventastecate.com'}/listings/${id}`
 
   return {
     title: `${listing.title} - ${formattedPrice} | Ventas Tecate`,
@@ -104,6 +105,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
         id,
         username,
         display_name,
+        avatar_url,
         created_at
       )
     `)
@@ -165,51 +167,11 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
         <Header />
       <main className="container mx-auto px-4 py-4 max-w-7xl">
         {/* Image Gallery */}
-        {sortedImages.length > 0 ? (
-          <div className="grid grid-cols-4 gap-2 h-[400px] mb-6 rounded-lg overflow-hidden">
-            {/* Main Image - Takes 2 columns and full height */}
-            <div className="col-span-2 row-span-2 relative bg-gray-100">
-              <Image
-                src={sortedImages[0].image_url}
-                alt={listing.title}
-                fill
-                className="object-cover"
-                priority
-              />
-              {listing.status === 'sold' && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                  <Badge variant="secondary" className="text-sm">
-                    Vendido
-                  </Badge>
-                </div>
-              )}
-            </div>
-            {/* Thumbnail grid - 2 columns, 2 rows */}
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {sortedImages.slice(1, 5).map((image: any) => (
-              <div key={image.id} className="relative bg-gray-100">
-                <Image
-                  src={image.image_url}
-                  alt={listing.title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            ))}
-            {/* Show more button if there are more than 5 images */}
-            {sortedImages.length > 5 && (
-              <div className="absolute bottom-4 right-4">
-                <Button size="sm" variant="secondary" className="bg-white/90 hover:bg-white">
-                  Ver todas las fotos ({sortedImages.length})
-                </Button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="h-[400px] bg-gray-100 rounded-lg flex items-center justify-center mb-6">
-            <p className="text-sm text-gray-400">Sin imágenes</p>
-          </div>
-        )}
+        <ListingImageGallery 
+          images={sortedImages}
+          listingTitle={listing.title}
+          isSold={listing.status === 'sold'}
+        />
 
         {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -241,8 +203,17 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             <div className="border rounded-lg p-6 sticky top-4">
               <h3 className="text-base font-semibold mb-4">Vendedor</h3>
               <div className="flex items-center gap-3 mb-6">
-                <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold">
-                  {listing.profile.display_name[0].toUpperCase()}
+                <div className="relative h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold overflow-hidden">
+                  {listing.profile.avatar_url ? (
+                    <Image
+                      src={listing.profile.avatar_url}
+                      alt={listing.profile.display_name}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    listing.profile.display_name[0].toUpperCase()
+                  )}
                 </div>
                 <div>
                   <Link 

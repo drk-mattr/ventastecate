@@ -9,7 +9,7 @@ import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 
 function MessagesContent() {
@@ -63,8 +63,8 @@ function MessagesContent() {
       .select(`
         *,
         listing:listings(id, title),
-        buyer:buyer_id(id, username, display_name),
-        seller:seller_id(id, username, display_name),
+        buyer:buyer_id(id, username, display_name, avatar_url),
+        seller:seller_id(id, username, display_name, avatar_url),
         messages(id, content, created_at, read)
       `)
       .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
@@ -83,8 +83,8 @@ function MessagesContent() {
       .select(`
         *,
         listing:listings(id, title),
-        buyer:buyer_id(id, username, display_name),
-        seller:seller_id(id, username, display_name)
+        buyer:buyer_id(id, username, display_name, avatar_url),
+        seller:seller_id(id, username, display_name, avatar_url)
       `)
       .eq('listing_id', listingId)
       .eq('buyer_id', user.id)
@@ -107,8 +107,8 @@ function MessagesContent() {
       .select(`
         *,
         listing:listings(id, title),
-        buyer:buyer_id(id, username, display_name),
-        seller:seller_id(id, username, display_name)
+        buyer:buyer_id(id, username, display_name, avatar_url),
+        seller:seller_id(id, username, display_name, avatar_url)
       `)
       .single()
 
@@ -216,6 +216,9 @@ function MessagesContent() {
                     >
                       <div className="flex items-center gap-3 mb-1">
                         <Avatar className="h-10 w-10">
+                          {otherUser?.avatar_url && (
+                            <AvatarImage src={otherUser.avatar_url} alt={otherUser.display_name} />
+                          )}
                           <AvatarFallback>
                             {otherUser?.display_name?.[0]?.toUpperCase()}
                           </AvatarFallback>
@@ -255,6 +258,17 @@ function MessagesContent() {
                 <div className="p-4 border-b">
                   <div className="flex items-center gap-3">
                     <Avatar>
+                      {(selectedConversation.buyer_id === user?.id
+                        ? selectedConversation.seller?.avatar_url
+                        : selectedConversation.buyer?.avatar_url
+                      ) && (
+                        <AvatarImage
+                          src={selectedConversation.buyer_id === user?.id
+                            ? selectedConversation.seller?.avatar_url
+                            : selectedConversation.buyer?.avatar_url}
+                          alt="Avatar"
+                        />
+                      )}
                       <AvatarFallback>
                         {selectedConversation.buyer_id === user?.id
                           ? selectedConversation.seller?.display_name?.[0]?.toUpperCase()

@@ -14,8 +14,53 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ventas Tecate - Local Marketplace",
-  description: "Buy and sell locally in Tecate",
+  title: {
+    default: 'Ventas Tecate - Compra y Vende en Tecate',
+    template: '%s | Ventas Tecate',
+  },
+  description: 'Marketplace local de Tecate. Compra y vende productos de segunda mano, muebles, electrónica, vehículos y más en tu comunidad.',
+  keywords: [
+    'Ventas Tecate',
+    'marketplace Tecate',
+    'compra venta Tecate',
+    'segunda mano',
+    'clasificados Tecate',
+    'vender en Tecate',
+    'comprar en Tecate',
+  ],
+  authors: [{ name: 'Ventas Tecate' }],
+  creator: 'Ventas Tecate',
+  publisher: 'Ventas Tecate',
+  metadataBase: new URL('https://ventastecate.com'),
+  openGraph: {
+    type: 'website',
+    locale: 'es_MX',
+    url: 'https://ventastecate.com',
+    siteName: 'Ventas Tecate',
+    title: 'Ventas Tecate - Compra y Vende en Tecate',
+    description: 'Marketplace local de Tecate. Compra y vende productos en tu comunidad.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Ventas Tecate',
+    description: 'Marketplace local de Tecate',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    // Add your verification codes here when you have them
+    // google: 'your-google-verification-code',
+    // yandex: 'your-yandex-verification-code',
+  },
 };
 
 export default function RootLayout({
@@ -24,7 +69,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="es-MX">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

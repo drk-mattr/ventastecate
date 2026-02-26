@@ -1,12 +1,93 @@
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+
+// Generate metadata for SEO
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params
+  const supabase = await createClient()
+  
+  const { data: listing } = await supabase
+    .from('listings')
+    .select(`
+      *,
+      images:listing_images(
+        image_url,
+        order_index
+      ),
+      profile:profiles(
+        display_name,
+        username
+      )
+    `)
+    .eq('id', id)
+    .single()
+
+  if (!listing) {
+    return {
+      title: 'Anuncio no encontrado | Ventas Tecate',
+    }
+  }
+
+  const formattedPrice = new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+  }).format(listing.price)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sortedImages = listing.images?.sort((a: any, b: any) => a.order_index - b.order_index) || []
+  const primaryImage = sortedImages[0]?.image_url
+
+  const description = `${listing.title} - ${formattedPrice}. ${listing.description.substring(0, 155)}...`
+  const url = `https://ventastecate.com/listings/${id}`
+
+  return {
+    title: `${listing.title} - ${formattedPrice} | Ventas Tecate`,
+    description,
+    keywords: [
+      listing.title,
+      listing.category,
+      listing.location,
+      'Ventas Tecate',
+      'compra venta',
+      'marketplace',
+      'segunda mano',
+    ],
+    authors: [{ name: listing.profile.display_name }],
+    openGraph: {
+      title: listing.title,
+      description,
+      url,
+      siteName: 'Ventas Tecate',
+      images: primaryImage ? [
+        {
+          url: primaryImage,
+          width: 1200,
+          height: 630,
+          alt: listing.title,
+        },
+      ] : [],
+      locale: 'es_MX',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: listing.title,
+      description,
+      images: primaryImage ? [primaryImage] : [],
+    },
+    alternates: {
+      canonical: url,
+    },
+  }
+}
 
 export default async function ListingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -51,9 +132,39 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     month: 'long',
   })
 
+  // Structured data for SEO (JSON-LD)
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: listing.title,
+    description: listing.description,
+    image: sortedImages.map((img: any) => img.image_url),
+    offers: {
+      '@type': 'Offer',
+      price: listing.price,
+      priceCurrency: 'MXN',
+      availability: listing.status === 'active' ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+      seller: {
+        '@type': 'Person',
+        name: listing.profile.display_name,
+      },
+    },
+    category: listing.category,
+    brand: {
+      '@type': 'Brand',
+      name: 'Ventas Tecate',
+    },
+  }
+
   return (
-    <div className="min-h-screen bg-white">
-      <Header />
+    <>
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <div className="min-h-screen bg-white">
+        <Header />
       <main className="container mx-auto px-4 py-4 max-w-7xl">
         {/* Image Gallery */}
         {sortedImages.length > 0 ? (
@@ -173,6 +284,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           </div>
         </div>
       </main>
-    </div>
+      </div>
+    </>
   )
 }

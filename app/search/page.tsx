@@ -64,15 +64,15 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const listingsWithImages: ListingWithImages[] = listings || []
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-4">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">
+          <h1 className="text-2xl font-semibold mb-1">
             {q ? `Resultados para "${q}"` : 'Buscar Anuncios'}
           </h1>
-          <p className="text-gray-600">
-            {listingsWithImages.length} {listingsWithImages.length === 1 ? 'resultado' : 'resultados'} encontrados
+          <p className="text-sm text-gray-600">
+            {listingsWithImages.length} {listingsWithImages.length === 1 ? 'resultado' : 'resultados'}
           </p>
         </div>
 
@@ -91,18 +91,18 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           {/* Results Grid */}
           <div className="lg:col-span-3">
             {listingsWithImages.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                 {listingsWithImages.map((listing) => (
                   <ListingCard key={listing.id} listing={listing} />
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 bg-white rounded-lg">
-                <p className="text-gray-500 mb-4">
+              <div className="text-center py-16 bg-gray-50 rounded-lg">
+                <p className="text-gray-500 mb-2">
                   No se encontraron resultados
                 </p>
                 <p className="text-sm text-gray-400">
-                  Intenta ajustar tus filtros de búsqueda
+                  Intenta ajustar tus filtros
                 </p>
               </div>
             )}

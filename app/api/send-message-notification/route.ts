@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       ? message.content.substring(0, 100) + '...'
       : message.content
 
-    const messageUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://ventastecate.vercel.app'}/messages?conversation=${conversationId}`
+    const messageUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://ventastecate.com'}/messages?conversation=${conversationId}`
 
     const result = await sendMessageNotification({
       to: recipientUser.email,

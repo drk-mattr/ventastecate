@@ -49,8 +49,8 @@ export function SearchFilters({
   initialMaxPrice = '',
 }: SearchFiltersProps) {
   const [query, setQuery] = useState(initialQuery)
-  const [category, setCategory] = useState(initialCategory)
-  const [location, setLocation] = useState(initialLocation)
+  const [category, setCategory] = useState(initialCategory || 'all')
+  const [location, setLocation] = useState(initialLocation || 'all')
   const [minPrice, setMinPrice] = useState(initialMinPrice)
   const [maxPrice, setMaxPrice] = useState(initialMaxPrice)
   const [detectedLocation, setDetectedLocation] = useState<string | null>(null)
@@ -71,8 +71,8 @@ export function SearchFilters({
     const params = new URLSearchParams()
     
     if (query) params.set('q', query)
-    if (category) params.set('category', category)
-    if (location) params.set('location', location)
+    if (category && category !== 'all') params.set('category', category)
+    if (location && location !== 'all') params.set('location', location)
     if (minPrice) params.set('minPrice', minPrice)
     if (maxPrice) params.set('maxPrice', maxPrice)
 
@@ -81,8 +81,8 @@ export function SearchFilters({
 
   const handleReset = () => {
     setQuery('')
-    setCategory('')
-    setLocation('')
+    setCategory('all')
+    setLocation('all')
     setMinPrice('')
     setMaxPrice('')
     router.push('/search')
@@ -117,7 +117,7 @@ export function SearchFilters({
               <SelectValue placeholder="Todas las categorías" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas las categorías</SelectItem>
+              <SelectItem value="all">Todas las categorías</SelectItem>
               {CATEGORIES.map((cat) => (
                 <SelectItem key={cat} value={cat}>
                   {cat}
@@ -146,7 +146,7 @@ export function SearchFilters({
               <SelectValue placeholder="Todas las ubicaciones" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas las ubicaciones</SelectItem>
+              <SelectItem value="all">Todas las ubicaciones</SelectItem>
               {detectedLocation && (
                 <SelectItem value={detectedLocation} className="font-semibold">
                   📍 {detectedLocation} (Cerca de mí)

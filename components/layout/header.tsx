@@ -1,9 +1,12 @@
 'use client'
 
+import { Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { Button } from '@/components/ui/button'
+import { HeaderSearch } from '@/components/search/header-search'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +17,8 @@ import {
 
 export function Header() {
   const { user, profile, signOut } = useAuth()
+  const pathname = usePathname()
+  const isHomePage = pathname === '/'
 
   const getInitials = (name: string) => {
     return name
@@ -27,11 +32,11 @@ export function Header() {
   return (
     <header className="border-b bg-white sticky top-0 z-50">
       <div className="container mx-auto px-4 py-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-4 shrink-0">
           <Link href="/" className="text-lg font-semibold">
             Ventas Tecate
           </Link>
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden lg:flex items-center gap-6">
             <Link href="/" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
               Inicio
             </Link>
@@ -48,7 +53,13 @@ export function Header() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-2">
+        {!isHomePage && (
+          <Suspense fallback={<div className="flex-1 max-w-2xl mx-4" />}>
+            <HeaderSearch />
+          </Suspense>
+        )}
+
+        <div className="flex items-center gap-2 shrink-0">
           {user ? (
             <>
               <Button asChild size="sm" className="h-8 px-3 text-xs">

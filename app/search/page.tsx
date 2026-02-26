@@ -11,12 +11,13 @@ interface SearchPageProps {
     location?: string
     minPrice?: string
     maxPrice?: string
+    sort?: string
   }>
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const supabase = await createClient()
-  const { q, category, location, minPrice, maxPrice } = await searchParams
+  const { q, category, location, minPrice, maxPrice, sort } = await searchParams
 
   // Build query
   let query = supabase
@@ -57,8 +58,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     query = query.lte('price', parseFloat(maxPrice))
   }
 
+  // Apply sorting
+  if (sort === 'price_asc') {
+    query = query.order('price', { ascending: true })
+  } else if (sort === 'price_desc') {
+    query = query.order('price', { ascending: false })
+  } else {
+    query = query.order('created_at', { ascending: false })
+  }
+
   const { data: listings } = await query
-    .order('created_at', { ascending: false })
     .limit(50)
 
   const listingsWithImages: ListingWithImages[] = listings || []

@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useGeolocation, getNearestLocation } from '@/lib/hooks/use-geolocation'
+import { MapPin } from 'lucide-react'
 
 const CATEGORIES = [
   'Electrónica',
@@ -52,7 +54,16 @@ export function SearchFilters({
   const [location, setLocation] = useState(initialLocation)
   const [minPrice, setMinPrice] = useState(initialMinPrice)
   const [maxPrice, setMaxPrice] = useState(initialMaxPrice)
+  const [detectedLocation, setDetectedLocation] = useState<string | null>(null)
   const router = useRouter()
+  const geoLocation = useGeolocation()
+
+  useEffect(() => {
+    if (geoLocation.latitude && geoLocation.longitude) {
+      const nearest = getNearestLocation(geoLocation.latitude, geoLocation.longitude)
+      setDetectedLocation(nearest)
+    }
+  }, [geoLocation.latitude, geoLocation.longitude])
 
   const handleSearch = () => {
     const params = new URLSearchParams()
@@ -73,6 +84,12 @@ export function SearchFilters({
     setMinPrice('')
     setMaxPrice('')
     router.push('/search')
+  }
+
+  const handleUseMyLocation = () => {
+    if (detectedLocation) {
+      setLocation(detectedLocation)
+    }
   }
 
   return (
@@ -109,13 +126,30 @@ export function SearchFilters({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="location" className="text-sm">Ubicación</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="location" className="text-sm">Ubicación</Label>
+            {detectedLocation && (
+              <button
+                type="button"
+                onClick={handleUseMyLocation}
+                className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              >
+                <MapPin className="h-3 w-3" />
+                Cerca de mí
+              </button>
+            )}
+          </div>
           <Select value={location} onValueChange={setLocation}>
             <SelectTrigger className="h-9 text-sm">
               <SelectValue placeholder="Todas las ubicaciones" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Todas las ubicaciones</SelectItem>
+              {detectedLocation && (
+                <SelectItem value={detectedLocation} className="font-semibold">
+                  📍 {detectedLocation} (Cerca de mí)
+                </SelectItem>
+              )}
               {LOCATIONS.map((loc) => (
                 <SelectItem key={loc} value={loc}>
                   {loc}

@@ -99,101 +99,99 @@ export function DynamicHero() {
           Compra y Vende en {locationText}
         </h1>
 
-        {/* Search Bar */}
-        <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-4">
-          <div className="relative flex gap-2">
+        <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
+          {/* Row 1: Search bar */}
+          <div className="flex gap-2 mb-3">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 type="search"
                 placeholder="¿Qué estás buscando?"
-                className="h-10 pl-10 text-sm"
+                className="h-10 pl-10 text-sm bg-white"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
             </div>
             <Button type="submit" className="h-10 px-6">Buscar</Button>
           </div>
+
+          {/* Row 2: Filters */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="h-9 text-xs bg-white">
+                <SelectValue placeholder="Categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las categorías</SelectItem>
+                {CATEGORIES.map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={location} onValueChange={setLocation}>
+              <SelectTrigger className="h-9 text-xs bg-white">
+                <SelectValue placeholder="Ubicación" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas las ubicaciones</SelectItem>
+                {detectedLocation && (
+                  <SelectItem value={detectedLocation} className="font-semibold">
+                    📍 {detectedLocation}
+                  </SelectItem>
+                )}
+                {LOCATIONS.map((loc) => (
+                  <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Input
+              type="number"
+              placeholder="$ Mínimo"
+              value={minPrice}
+              onChange={(e) => setMinPrice(e.target.value)}
+              className="h-9 text-xs bg-white"
+            />
+            <Input
+              type="number"
+              placeholder="$ Máximo"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              className="h-9 text-xs bg-white"
+            />
+          </div>
         </form>
 
-        {/* Filter Row */}
-        <div className="max-w-2xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="h-9 text-xs bg-white">
-              <SelectValue placeholder="Categoría" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las categorías</SelectItem>
-              {CATEGORIES.map((cat) => (
-                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={location} onValueChange={setLocation}>
-            <SelectTrigger className="h-9 text-xs bg-white">
-              <SelectValue placeholder="Ubicación" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las ubicaciones</SelectItem>
-              {detectedLocation && (
-                <SelectItem value={detectedLocation} className="font-semibold">
-                  📍 {detectedLocation} (Cerca de mí)
-                </SelectItem>
-              )}
-              {LOCATIONS.map((loc) => (
-                <SelectItem key={loc} value={loc}>{loc}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Input
-            type="number"
-            placeholder="Precio mín."
-            value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
-            className="h-9 text-xs bg-white"
-          />
-
-          <Input
-            type="number"
-            placeholder="Precio máx."
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
-            className="h-9 text-xs bg-white"
-          />
-        </div>
-
-        {/* Geolocation hint */}
-        {detectedLocation && location === 'all' && (
-          <div className="max-w-2xl mx-auto mt-2">
+        {/* Active filters + geolocation */}
+        <div className="max-w-2xl mx-auto">
+          {detectedLocation && location === 'all' && (
             <button
               type="button"
               onClick={() => setLocation(detectedLocation)}
-              className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1 mt-2"
             >
               <MapPin className="h-3 w-3" />
               Usar mi ubicación: {detectedLocation}
             </button>
-          </div>
-        )}
+          )}
 
-        {/* Active Filter Chips */}
-        {activeFilters.length > 0 && (
-          <div className="max-w-2xl mx-auto flex flex-wrap items-center gap-1.5 mt-3">
-            {activeFilters.map((f) => (
-              <Badge key={f.key} variant="secondary" className="text-[11px] h-6 gap-1 pl-2.5 pr-1">
-                {f.label}
-                <button onClick={() => removeFilter(f.key)}>
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
-            ))}
-            <button onClick={clearAll} className="text-xs text-gray-500 hover:text-gray-700 ml-1">
-              Limpiar todo
-            </button>
-          </div>
-        )}
+          {activeFilters.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+              {activeFilters.map((f) => (
+                <Badge key={f.key} variant="secondary" className="text-[11px] h-6 gap-1 pl-2.5 pr-1">
+                  {f.label}
+                  <button onClick={() => removeFilter(f.key)}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+              <button onClick={clearAll} className="text-xs text-gray-500 hover:text-gray-700 ml-1">
+                Limpiar
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

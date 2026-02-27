@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { ListingMetadata, RealEstateMetadata, AutomotiveMetadata } from '@/lib/types/database'
 import { ListingImageGallery } from '@/components/listings/listing-image-gallery'
 import Image from 'next/image'
 
@@ -107,6 +108,13 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
         display_name,
         avatar_url,
         created_at
+      ),
+      store:stores(
+        id,
+        slug,
+        name,
+        avatar_url,
+        location
       )
     `)
     .eq('id', id)
@@ -191,6 +199,105 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               </div>
             </div>
 
+            {/* Specs Grid for specialized listings */}
+            {listing.metadata && (listing.metadata as ListingMetadata).type === 'real_estate' && (() => {
+              const meta = listing.metadata as RealEstateMetadata
+              const propertyLabels: Record<string, string> = { casa: 'Casa', departamento: 'Depto', terreno: 'Terreno', local: 'Local', oficina: 'Oficina' }
+              return (
+                <div className="pt-4 border-t">
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <Badge variant="secondary" className="text-xs">
+                      {meta.transaction_type === 'renta' ? 'En Renta' : 'En Venta'}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {propertyLabels[meta.property_type] || meta.property_type}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {meta.bedrooms != null && (
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <p className="text-lg font-semibold">{meta.bedrooms}</p>
+                        <p className="text-xs text-gray-500">🛏 Recámaras</p>
+                      </div>
+                    )}
+                    {meta.bathrooms != null && (
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <p className="text-lg font-semibold">{meta.bathrooms}</p>
+                        <p className="text-xs text-gray-500">🚿 Baños</p>
+                      </div>
+                    )}
+                    {meta.construction_m2 != null && (
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <p className="text-lg font-semibold">{meta.construction_m2}</p>
+                        <p className="text-xs text-gray-500">📐 m² Const.</p>
+                      </div>
+                    )}
+                    {meta.lot_m2 != null && (
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <p className="text-lg font-semibold">{meta.lot_m2}</p>
+                        <p className="text-xs text-gray-500">🏡 m² Terreno</p>
+                      </div>
+                    )}
+                    {meta.parking_spots != null && (
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <p className="text-lg font-semibold">{meta.parking_spots}</p>
+                        <p className="text-xs text-gray-500">🚗 Estacion.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {listing.metadata && (listing.metadata as ListingMetadata).type === 'automotive' && (() => {
+              const meta = listing.metadata as AutomotiveMetadata
+              const fuelLabels: Record<string, string> = { gasolina: 'Gasolina', diesel: 'Diésel', electrico: 'Eléctrico', hibrido: 'Híbrido' }
+              const transLabels: Record<string, string> = { automatica: 'Automática', manual: 'Manual' }
+              return (
+                <div className="pt-4 border-t">
+                  <p className="text-base font-medium text-gray-700 mb-4">
+                    {meta.make} {meta.model} {meta.year}
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="text-center p-3 bg-gray-50 rounded-lg">
+                      <p className="text-lg font-semibold">{meta.year}</p>
+                      <p className="text-xs text-gray-500">📅 Año</p>
+                    </div>
+                    {meta.mileage_km != null && (
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <p className="text-lg font-semibold">{meta.mileage_km.toLocaleString()}</p>
+                        <p className="text-xs text-gray-500">🛣 km</p>
+                      </div>
+                    )}
+                    {meta.transmission && (
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <p className="text-lg font-semibold">{transLabels[meta.transmission] || meta.transmission}</p>
+                        <p className="text-xs text-gray-500">⚙️ Trans.</p>
+                      </div>
+                    )}
+                    {meta.fuel_type && (
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <p className="text-lg font-semibold">{fuelLabels[meta.fuel_type] || meta.fuel_type}</p>
+                        <p className="text-xs text-gray-500">⛽ Comb.</p>
+                      </div>
+                    )}
+                    {meta.color && (
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <p className="text-lg font-semibold">{meta.color}</p>
+                        <p className="text-xs text-gray-500">🎨 Color</p>
+                      </div>
+                    )}
+                    {meta.doors != null && (
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <p className="text-lg font-semibold">{meta.doors}</p>
+                        <p className="text-xs text-gray-500">🚪 Puertas</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
+
             {/* Description */}
             <div className="pt-4">
               <h2 className="text-base font-semibold mb-3">Descripción</h2>
@@ -202,30 +309,59 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           <div>
             <div className="border rounded-lg p-6 sticky top-4">
               <h3 className="text-base font-semibold mb-4">Vendedor</h3>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="relative h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold overflow-hidden">
-                  {listing.profile.avatar_url ? (
-                    <Image
-                      src={listing.profile.avatar_url}
-                      alt={listing.profile.display_name}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    listing.profile.display_name[0].toUpperCase()
-                  )}
-                </div>
-                <div>
-                  <Link 
-                    href={`/users/${listing.profile.username}`}
-                    className="font-semibold hover:underline"
-                  >
-                    {listing.profile.display_name}
+
+              {listing.store ? (
+                /* Store seller card */
+                <div className="flex items-center gap-3 mb-6">
+                  <Link href={`/stores/${listing.store.slug}`} className="relative h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center text-xl overflow-hidden shrink-0">
+                    {listing.store.avatar_url ? (
+                      <Image
+                        src={listing.store.avatar_url}
+                        alt={listing.store.name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      '🏪'
+                    )}
                   </Link>
-                  <p className="text-sm text-gray-500">@{listing.profile.username}</p>
-                  <p className="text-xs text-gray-400">Desde {memberSince}</p>
+                  <div>
+                    <Link
+                      href={`/stores/${listing.store.slug}`}
+                      className="font-semibold hover:underline"
+                    >
+                      {listing.store.name}
+                    </Link>
+                    <p className="text-xs text-gray-500">{listing.store.location || 'Tienda'}</p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* Personal seller card */
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="relative h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold overflow-hidden">
+                    {listing.profile.avatar_url ? (
+                      <Image
+                        src={listing.profile.avatar_url}
+                        alt={listing.profile.display_name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      listing.profile.display_name[0].toUpperCase()
+                    )}
+                  </div>
+                  <div>
+                    <Link 
+                      href={`/users/${listing.profile.username}`}
+                      className="font-semibold hover:underline"
+                    >
+                      {listing.profile.display_name}
+                    </Link>
+                    <p className="text-sm text-gray-500">@{listing.profile.username}</p>
+                    <p className="text-xs text-gray-400">Desde {memberSince}</p>
+                  </div>
+                </div>
+              )}
               
               {!isOwner && listing.status === 'active' && user && (
                 <Button asChild className="w-full">

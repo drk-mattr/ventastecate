@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { RealEstateMetadata, AutomotiveMetadata } from '@/lib/types/database'
 import Image from 'next/image'
 
 const CATEGORIES = [
@@ -36,8 +37,29 @@ export default function NewListingPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Real estate metadata
+  const [propertyType, setPropertyType] = useState('casa')
+  const [transactionType, setTransactionType] = useState('venta')
+  const [bedrooms, setBedrooms] = useState('')
+  const [bathrooms, setBathrooms] = useState('')
+  const [constructionM2, setConstructionM2] = useState('')
+  const [lotM2, setLotM2] = useState('')
+  const [parkingSpots, setParkingSpots] = useState('')
+
+  // Automotive metadata
+  const [make, setMake] = useState('')
+  const [model, setModel] = useState('')
+  const [year, setYear] = useState('')
+  const [mileageKm, setMileageKm] = useState('')
+  const [transmission, setTransmission] = useState('automatica')
+  const [fuelType, setFuelType] = useState('gasolina')
+  const [color, setColor] = useState('')
+  const [doors, setDoors] = useState('4')
+
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, activeStore } = useAuth()
+  const storeType = activeStore?.store_type || 'general'
   const supabase = createClient()
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,16 +91,45 @@ export default function NewListingPage() {
     setError('')
 
     try {
+      // Build metadata based on store type
+      let metadata = null
+      if (storeType === 'real_estate') {
+        metadata = {
+          type: 'real_estate',
+          property_type: propertyType,
+          transaction_type: transactionType,
+          ...(bedrooms && { bedrooms: parseInt(bedrooms) }),
+          ...(bathrooms && { bathrooms: parseInt(bathrooms) }),
+          ...(constructionM2 && { construction_m2: parseInt(constructionM2) }),
+          ...(lotM2 && { lot_m2: parseInt(lotM2) }),
+          ...(parkingSpots && { parking_spots: parseInt(parkingSpots) }),
+        } as RealEstateMetadata
+      } else if (storeType === 'automotive') {
+        metadata = {
+          type: 'automotive',
+          make,
+          model,
+          year: parseInt(year),
+          ...(mileageKm && { mileage_km: parseInt(mileageKm) }),
+          transmission,
+          fuel_type: fuelType,
+          ...(color && { color }),
+          ...(doors && { doors: parseInt(doors) }),
+        } as AutomotiveMetadata
+      }
+
       // Create the listing
       const { data: listing, error: listingError } = await supabase
         .from('listings')
         .insert({
           user_id: user.id,
+          store_id: activeStore?.id || null,
           title,
           description,
           price: parseFloat(price),
-          category,
-          location,
+          category: storeType === 'real_estate' ? 'Inmuebles' : storeType === 'automotive' ? 'Vehículos' : category,
+          location: location || activeStore?.location || '',
+          metadata,
           status: 'active',
         })
         .select()
@@ -130,7 +181,11 @@ export default function NewListingPage() {
         <Card>
           <CardHeader>
             <CardTitle>Crear Nuevo Anuncio</CardTitle>
-            <CardDescription>Completa la información de tu producto</CardDescription>
+            <CardDescription>
+              {activeStore
+                ? `Publicando como 🏪 ${activeStore.name}`
+                : 'Completa la información de tu producto'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -159,7 +214,9 @@ export default function NewListingPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Precio (MXN) *</Label>
+                  <Label htmlFor="price">
+                    {storeType === 'real_estate' ? 'Precio (MXN) *' : storeType === 'automotive' ? 'Precio (MXN) *' : 'Precio (MXN) *'}
+                  </Label>
                   <Input
                     id="price"
                     type="number"
@@ -172,22 +229,161 @@ export default function NewListingPage() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="category">Categoría *</Label>
-                  <Select value={category} onValueChange={setCategory} required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona una categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {storeType === 'general' ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Categoría *</Label>
+                    <Select value={category} onValueChange={setCategory} required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona una categoría" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CATEGORIES.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : storeType === 'real_estate' ? (
+                  <div className="space-y-2">
+                    <Label>Tipo de Operación *</Label>
+                    <Select value={transactionType} onValueChange={setTransactionType}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="venta">Venta</SelectItem>
+                        <SelectItem value="renta">Renta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="year">Año *</Label>
+                    <Input
+                      id="year"
+                      type="number"
+                      min="1950"
+                      max="2027"
+                      value={year}
+                      onChange={(e) => setYear(e.target.value)}
+                      required
+                      placeholder="2024"
+                    />
+                  </div>
+                )}
               </div>
+
+              {/* Real Estate Fields */}
+              {storeType === 'real_estate' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Tipo de Propiedad *</Label>
+                    <Select value={propertyType} onValueChange={setPropertyType}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="casa">Casa</SelectItem>
+                        <SelectItem value="departamento">Departamento</SelectItem>
+                        <SelectItem value="terreno">Terreno</SelectItem>
+                        <SelectItem value="local">Local Comercial</SelectItem>
+                        <SelectItem value="oficina">Oficina</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="bedrooms">Recámaras</Label>
+                      <Input id="bedrooms" type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} placeholder="3" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bathrooms">Baños</Label>
+                      <Input id="bathrooms" type="number" min="0" step="0.5" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} placeholder="2" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="parking">Estacionamientos</Label>
+                      <Input id="parking" type="number" min="0" value={parkingSpots} onChange={(e) => setParkingSpots(e.target.value)} placeholder="2" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="constructionM2">m² Construidos</Label>
+                      <Input id="constructionM2" type="number" min="0" value={constructionM2} onChange={(e) => setConstructionM2(e.target.value)} placeholder="120" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lotM2">m² Terreno</Label>
+                      <Input id="lotM2" type="number" min="0" value={lotM2} onChange={(e) => setLotM2(e.target.value)} placeholder="200" />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Automotive Fields */}
+              {storeType === 'automotive' && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="make">Marca *</Label>
+                      <Input id="make" value={make} onChange={(e) => setMake(e.target.value)} required placeholder="Toyota" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="model">Modelo *</Label>
+                      <Input id="model" value={model} onChange={(e) => setModel(e.target.value)} required placeholder="Tacoma" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="mileage">Kilómetros</Label>
+                      <Input id="mileage" type="number" min="0" value={mileageKm} onChange={(e) => setMileageKm(e.target.value)} placeholder="45000" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Transmisión</Label>
+                      <Select value={transmission} onValueChange={setTransmission}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="automatica">Automática</SelectItem>
+                          <SelectItem value="manual">Manual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Combustible</Label>
+                      <Select value={fuelType} onValueChange={setFuelType}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="gasolina">Gasolina</SelectItem>
+                          <SelectItem value="diesel">Diésel</SelectItem>
+                          <SelectItem value="electrico">Eléctrico</SelectItem>
+                          <SelectItem value="hibrido">Híbrido</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="color">Color</Label>
+                      <Input id="color" value={color} onChange={(e) => setColor(e.target.value)} placeholder="Blanco" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Puertas</Label>
+                      <Select value={doors} onValueChange={setDoors}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="2">2 puertas</SelectItem>
+                          <SelectItem value="4">4 puertas</SelectItem>
+                          <SelectItem value="5">5 puertas</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="location">Ubicación *</Label>

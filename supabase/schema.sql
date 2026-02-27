@@ -14,15 +14,33 @@ create table public.profiles (
   constraint username_format check (username ~ '^[a-zA-Z0-9_]+$')
 );
 
+-- Create stores table
+create table public.stores (
+  id uuid default uuid_generate_v4() primary key,
+  owner_id uuid references public.profiles(id) on delete cascade not null,
+  slug text unique not null,
+  name text not null,
+  store_type text not null default 'general' check (store_type in ('general', 'real_estate', 'automotive')),
+  description text,
+  avatar_url text,
+  location text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  constraint slug_length check (char_length(slug) >= 3 and char_length(slug) <= 40),
+  constraint slug_format check (slug ~ '^[a-z0-9][a-z0-9-]*[a-z0-9]$')
+);
+
 -- Create listings table
 create table public.listings (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
+  store_id uuid references public.stores(id) on delete set null,
   title text not null,
   description text not null,
   price numeric(10, 2) not null check (price >= 0),
   category text not null,
   location text not null,
+  metadata jsonb,
   status text not null default 'active' check (status in ('active', 'sold', 'inactive')),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
@@ -60,7 +78,10 @@ create table public.messages (
 );
 
 -- Create indexes for better performance
+create index stores_owner_id_idx on public.stores(owner_id);
+create index stores_slug_idx on public.stores(slug);
 create index listings_user_id_idx on public.listings(user_id);
+create index listings_store_id_idx on public.listings(store_id);
 create index listings_status_idx on public.listings(status);
 create index listings_category_idx on public.listings(category);
 create index listings_created_at_idx on public.listings(created_at desc);
@@ -72,6 +93,7 @@ create index messages_created_at_idx on public.messages(created_at);
 
 -- Enable Row Level Security
 alter table public.profiles enable row level security;
+alter table public.stores enable row level security;
 alter table public.listings enable row level security;
 alter table public.listing_images enable row level security;
 alter table public.conversations enable row level security;
@@ -89,6 +111,23 @@ create policy "Users can insert their own profile"
 create policy "Users can update their own profile"
   on public.profiles for update
   using (auth.uid() = id);
+
+-- Stores RLS Policies
+create policy "Stores are viewable by everyone"
+  on public.stores for select
+  using (true);
+
+create policy "Users can create their own stores"
+  on public.stores for insert
+  with check (auth.uid() = owner_id);
+
+create policy "Users can update their own stores"
+  on public.stores for update
+  using (auth.uid() = owner_id);
+
+create policy "Users can delete their own stores"
+  on public.stores for delete
+  using (auth.uid() = owner_id);
 
 -- Listings RLS Policies
 create policy "Listings are viewable by everyone"
@@ -204,6 +243,10 @@ create trigger handle_profiles_updated_at
   before update on public.profiles
   for each row execute procedure public.handle_updated_at();
 
+create trigger handle_stores_updated_at
+  before update on public.stores
+  for each row execute procedure public.handle_updated_at();
+
 create trigger handle_listings_updated_at
   before update on public.listings
   for each row execute procedure public.handle_updated_at();
@@ -219,6 +262,10 @@ values ('listing-images', 'listing-images', true);
 -- Create storage bucket for user avatars
 insert into storage.buckets (id, name, public)
 values ('avatars', 'avatars', true);
+
+-- Create storage bucket for store avatars
+insert into storage.buckets (id, name, public)
+values ('store-avatars', 'store-avatars', true);
 
 -- Storage policies for listing images
 create policy "Anyone can view listing images"
@@ -270,5 +317,32 @@ create policy "Users can delete their own avatar"
   on storage.objects for delete
   using (
     bucket_id = 'avatars'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+-- Storage policies for store avatars
+create policy "Anyone can view store avatars"
+  on storage.objects for select
+  using (bucket_id = 'store-avatars');
+
+create policy "Authenticated users can upload store avatars"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'store-avatars'
+    and auth.role() = 'authenticated'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+create policy "Users can update their own store avatar"
+  on storage.objects for update
+  using (
+    bucket_id = 'store-avatars'
+    and auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+create policy "Users can delete their own store avatar"
+  on storage.objects for delete
+  using (
+    bucket_id = 'store-avatars'
     and auth.uid()::text = (storage.foldername(name))[1]
   );

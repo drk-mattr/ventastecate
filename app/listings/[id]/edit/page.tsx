@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { RealEstateMetadata, AutomotiveMetadata, ListingMetadata } from '@/lib/types/database'
 import Image from 'next/image'
 
 const CATEGORIES = [
@@ -47,6 +48,27 @@ export default function EditListingPage() {
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
   const [error, setError] = useState('')
+  const [metadataType, setMetadataType] = useState<string | null>(null)
+
+  // Real estate metadata
+  const [propertyType, setPropertyType] = useState('casa')
+  const [transactionType, setTransactionType] = useState('venta')
+  const [bedrooms, setBedrooms] = useState('')
+  const [bathrooms, setBathrooms] = useState('')
+  const [constructionM2, setConstructionM2] = useState('')
+  const [lotM2, setLotM2] = useState('')
+  const [parkingSpots, setParkingSpots] = useState('')
+
+  // Automotive metadata
+  const [make, setMake] = useState('')
+  const [model, setModel] = useState('')
+  const [year, setYear] = useState('')
+  const [mileageKm, setMileageKm] = useState('')
+  const [transmission, setTransmission] = useState('automatica')
+  const [fuelType, setFuelType] = useState('gasolina')
+  const [color, setColor] = useState('')
+  const [doors, setDoors] = useState('4')
+
   const router = useRouter()
   const { user } = useAuth()
   const supabase = createClient()
@@ -90,6 +112,30 @@ export default function EditListingPage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (listing.images || []).sort((a: any, b: any) => a.order_index - b.order_index)
       )
+
+      // Load metadata
+      const meta = listing.metadata as ListingMetadata | null
+      if (meta?.type === 'real_estate') {
+        setMetadataType('real_estate')
+        setPropertyType(meta.property_type || 'casa')
+        setTransactionType(meta.transaction_type || 'venta')
+        setBedrooms(meta.bedrooms?.toString() || '')
+        setBathrooms(meta.bathrooms?.toString() || '')
+        setConstructionM2(meta.construction_m2?.toString() || '')
+        setLotM2(meta.lot_m2?.toString() || '')
+        setParkingSpots(meta.parking_spots?.toString() || '')
+      } else if (meta?.type === 'automotive') {
+        setMetadataType('automotive')
+        setMake(meta.make || '')
+        setModel(meta.model || '')
+        setYear(meta.year?.toString() || '')
+        setMileageKm(meta.mileage_km?.toString() || '')
+        setTransmission(meta.transmission || 'automatica')
+        setFuelType(meta.fuel_type || 'gasolina')
+        setColor(meta.color || '')
+        setDoors(meta.doors?.toString() || '4')
+      }
+
       setFetching(false)
     }
 
@@ -127,6 +173,33 @@ export default function EditListingPage() {
     setError('')
 
     try {
+      // Build metadata
+      let metadata: ListingMetadata | null = null
+      if (metadataType === 'real_estate') {
+        metadata = {
+          type: 'real_estate',
+          property_type: propertyType,
+          transaction_type: transactionType,
+          ...(bedrooms && { bedrooms: parseInt(bedrooms) }),
+          ...(bathrooms && { bathrooms: parseInt(bathrooms) }),
+          ...(constructionM2 && { construction_m2: parseInt(constructionM2) }),
+          ...(lotM2 && { lot_m2: parseInt(lotM2) }),
+          ...(parkingSpots && { parking_spots: parseInt(parkingSpots) }),
+        } as RealEstateMetadata
+      } else if (metadataType === 'automotive') {
+        metadata = {
+          type: 'automotive',
+          make,
+          model,
+          year: parseInt(year),
+          ...(mileageKm && { mileage_km: parseInt(mileageKm) }),
+          transmission,
+          fuel_type: fuelType,
+          ...(color && { color }),
+          ...(doors && { doors: parseInt(doors) }),
+        } as AutomotiveMetadata
+      }
+
       // Update listing fields
       const { error: updateError } = await supabase
         .from('listings')
@@ -136,6 +209,7 @@ export default function EditListingPage() {
           price: parseFloat(price),
           category,
           location,
+          metadata,
           status,
         })
         .eq('id', id)
@@ -278,6 +352,126 @@ export default function EditListingPage() {
                   </Select>
                 </div>
               </div>
+
+              {/* Real Estate Fields */}
+              {metadataType === 'real_estate' && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Tipo de Propiedad</Label>
+                      <Select value={propertyType} onValueChange={setPropertyType}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="casa">Casa</SelectItem>
+                          <SelectItem value="departamento">Departamento</SelectItem>
+                          <SelectItem value="terreno">Terreno</SelectItem>
+                          <SelectItem value="local">Local Comercial</SelectItem>
+                          <SelectItem value="oficina">Oficina</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tipo de Operación</Label>
+                      <Select value={transactionType} onValueChange={setTransactionType}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="venta">Venta</SelectItem>
+                          <SelectItem value="renta">Renta</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Recámaras</Label>
+                      <Input type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} placeholder="3" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Baños</Label>
+                      <Input type="number" min="0" step="0.5" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} placeholder="2" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Estacionamientos</Label>
+                      <Input type="number" min="0" value={parkingSpots} onChange={(e) => setParkingSpots(e.target.value)} placeholder="2" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>m² Construidos</Label>
+                      <Input type="number" min="0" value={constructionM2} onChange={(e) => setConstructionM2(e.target.value)} placeholder="120" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>m² Terreno</Label>
+                      <Input type="number" min="0" value={lotM2} onChange={(e) => setLotM2(e.target.value)} placeholder="200" />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Automotive Fields */}
+              {metadataType === 'automotive' && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Marca</Label>
+                      <Input value={make} onChange={(e) => setMake(e.target.value)} placeholder="Toyota" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Modelo</Label>
+                      <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="Tacoma" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Año</Label>
+                      <Input type="number" min="1950" max="2027" value={year} onChange={(e) => setYear(e.target.value)} placeholder="2024" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Kilómetros</Label>
+                      <Input type="number" min="0" value={mileageKm} onChange={(e) => setMileageKm(e.target.value)} placeholder="45000" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Transmisión</Label>
+                      <Select value={transmission} onValueChange={setTransmission}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="automatica">Automática</SelectItem>
+                          <SelectItem value="manual">Manual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Combustible</Label>
+                      <Select value={fuelType} onValueChange={setFuelType}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="gasolina">Gasolina</SelectItem>
+                          <SelectItem value="diesel">Diésel</SelectItem>
+                          <SelectItem value="electrico">Eléctrico</SelectItem>
+                          <SelectItem value="hibrido">Híbrido</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Color</Label>
+                      <Input value={color} onChange={(e) => setColor(e.target.value)} placeholder="Blanco" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Puertas</Label>
+                      <Select value={doors} onValueChange={setDoors}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="2">2</SelectItem>
+                          <SelectItem value="4">4</SelectItem>
+                          <SelectItem value="5">5</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="location">Ubicación *</Label>

@@ -33,6 +33,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         id,
         username,
         display_name
+      ),
+      store:stores(
+        id,
+        slug,
+        name
       )
     `)
     .eq('status', 'active')

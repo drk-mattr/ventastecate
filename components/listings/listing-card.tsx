@@ -43,6 +43,12 @@ export function ListingCard({ listing }: ListingCardProps) {
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <span className="truncate">{listing.location}</span>
           </div>
+          {listing.store && (
+            <div className="mt-1.5 flex items-center gap-1 text-[11px] text-gray-400">
+              <span>🏪</span>
+              <span className="truncate">{listing.store.name}</span>
+            </div>
+          )}
         </div>
       </div>
     </Link>

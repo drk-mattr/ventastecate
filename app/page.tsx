@@ -24,6 +24,11 @@ export default async function Home() {
         id,
         username,
         display_name
+      ),
+      store:stores(
+        id,
+        slug,
+        name
       )
     `)
     .eq('status', 'active')

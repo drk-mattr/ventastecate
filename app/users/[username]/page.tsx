@@ -35,6 +35,11 @@ export default async function UserProfilePage({ params }: { params: Promise<{ us
         id,
         username,
         display_name
+      ),
+      store:stores(
+        id,
+        slug,
+        name
       )
     `)
     .eq('user_id', profile.id)

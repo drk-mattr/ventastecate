@@ -11,12 +11,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Check } from 'lucide-react'
 
 export function Header() {
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, stores, activeStore, setActiveStore, signOut } = useAuth()
   const pathname = usePathname()
   const isHomePage = pathname === '/'
 
@@ -65,11 +67,27 @@ export function Header() {
               <Button asChild size="sm" className="h-8 px-3 text-xs">
                 <Link href="/listings/new">Publicar</Link>
               </Button>
+              {activeStore && (
+                <span className="text-[10px] text-gray-500 hidden sm:block max-w-[100px] truncate" title={activeStore.name}>
+                  🏪 {activeStore.name}
+                </span>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0">
                     <div className="relative h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium overflow-hidden">
-                      {profile?.avatar_url ? (
+                      {activeStore ? (
+                        activeStore.avatar_url ? (
+                          <Image
+                            src={activeStore.avatar_url}
+                            alt={activeStore.name}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <span className="text-sm">🏪</span>
+                        )
+                      ) : profile?.avatar_url ? (
                         <Image
                           src={profile.avatar_url}
                           alt={profile.display_name}
@@ -82,12 +100,44 @@ export function Header() {
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" className="w-52">
                   <div className="px-2 py-1.5">
-                    <p className="text-xs font-medium">{profile?.display_name}</p>
-                    <p className="text-xs text-gray-500">@{profile?.username}</p>
+                    <p className="text-xs font-medium">
+                      {activeStore ? activeStore.name : profile?.display_name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {activeStore ? `🏪 Modo tienda` : `@${profile?.username}`}
+                    </p>
                   </div>
                   <DropdownMenuSeparator />
+
+                  {/* Context Switcher */}
+                  {stores.length > 0 && (
+                    <>
+                      <DropdownMenuLabel className="text-[10px] uppercase text-gray-400 font-medium">
+                        Publicar como
+                      </DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onClick={() => setActiveStore(null)}
+                        className="text-xs flex items-center justify-between"
+                      >
+                        <span>👤 Yo ({profile?.display_name})</span>
+                        {!activeStore && <Check className="h-3 w-3" />}
+                      </DropdownMenuItem>
+                      {stores.map((store) => (
+                        <DropdownMenuItem
+                          key={store.id}
+                          onClick={() => setActiveStore(store)}
+                          className="text-xs flex items-center justify-between"
+                        >
+                          <span className="truncate">🏪 {store.name}</span>
+                          {activeStore?.id === store.id && <Check className="h-3 w-3" />}
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+
                   <DropdownMenuItem asChild className="text-xs">
                     <Link href={`/users/${profile?.username}`}>Mi Perfil</Link>
                   </DropdownMenuItem>
@@ -96,6 +146,9 @@ export function Header() {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="text-xs">
                     <Link href="/messages">Mensajes</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="text-xs">
+                    <Link href="/stores/new">Mis Tiendas</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild className="text-xs">

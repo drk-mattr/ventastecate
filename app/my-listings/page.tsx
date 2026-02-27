@@ -29,6 +29,11 @@ export default async function MyListingsPage() {
         id,
         username,
         display_name
+      ),
+      store:stores(
+        id,
+        slug,
+        name
       )
     `)
     .eq('user_id', user.id)

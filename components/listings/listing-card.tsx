@@ -24,6 +24,38 @@ export function ListingCard({ listing }: ListingCardProps) {
     ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(listing.price)
     : null
 
+  // Event card: poster-first layout with natural image height
+  if (isEvent && primaryImage) {
+    return (
+      <Link href={`/listings/${listing.id}`} className="group">
+        <div className="overflow-hidden rounded-lg border bg-white hover:shadow-md transition-shadow">
+          <div className="relative bg-black">
+            <Image
+              src={primaryImage}
+              alt={listing.title}
+              width={400}
+              height={600}
+              className="w-full h-auto"
+            />
+            {listing.status === 'sold' && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <Badge variant="secondary" className="text-xs">Vendido</Badge>
+              </div>
+            )}
+          </div>
+          {/* Minimal info strip */}
+          <div className="px-2.5 py-2 flex items-center justify-between gap-2">
+            <span className="text-xs text-gray-500 truncate">{listing.location}</span>
+            {formattedPrice && (
+              <span className="text-xs font-semibold shrink-0">{formattedPrice}</span>
+            )}
+          </div>
+        </div>
+      </Link>
+    )
+  }
+
+  // Standard card: products, services, no-image events
   return (
     <Link href={`/listings/${listing.id}`} className="group">
       <div className="overflow-hidden rounded-lg border bg-white hover:shadow-md transition-shadow">
@@ -53,7 +85,6 @@ export function ListingCard({ listing }: ListingCardProps) {
           )}
         </div>
         <div className="p-3">
-          {/* Only show title text below if there's an image (avoid repeating when title IS the hero) */}
           {primaryImage && (
             <h3 className="font-medium text-sm line-clamp-2 mb-1 group-hover:text-blue-600 transition-colors">
               {listing.title}

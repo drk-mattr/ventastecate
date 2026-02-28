@@ -29,8 +29,56 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
     setLightboxOpen(true)
   }
 
+  const isEvent = listingType === 'event'
+
   if (images.length === 0) {
     return <div className="mb-6" />
+  }
+
+  // Event/poster layout: show flyer in full, centered like a poster on a wall
+  if (isEvent) {
+    return (
+      <>
+        <div className="relative mb-6">
+          <div className="max-w-2xl mx-auto">
+            {/* Primary flyer — full display, no crop */}
+            <div className="relative rounded-lg overflow-hidden bg-gray-50 border cursor-pointer" onClick={() => openLightbox(0)}>
+              <Image
+                src={images[0].image_url}
+                alt={listingTitle}
+                width={800}
+                height={1100}
+                className="w-full h-auto hover:opacity-95 transition-opacity"
+                priority
+              />
+              {isSold && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <Badge variant="secondary" className="text-sm">Vendido</Badge>
+                </div>
+              )}
+            </div>
+            {/* Additional images as thumbnails below */}
+            {images.length > 1 && (
+              <div className="flex gap-2 mt-2 overflow-x-auto">
+                {images.slice(1).map((image, idx) => (
+                  <div
+                    key={image.id}
+                    className="relative w-20 h-20 shrink-0 rounded-md overflow-hidden bg-gray-100 cursor-pointer border"
+                    onClick={() => openLightbox(idx + 1)}
+                  >
+                    <Image src={image.image_url} alt={listingTitle} fill className="object-cover hover:opacity-90 transition-opacity" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {lightboxOpen && (
+          <ImageLightbox images={images} initialIndex={lightboxIndex} onClose={() => setLightboxOpen(false)} />
+        )}
+      </>
+    )
   }
 
   return (

@@ -193,15 +193,17 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           listingType={listingType}
         />
 
-        {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Content Grid — events use a centered single-column poster layout */}
+        <div className={isEvent ? 'max-w-2xl mx-auto space-y-4' : 'grid grid-cols-1 lg:grid-cols-3 gap-6'}>
           {/* Left Column - Description */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className={isEvent ? 'space-y-4' : 'lg:col-span-2 space-y-4'}>
 
             {/* Title and Price */}
             <div>
               <h1 className="text-2xl font-semibold mb-2">{listing.title}</h1>
-              <p className="text-3xl font-bold text-gray-900 mb-4">{formattedPrice}</p>
+              {listing.price > 0 && (
+                <p className="text-3xl font-bold text-gray-900 mb-4">{formattedPrice}</p>
+              )}
               <div className="flex items-center gap-3 text-sm text-gray-600 pb-4 border-b">
                 <Badge variant="outline" className="text-xs">{listing.category}</Badge>
                 <span>•</span>

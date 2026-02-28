@@ -11,10 +11,10 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { RealEstateMetadata, AutomotiveMetadata } from '@/lib/types/database'
+import { RealEstateMetadata, AutomotiveMetadata, ListingType } from '@/lib/types/database'
 import Image from 'next/image'
 
-const CATEGORIES = [
+const PRODUCT_CATEGORIES = [
   'Electrónica',
   'Muebles',
   'Vehículos',
@@ -27,10 +27,38 @@ const CATEGORIES = [
   'Otros',
 ]
 
+const SERVICE_CATEGORIES = [
+  'Plomería',
+  'Electricidad',
+  'Albañilería',
+  'Pintura',
+  'Belleza y Uñas',
+  'Reparaciones',
+  'Limpieza',
+  'Jardinería',
+  'Clases y Tutorías',
+  'Fletes y Mudanzas',
+  'Otros Servicios',
+]
+
+const EVENT_CATEGORIES = [
+  'Eventos',
+  'Anuncios Comunitarios',
+  'Empleos',
+]
+
+const LISTING_TYPE_OPTIONS: { value: ListingType; icon: string; label: string }[] = [
+  { value: 'product', icon: '📦', label: 'Producto' },
+  { value: 'service', icon: '🔧', label: 'Servicio' },
+  { value: 'event', icon: '📢', label: 'Evento' },
+]
+
 export default function NewListingPage() {
+  const [listingType, setListingType] = useState<ListingType>('product')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
+  const [priceConsultar, setPriceConsultar] = useState(false)
   const [category, setCategory] = useState('')
   const [location, setLocation] = useState('')
   const [images, setImages] = useState<File[]>([])
@@ -118,16 +146,22 @@ export default function NewListingPage() {
         } as AutomotiveMetadata
       }
 
+      // Determine category for specialized store types
+      let finalCategory = category
+      if (storeType === 'real_estate') finalCategory = 'Inmuebles'
+      else if (storeType === 'automotive') finalCategory = 'Vehículos'
+
       // Create the listing
       const { data: listing, error: listingError } = await supabase
         .from('listings')
         .insert({
           user_id: user.id,
           store_id: activeStore?.id || null,
+          listing_type: listingType,
           title,
           description,
-          price: parseFloat(price),
-          category: storeType === 'real_estate' ? 'Inmuebles' : storeType === 'automotive' ? 'Vehículos' : category,
+          price: priceConsultar ? 0 : parseFloat(price),
+          category: finalCategory,
           location: location || activeStore?.location || '',
           metadata,
           status: 'active',
@@ -189,6 +223,30 @@ export default function NewListingPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Listing type selector */}
+              {storeType === 'general' && (
+                <div className="space-y-2">
+                  <Label>Tipo de publicación</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {LISTING_TYPE_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => { setListingType(opt.value); setCategory('') }}
+                        className={`p-3 rounded-lg border-2 text-center transition ${
+                          listingType === opt.value
+                            ? 'border-black bg-gray-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <span className="text-xl block mb-1">{opt.icon}</span>
+                        <span className="text-xs font-medium">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="title">Título *</Label>
                 <Input
@@ -196,8 +254,13 @@ export default function NewListingPage() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
-                  placeholder="Ej: iPhone 13 Pro Max"
+                  placeholder={listingType === 'service' ? 'Ej: Se pintan Casas' : listingType === 'event' ? 'Ej: Gran Bazar Navideño' : 'Ej: iPhone 13 Pro Max'}
                 />
+                {listingType !== 'product' && (
+                  <p className="text-xs text-gray-500">
+                    💡 Si no agregas imágenes, el título se mostrará como portada de tu anuncio
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -215,7 +278,7 @@ export default function NewListingPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="price">
-                    {storeType === 'real_estate' ? 'Precio (MXN) *' : storeType === 'automotive' ? 'Precio (MXN) *' : 'Precio (MXN) *'}
+                    Precio (MXN) {priceConsultar ? '' : '*'}
                   </Label>
                   <Input
                     id="price"
@@ -224,9 +287,21 @@ export default function NewListingPage() {
                     min="0"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
-                    required
-                    placeholder="1000.00"
+                    required={!priceConsultar}
+                    disabled={priceConsultar}
+                    placeholder={priceConsultar ? 'A consultar' : '1000.00'}
                   />
+                  {(listingType === 'service' || listingType === 'event') && (
+                    <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={priceConsultar}
+                        onChange={(e) => { setPriceConsultar(e.target.checked); if (e.target.checked) setPrice('') }}
+                        className="rounded"
+                      />
+                      Precio a consultar
+                    </label>
+                  )}
                 </div>
 
                 {storeType === 'general' ? (
@@ -237,7 +312,7 @@ export default function NewListingPage() {
                         <SelectValue placeholder="Selecciona una categoría" />
                       </SelectTrigger>
                       <SelectContent>
-                        {CATEGORIES.map((cat) => (
+                        {(listingType === 'service' ? SERVICE_CATEGORIES : listingType === 'event' ? EVENT_CATEGORIES : PRODUCT_CATEGORIES).map((cat) => (
                           <SelectItem key={cat} value={cat}>
                             {cat}
                           </SelectItem>
@@ -397,7 +472,9 @@ export default function NewListingPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="images">Imágenes (Máximo 5)</Label>
+                <Label htmlFor="images">
+                  Imágenes (Máximo 5){listingType !== 'product' ? ' — Opcional' : ''}
+                </Label>
                 <Input
                   id="images"
                   type="file"

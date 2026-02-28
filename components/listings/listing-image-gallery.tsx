@@ -5,14 +5,22 @@ import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ImageLightbox } from './image-lightbox'
+import { ListingType } from '@/lib/types/database'
 
 interface ListingImageGalleryProps {
   images: { id: string; image_url: string; order_index: number }[]
   listingTitle: string
   isSold: boolean
+  listingType?: ListingType
 }
 
-export function ListingImageGallery({ images, listingTitle, isSold }: ListingImageGalleryProps) {
+const HERO_GRADIENTS: Record<string, string> = {
+  service: 'from-blue-600 to-blue-800',
+  event: 'from-amber-500 to-orange-600',
+  product: 'from-gray-500 to-gray-700',
+}
+
+export function ListingImageGallery({ images, listingTitle, isSold, listingType = 'product' }: ListingImageGalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
 
@@ -22,11 +30,7 @@ export function ListingImageGallery({ images, listingTitle, isSold }: ListingIma
   }
 
   if (images.length === 0) {
-    return (
-      <div className="h-[400px] bg-gray-100 rounded-lg flex items-center justify-center mb-6">
-        <p className="text-sm text-gray-400">Sin imágenes</p>
-      </div>
-    )
+    return <div className="mb-6" />
   }
 
   return (

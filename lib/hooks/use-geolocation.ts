@@ -121,6 +121,26 @@ export function getNearestLocation(
     }
   }
 
-  // Only return if within 50km of Tecate area
-  return minDistance < 50 ? nearestLocation : null
+  // Only return if within 15km of a known Tecate location
+  return minDistance < 15 ? nearestLocation : null
+}
+
+// Reverse geocode coordinates to a city/neighborhood name via Nominatim
+export async function reverseGeocode(
+  lat: number,
+  lon: number
+): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10&accept-language=es`,
+      { headers: { 'User-Agent': 'VentasTecate/1.0' } }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    const addr = data.address
+    // Prefer city > town > county > state
+    return addr?.city || addr?.town || addr?.county || addr?.state || null
+  } catch {
+    return null
+  }
 }

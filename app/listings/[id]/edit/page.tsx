@@ -11,10 +11,11 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { RealEstateMetadata, AutomotiveMetadata, ListingMetadata } from '@/lib/types/database'
+import { RealEstateMetadata, AutomotiveMetadata, ListingMetadata, ListingType } from '@/lib/types/database'
+import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
 
-const CATEGORIES = [
+const PRODUCT_CATEGORIES = [
   'Electrónica',
   'Muebles',
   'Vehículos',
@@ -26,6 +27,38 @@ const CATEGORIES = [
   'Mascotas',
   'Otros',
 ]
+
+const SERVICE_CATEGORIES = [
+  'Plomería',
+  'Electricidad',
+  'Albañilería',
+  'Pintura',
+  'Belleza y Uñas',
+  'Reparaciones',
+  'Limpieza',
+  'Jardinería',
+  'Clases y Tutorías',
+  'Fletes y Mudanzas',
+  'Otros Servicios',
+]
+
+const EVENT_CATEGORIES = [
+  'Eventos',
+  'Anuncios Comunitarios',
+  'Empleos',
+]
+
+const TYPE_LABELS: Record<ListingType, { icon: string; label: string }> = {
+  product: { icon: '📦', label: 'Producto' },
+  service: { icon: '🔧', label: 'Servicio' },
+  event: { icon: '📢', label: 'Evento' },
+}
+
+function getCategoriesForType(type: ListingType) {
+  if (type === 'service') return SERVICE_CATEGORIES
+  if (type === 'event') return EVENT_CATEGORIES
+  return PRODUCT_CATEGORIES
+}
 
 interface ExistingImage {
   id: string
@@ -48,6 +81,8 @@ export default function EditListingPage() {
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
   const [error, setError] = useState('')
+  const [listingType, setListingType] = useState<ListingType>('product')
+  const [priceConsultar, setPriceConsultar] = useState(false)
   const [metadataType, setMetadataType] = useState<string | null>(null)
 
   // Real estate metadata
@@ -104,10 +139,12 @@ export default function EditListingPage() {
 
       setTitle(listing.title)
       setDescription(listing.description)
-      setPrice(String(listing.price))
+      setPrice(listing.price > 0 ? String(listing.price) : '')
+      setPriceConsultar(listing.price === 0)
       setCategory(listing.category)
       setLocation(listing.location)
       setStatus(listing.status)
+      setListingType(listing.listing_type || 'product')
       setExistingImages(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (listing.images || []).sort((a: any, b: any) => a.order_index - b.order_index)
@@ -206,7 +243,7 @@ export default function EditListingPage() {
         .update({
           title,
           description,
-          price: parseFloat(price),
+          price: priceConsultar ? 0 : parseFloat(price),
           category,
           location,
           metadata,
@@ -293,8 +330,15 @@ export default function EditListingPage() {
       <main className="container mx-auto px-4 py-8 max-w-3xl">
         <Card>
           <CardHeader>
-            <CardTitle>Editar Anuncio</CardTitle>
-            <CardDescription>Modifica la información de tu producto</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Editar Anuncio</CardTitle>
+                <CardDescription>Modifica la información de tu publicación</CardDescription>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                {TYPE_LABELS[listingType].icon} {TYPE_LABELS[listingType].label}
+              </Badge>
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -323,7 +367,7 @@ export default function EditListingPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Precio (MXN) *</Label>
+                  <Label htmlFor="price">Precio (MXN) {priceConsultar ? '' : '*'}</Label>
                   <Input
                     id="price"
                     type="number"
@@ -331,9 +375,21 @@ export default function EditListingPage() {
                     min="0"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
-                    required
-                    placeholder="1000.00"
+                    required={!priceConsultar}
+                    disabled={priceConsultar}
+                    placeholder={priceConsultar ? 'A consultar' : '1000.00'}
                   />
+                  {(listingType === 'service' || listingType === 'event') && (
+                    <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={priceConsultar}
+                        onChange={(e) => { setPriceConsultar(e.target.checked); if (e.target.checked) setPrice('') }}
+                        className="rounded"
+                      />
+                      Precio a consultar
+                    </label>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -343,7 +399,7 @@ export default function EditListingPage() {
                       <SelectValue placeholder="Selecciona una categoría" />
                     </SelectTrigger>
                     <SelectContent>
-                      {CATEGORIES.map((cat) => (
+                      {getCategoriesForType(listingType).map((cat) => (
                         <SelectItem key={cat} value={cat}>
                           {cat}
                         </SelectItem>

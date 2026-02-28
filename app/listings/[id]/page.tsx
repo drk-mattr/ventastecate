@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ListingMetadata, RealEstateMetadata, AutomotiveMetadata } from '@/lib/types/database'
+import { ListingMetadata, RealEstateMetadata, AutomotiveMetadata, ListingType } from '@/lib/types/database'
 import { ListingImageGallery } from '@/components/listings/listing-image-gallery'
 import Image from 'next/image'
 
@@ -128,10 +128,13 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const { data: { user } } = await supabase.auth.getUser()
   const isOwner = user?.id === listing.user_id
 
-  const formattedPrice = new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-  }).format(listing.price)
+  const listingType: ListingType = listing.listing_type || 'product'
+  const isService = listingType === 'service'
+  const isEvent = listingType === 'event'
+
+  const formattedPrice = listing.price > 0
+    ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(listing.price)
+    : 'Consultar precio'
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sortedImages = listing.images.sort((a: any, b: any) => a.order_index - b.order_index)
@@ -143,20 +146,28 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   // Structured data for SEO (JSON-LD)
   const structuredData = {
     '@context': 'https://schema.org',
-    '@type': 'Product',
+    '@type': isService ? 'Service' : 'Product',
     name: listing.title,
     description: listing.description,
     image: sortedImages.map((img: { image_url: string }) => img.image_url),
-    offers: {
-      '@type': 'Offer',
-      price: listing.price,
-      priceCurrency: 'MXN',
-      availability: listing.status === 'active' ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      seller: {
-        '@type': 'Person',
-        name: listing.profile.display_name,
+    ...(isService ? {
+      provider: {
+        '@type': listing.store ? 'Organization' : 'Person',
+        name: listing.store ? listing.store.name : listing.profile.display_name,
       },
-    },
+      areaServed: listing.location,
+    } : {
+      offers: {
+        '@type': 'Offer',
+        price: listing.price,
+        priceCurrency: 'MXN',
+        availability: listing.status === 'active' ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+        seller: {
+          '@type': 'Person',
+          name: listing.profile.display_name,
+        },
+      },
+    }),
     category: listing.category,
     brand: {
       '@type': 'Brand',
@@ -179,6 +190,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           images={sortedImages}
           listingTitle={listing.title}
           isSold={listing.status === 'sold'}
+          listingType={listingType}
         />
 
         {/* Content Grid */}
@@ -308,7 +320,9 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           {/* Right Column - Seller Info */}
           <div>
             <div className="border rounded-lg p-6 sticky top-4">
-              <h3 className="text-base font-semibold mb-4">Vendedor</h3>
+              <h3 className="text-base font-semibold mb-4">
+                {isService ? 'Proveedor' : isEvent ? 'Organizador' : 'Vendedor'}
+              </h3>
 
               {listing.store ? (
                 /* Store seller card */
@@ -366,7 +380,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               {!isOwner && listing.status === 'active' && user && (
                 <Button asChild className="w-full">
                   <Link href={`/messages?listing=${listing.id}&seller=${listing.user_id}`}>
-                    Contactar Vendedor
+                    {isService ? 'Contactar' : isEvent ? 'Contactar Organizador' : 'Contactar Vendedor'}
                   </Link>
                 </Button>
               )}

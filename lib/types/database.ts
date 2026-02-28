@@ -8,6 +8,8 @@ export type Profile = {
   updated_at: string
 }
 
+export type ListingType = 'product' | 'service' | 'event'
+
 export type StoreType = 'general' | 'real_estate' | 'automotive'
 
 export type Store = {
@@ -52,6 +54,7 @@ export type Listing = {
   id: string
   user_id: string
   store_id?: string | null
+  listing_type: ListingType
   title: string
   description: string
   price: number

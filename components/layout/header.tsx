@@ -147,8 +147,20 @@ export function Header() {
                   <DropdownMenuItem asChild className="text-xs">
                     <Link href="/messages">Mensajes</Link>
                   </DropdownMenuItem>
+                  <DropdownMenuLabel className="text-[10px] uppercase text-gray-400 font-medium">
+                    Mis Tiendas
+                  </DropdownMenuLabel>
+                  {stores.length > 0 ? (
+                    stores.map((store) => (
+                      <DropdownMenuItem key={store.id} asChild className="text-xs">
+                        <Link href={`/stores/${store.slug}`}>🏪 {store.name}</Link>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <div className="px-2 py-1 text-xs text-gray-400">Sin tiendas</div>
+                  )}
                   <DropdownMenuItem asChild className="text-xs">
-                    <Link href="/stores/new">Mis Tiendas</Link>
+                    <Link href="/stores/new">+ Crear Tienda</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild className="text-xs">

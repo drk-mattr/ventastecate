@@ -19,6 +19,8 @@ const CATEGORIES = [
   'Juguetes',
   'Libros',
   'Mascotas',
+  'Servicios',
+  'Eventos',
   'Otros',
 ]
 

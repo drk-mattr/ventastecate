@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useGeolocation, getNearestLocation } from '@/lib/hooks/use-geolocation'
+import { useGeolocation, getNearestLocation, reverseGeocode } from '@/lib/hooks/use-geolocation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -19,6 +19,8 @@ const CATEGORIES = [
   'Juguetes',
   'Libros',
   'Mascotas',
+  'Servicios',
+  'Eventos',
   'Otros',
 ]
 
@@ -45,18 +47,31 @@ export function DynamicHero() {
   const geoLocation = useGeolocation()
 
   useEffect(() => {
-    if (geoLocation.latitude && geoLocation.longitude && !geoLocation.loading) {
-      const nearest = getNearestLocation(geoLocation.latitude, geoLocation.longitude)
-      if (nearest) {
-        if (nearest !== locationText) {
-          // eslint-disable-next-line react-hooks/set-state-in-effect
-          setLocationText(nearest)
-        }
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setDetectedLocation(nearest)
-      }
+    if (!geoLocation.latitude || !geoLocation.longitude || geoLocation.loading) return
+
+    const lat = geoLocation.latitude
+    const lon = geoLocation.longitude
+
+    // First try known Tecate locations (fast, no network)
+    const nearest = getNearestLocation(lat, lon)
+    if (nearest) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLocationText(nearest)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDetectedLocation(nearest)
+      return
     }
-  }, [geoLocation.latitude, geoLocation.longitude, geoLocation.loading, locationText])
+
+    // Fallback: reverse geocode for accurate city name
+    reverseGeocode(lat, lon).then((city) => {
+      if (city) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setLocationText(city)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setDetectedLocation(city)
+      }
+    })
+  }, [geoLocation.latitude, geoLocation.longitude, geoLocation.loading])
 
   const activeFilters = [
     ...(category !== 'all' ? [{ key: 'category', label: category }] : []),

@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Check } from 'lucide-react'
+import { Check, Bug } from 'lucide-react'
 
 export function Header() {
   const { user, profile, stores, activeStore, setActiveStore, signOut } = useAuth()
@@ -111,33 +111,6 @@ export function Header() {
                   </div>
                   <DropdownMenuSeparator />
 
-                  {/* Context Switcher */}
-                  {stores.length > 0 && (
-                    <>
-                      <DropdownMenuLabel className="text-[10px] uppercase text-gray-400 font-medium">
-                        Publicar como
-                      </DropdownMenuLabel>
-                      <DropdownMenuItem
-                        onClick={() => setActiveStore(null)}
-                        className="text-xs flex items-center justify-between"
-                      >
-                        <span>👤 Yo ({profile?.display_name})</span>
-                        {!activeStore && <Check className="h-3 w-3" />}
-                      </DropdownMenuItem>
-                      {stores.map((store) => (
-                        <DropdownMenuItem
-                          key={store.id}
-                          onClick={() => setActiveStore(store)}
-                          className="text-xs flex items-center justify-between"
-                        >
-                          <span className="truncate">🏪 {store.name}</span>
-                          {activeStore?.id === store.id && <Check className="h-3 w-3" />}
-                        </DropdownMenuItem>
-                      ))}
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-
                   <DropdownMenuItem asChild className="text-xs">
                     <Link href={`/users/${profile?.username}`}>Mi Perfil</Link>
                   </DropdownMenuItem>
@@ -147,24 +120,50 @@ export function Header() {
                   <DropdownMenuItem asChild className="text-xs">
                     <Link href="/messages">Mensajes</Link>
                   </DropdownMenuItem>
+
+                  {/* Stores section: context switcher + links combined */}
+                  <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-[10px] uppercase text-gray-400 font-medium">
                     Mis Tiendas
                   </DropdownMenuLabel>
-                  {stores.length > 0 ? (
-                    stores.map((store) => (
-                      <DropdownMenuItem key={store.id} asChild className="text-xs">
-                        <Link href={`/stores/${store.slug}`}>🏪 {store.name}</Link>
+                  {stores.length > 0 && (
+                    <>
+                      {/* Personal mode option */}
+                      <DropdownMenuItem
+                        onClick={() => setActiveStore(null)}
+                        className="text-xs flex items-center justify-between"
+                      >
+                        <span>👤 Publicar como yo</span>
+                        {!activeStore && <Check className="h-3 w-3" />}
                       </DropdownMenuItem>
-                    ))
-                  ) : (
-                    <div className="px-2 py-1 text-xs text-gray-400">Sin tiendas</div>
+                      {stores.map((store) => (
+                        <div key={store.id} className="flex items-center">
+                          <DropdownMenuItem
+                            onClick={() => setActiveStore(store)}
+                            className="text-xs flex-1 flex items-center justify-between"
+                          >
+                            <Link href={`/stores/${store.slug}`} onClick={(e) => e.stopPropagation()} className="truncate hover:underline">
+                              🏪 {store.name}
+                            </Link>
+                            {activeStore?.id === store.id && <Check className="h-3 w-3 shrink-0" />}
+                          </DropdownMenuItem>
+                        </div>
+                      ))}
+                    </>
                   )}
                   <DropdownMenuItem asChild className="text-xs">
                     <Link href="/stores/new">+ Crear Tienda</Link>
                   </DropdownMenuItem>
+
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild className="text-xs">
                     <Link href="/profile/edit">Configuración</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="text-xs">
+                    <Link href="/report" className="flex items-center gap-1.5">
+                      <Bug className="h-3 w-3" />
+                      Reportar problema
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => signOut()} className="text-xs">
                     Cerrar Sesión

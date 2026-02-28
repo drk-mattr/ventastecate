@@ -3232,62 +3232,112 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/app/page_client-reference-manifest.js": {
-      "bytes": 28186,
+      "bytes": 28730,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/terms/page_client-reference-manifest.js": {
+      "bytes": 28751,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/sitemap.xml/route_client-reference-manifest.js": {
+      "bytes": 28806,
       "imports": [],
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/app/signup/page_client-reference-manifest.js": {
-      "bytes": 28399,
+      "bytes": 28943,
       "imports": [],
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/app/search/page_client-reference-manifest.js": {
-      "bytes": 28819,
+      "bytes": 29319,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/reset-password/page_client-reference-manifest.js": {
+      "bytes": 28967,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/privacy/page_client-reference-manifest.js": {
+      "bytes": 28758,
       "imports": [],
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/app/my-listings/page_client-reference-manifest.js": {
-      "bytes": 29004,
+      "bytes": 29504,
       "imports": [],
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/app/messages/page_client-reference-manifest.js": {
-      "bytes": 28495,
+      "bytes": 29041,
       "imports": [],
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/app/login/page_client-reference-manifest.js": {
-      "bytes": 28396,
+      "bytes": 28940,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/forgot-password/page_client-reference-manifest.js": {
+      "bytes": 28970,
       "imports": [],
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/app/_not-found/page_client-reference-manifest.js": {
-      "bytes": 28258,
+      "bytes": 28802,
       "imports": [],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/profile/edit/page_client-reference-manifest.js": {
-      "bytes": 28506,
+    ".open-next/server-functions/default/.next/server/app/stores/new/page_client-reference-manifest.js": {
+      "bytes": 29047,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/stores/[slug]/page_client-reference-manifest.js": {
+      "bytes": 29420,
       "imports": [],
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/app/users/[username]/page_client-reference-manifest.js": {
-      "bytes": 29329,
+      "bytes": 29829,
       "imports": [],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/listings/[id]/page_client-reference-manifest.js": {
-      "bytes": 29218,
+    ".open-next/server-functions/default/.next/server/app/profile/edit/page_client-reference-manifest.js": {
+      "bytes": 29052,
       "imports": [],
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/app/listings/new/page_client-reference-manifest.js": {
-      "bytes": 28553,
+      "bytes": 29053,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/listings/[id]/page_client-reference-manifest.js": {
+      "bytes": 29718,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/api/send-message-notification/route_client-reference-manifest.js": {
+      "bytes": 28842,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/stores/[slug]/edit/page_client-reference-manifest.js": {
+      "bytes": 29751,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/listings/[id]/edit/page_client-reference-manifest.js": {
+      "bytes": 30048,
       "imports": [],
       "format": "cjs"
     },
     ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-      "bytes": 32887,
+      "bytes": 46462,
       "imports": [
         {
           "path": "path",
@@ -3315,6 +3365,16 @@
           "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/page_client-reference-manifest.js"
         },
         {
+          "path": ".open-next/server-functions/default/.next/server/app/terms/page_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/terms/page_client-reference-manifest.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/sitemap.xml/route_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/sitemap.xml/route_client-reference-manifest.js"
+        },
+        {
           "path": ".open-next/server-functions/default/.next/server/app/signup/page_client-reference-manifest.js",
           "kind": "require-call",
           "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/signup/page_client-reference-manifest.js"
@@ -3323,6 +3383,16 @@
           "path": ".open-next/server-functions/default/.next/server/app/search/page_client-reference-manifest.js",
           "kind": "require-call",
           "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/search/page_client-reference-manifest.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/reset-password/page_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/reset-password/page_client-reference-manifest.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/privacy/page_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/privacy/page_client-reference-manifest.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/app/my-listings/page_client-reference-manifest.js",
@@ -3340,14 +3410,24 @@
           "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/login/page_client-reference-manifest.js"
         },
         {
+          "path": ".open-next/server-functions/default/.next/server/app/forgot-password/page_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/forgot-password/page_client-reference-manifest.js"
+        },
+        {
           "path": ".open-next/server-functions/default/.next/server/app/_not-found/page_client-reference-manifest.js",
           "kind": "require-call",
           "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/_not-found/page_client-reference-manifest.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/app/profile/edit/page_client-reference-manifest.js",
+          "path": ".open-next/server-functions/default/.next/server/app/stores/new/page_client-reference-manifest.js",
           "kind": "require-call",
-          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/profile/edit/page_client-reference-manifest.js"
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/stores/new/page_client-reference-manifest.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/stores/[slug]/page_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/stores/[slug]/page_client-reference-manifest.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/app/users/[username]/page_client-reference-manifest.js",
@@ -3355,14 +3435,34 @@
           "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/users/[username]/page_client-reference-manifest.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/app/listings/[id]/page_client-reference-manifest.js",
+          "path": ".open-next/server-functions/default/.next/server/app/profile/edit/page_client-reference-manifest.js",
           "kind": "require-call",
-          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/listings/[id]/page_client-reference-manifest.js"
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/profile/edit/page_client-reference-manifest.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/app/listings/new/page_client-reference-manifest.js",
           "kind": "require-call",
           "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/listings/new/page_client-reference-manifest.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/listings/[id]/page_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/listings/[id]/page_client-reference-manifest.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/api/send-message-notification/route_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/api/send-message-notification/route_client-reference-manifest.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/stores/[slug]/edit/page_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/stores/[slug]/edit/page_client-reference-manifest.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/listings/[id]/edit/page_client-reference-manifest.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/listings/[id]/edit/page_client-reference-manifest.js"
         }
       ],
       "format": "cjs"
@@ -3383,33 +3483,33 @@
       ],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/chunks/215.js": {
-      "bytes": 10846,
-      "imports": [],
-      "format": "cjs"
-    },
-    ".open-next/server-functions/default/.next/server/chunks/269.js": {
-      "bytes": 511488,
-      "imports": [],
-      "format": "cjs"
-    },
-    ".open-next/server-functions/default/.next/server/chunks/316.js": {
-      "bytes": 99753,
-      "imports": [],
-      "format": "cjs"
-    },
     ".open-next/server-functions/default/.next/server/chunks/331.js": {
       "bytes": 127982,
       "imports": [],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/chunks/52.js": {
-      "bytes": 32698,
+    ".open-next/server-functions/default/.next/server/chunks/397.js": {
+      "bytes": 100076,
       "imports": [],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/chunks/536.js": {
-      "bytes": 10361,
+    ".open-next/server-functions/default/.next/server/chunks/431.js": {
+      "bytes": 443950,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/chunks/502.js": {
+      "bytes": 120566,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/chunks/553.js": {
+      "bytes": 319678,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/chunks/608.js": {
+      "bytes": 28894,
       "imports": [],
       "format": "cjs"
     },
@@ -3424,48 +3524,58 @@
       ],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/chunks/674.js": {
-      "bytes": 438349,
+    ".open-next/server-functions/default/.next/server/chunks/692.js": {
+      "bytes": 31311,
       "imports": [],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/chunks/797.js": {
-      "bytes": 82559,
+    ".open-next/server-functions/default/.next/server/chunks/721.js": {
+      "bytes": 10299,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/chunks/762.js": {
+      "bytes": 64,
+      "imports": [],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/chunks/822.js": {
+      "bytes": 189511,
       "imports": [],
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/webpack-runtime.js": {
-      "bytes": 2058,
+      "bytes": 2185,
       "imports": [
-        {
-          "path": ".open-next/server-functions/default/.next/server/chunks/215.js",
-          "kind": "require-call",
-          "original": "./chunks/215.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/.next/server/chunks/269.js",
-          "kind": "require-call",
-          "original": "./chunks/269.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/.next/server/chunks/316.js",
-          "kind": "require-call",
-          "original": "./chunks/316.js"
-        },
         {
           "path": ".open-next/server-functions/default/.next/server/chunks/331.js",
           "kind": "require-call",
           "original": "./chunks/331.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/chunks/52.js",
+          "path": ".open-next/server-functions/default/.next/server/chunks/397.js",
           "kind": "require-call",
-          "original": "./chunks/52.js"
+          "original": "./chunks/397.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/chunks/536.js",
+          "path": ".open-next/server-functions/default/.next/server/chunks/431.js",
           "kind": "require-call",
-          "original": "./chunks/536.js"
+          "original": "./chunks/431.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/chunks/502.js",
+          "kind": "require-call",
+          "original": "./chunks/502.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/chunks/553.js",
+          "kind": "require-call",
+          "original": "./chunks/553.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/chunks/608.js",
+          "kind": "require-call",
+          "original": "./chunks/608.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/chunks/611.js",
@@ -3473,14 +3583,24 @@
           "original": "./chunks/611.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/chunks/674.js",
+          "path": ".open-next/server-functions/default/.next/server/chunks/692.js",
           "kind": "require-call",
-          "original": "./chunks/674.js"
+          "original": "./chunks/692.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/chunks/797.js",
+          "path": ".open-next/server-functions/default/.next/server/chunks/721.js",
           "kind": "require-call",
-          "original": "./chunks/797.js"
+          "original": "./chunks/721.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/chunks/762.js",
+          "kind": "require-call",
+          "original": "./chunks/762.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/chunks/822.js",
+          "kind": "require-call",
+          "original": "./chunks/822.js"
         }
       ],
       "format": "cjs"
@@ -4268,8 +4388,130 @@
       ],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/favicon.ico/route.js": {
-      "bytes": 72545,
+    ".open-next/server-functions/default/.next/server/app/api/send-message-notification/route.js": {
+      "bytes": 240948,
+      "imports": [
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/app-paths"
+        },
+        {
+          "path": "node:crypto",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/action-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-route.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/no-fallback-error.external"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
+          "kind": "require-call",
+          "original": "../../../webpack-runtime.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/_not-found/page.js": {
+      "bytes": 21163,
+      "imports": [
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/app-paths"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/action-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/is-bot"
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-async-storage.external.js"
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/no-fallback-error.external"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
+          "kind": "require-call",
+          "original": "../../webpack-runtime.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/sitemap.xml/route.js": {
+      "bytes": 13620,
       "imports": [
         {
           "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
@@ -4319,8 +4561,323 @@
       ],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/_not-found/page.js": {
-      "bytes": 18653,
+    ".open-next/server-functions/default/.next/server/app/favicon.ico/route.js": {
+      "bytes": 41309,
+      "imports": [
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/app-paths"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/action-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-route.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/no-fallback-error.external"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
+          "kind": "require-call",
+          "original": "../../webpack-runtime.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/forgot-password/page.js": {
+      "bytes": 28376,
+      "imports": [
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/app-paths"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/action-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/is-bot"
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-async-storage.external.js"
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/no-fallback-error.external"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
+          "kind": "require-call",
+          "original": "../../webpack-runtime.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/listings/new/page.js": {
+      "bytes": 29664,
+      "imports": [
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/app-paths"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/action-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/is-bot"
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-async-storage.external.js"
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/no-fallback-error.external"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
+          "kind": "require-call",
+          "original": "../../../webpack-runtime.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/listings/[id]/page.js": {
+      "bytes": 34623,
+      "imports": [
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/app-paths"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/action-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/is-bot"
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-async-storage.external.js"
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/no-fallback-error.external"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
+          "kind": "require-call",
+          "original": "../../../webpack-runtime.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/listings/[id]/edit/page.js": {
+      "bytes": 30344,
+      "imports": [
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/app-paths"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/action-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/is-bot"
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-async-storage.external.js"
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/no-fallback-error.external"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
+          "kind": "require-call",
+          "original": "../../../../webpack-runtime.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/my-listings/page.js": {
+      "bytes": 28021,
       "imports": [
         {
           "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
@@ -4386,7 +4943,73 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/app/messages/page.js": {
-      "bytes": 23794,
+      "bytes": 25291,
+      "imports": [
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/app-paths"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/action-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/is-bot"
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-async-storage.external.js"
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/no-fallback-error.external"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
+          "kind": "require-call",
+          "original": "../../webpack-runtime.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/reset-password/page.js": {
+      "bytes": 29156,
       "imports": [
         {
           "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
@@ -4452,7 +5075,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/app/page.js": {
-      "bytes": 28243,
+      "bytes": 30625,
       "imports": [
         {
           "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
@@ -4517,140 +5140,8 @@
       ],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/listings/new/page.js": {
-      "bytes": 29372,
-      "imports": [
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
-          "kind": "require-call",
-          "original": "next/dist/shared/lib/router/utils/app-paths"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
-          "kind": "require-call",
-          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/action-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
-          "kind": "require-call",
-          "original": "next/dist/shared/lib/router/utils/is-bot"
-        },
-        {
-          "path": "util",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/work-async-storage.external.js"
-        },
-        {
-          "path": "path",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
-          "kind": "require-call",
-          "original": "next/dist/shared/lib/no-fallback-error.external"
-        },
-        {
-          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
-          "kind": "require-call",
-          "original": "../../../webpack-runtime.js"
-        }
-      ],
-      "format": "cjs"
-    },
-    ".open-next/server-functions/default/.next/server/app/profile/edit/page.js": {
-      "bytes": 22267,
-      "imports": [
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
-          "kind": "require-call",
-          "original": "next/dist/shared/lib/router/utils/app-paths"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
-          "kind": "require-call",
-          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/action-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
-          "kind": "require-call",
-          "original": "next/dist/shared/lib/router/utils/is-bot"
-        },
-        {
-          "path": "util",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/work-async-storage.external.js"
-        },
-        {
-          "path": "path",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
-          "kind": "require-call",
-          "original": "next/dist/shared/lib/no-fallback-error.external"
-        },
-        {
-          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
-          "kind": "require-call",
-          "original": "../../../webpack-runtime.js"
-        }
-      ],
-      "format": "cjs"
-    },
-    ".open-next/server-functions/default/.next/server/app/search/page.js": {
-      "bytes": 35023,
+    ".open-next/server-functions/default/.next/server/app/login/page.js": {
+      "bytes": 28905,
       "imports": [
         {
           "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
@@ -4715,8 +5206,206 @@
       ],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/users/[username]/page.js": {
-      "bytes": 24846,
+    ".open-next/server-functions/default/.next/server/app/search/page.js": {
+      "bytes": 28662,
+      "imports": [
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/app-paths"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/action-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/is-bot"
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-async-storage.external.js"
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/no-fallback-error.external"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
+          "kind": "require-call",
+          "original": "../../webpack-runtime.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/stores/[slug]/edit/page.js": {
+      "bytes": 22828,
+      "imports": [
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/app-paths"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/action-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/is-bot"
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-async-storage.external.js"
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/no-fallback-error.external"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
+          "kind": "require-call",
+          "original": "../../../../webpack-runtime.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/terms/page.js": {
+      "bytes": 22686,
+      "imports": [
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/app-paths"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/action-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/is-bot"
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-async-storage.external.js"
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/no-fallback-error.external"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
+          "kind": "require-call",
+          "original": "../../webpack-runtime.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/stores/new/page.js": {
+      "bytes": 24210,
       "imports": [
         {
           "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
@@ -4782,7 +5471,7 @@
       "format": "cjs"
     },
     ".open-next/server-functions/default/.next/server/app/signup/page.js": {
-      "bytes": 27526,
+      "bytes": 30190,
       "imports": [
         {
           "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
@@ -4847,140 +5536,8 @@
       ],
       "format": "cjs"
     },
-    ".open-next/server-functions/default/.next/server/app/login/page.js": {
-      "bytes": 26374,
-      "imports": [
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
-          "kind": "require-call",
-          "original": "next/dist/shared/lib/router/utils/app-paths"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
-          "kind": "require-call",
-          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/action-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
-          "kind": "require-call",
-          "original": "next/dist/shared/lib/router/utils/is-bot"
-        },
-        {
-          "path": "util",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/work-async-storage.external.js"
-        },
-        {
-          "path": "path",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
-          "kind": "require-call",
-          "original": "next/dist/shared/lib/no-fallback-error.external"
-        },
-        {
-          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
-          "kind": "require-call",
-          "original": "../../webpack-runtime.js"
-        }
-      ],
-      "format": "cjs"
-    },
-    ".open-next/server-functions/default/.next/server/app/my-listings/page.js": {
-      "bytes": 27562,
-      "imports": [
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
-          "kind": "require-call",
-          "original": "next/dist/shared/lib/router/utils/app-paths"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
-          "kind": "require-call",
-          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/action-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
-          "kind": "require-call",
-          "original": "next/dist/shared/lib/router/utils/is-bot"
-        },
-        {
-          "path": "util",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/work-async-storage.external.js"
-        },
-        {
-          "path": "path",
-          "kind": "require-call",
-          "external": true
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
-          "kind": "require-call",
-          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
-          "kind": "require-call",
-          "original": "next/dist/shared/lib/no-fallback-error.external"
-        },
-        {
-          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
-          "kind": "require-call",
-          "original": "../../webpack-runtime.js"
-        }
-      ],
-      "format": "cjs"
-    },
-    ".open-next/server-functions/default/.next/server/app/listings/[id]/page.js": {
-      "bytes": 25215,
+    ".open-next/server-functions/default/.next/server/app/stores/[slug]/page.js": {
+      "bytes": 23321,
       "imports": [
         {
           "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
@@ -5045,8 +5602,206 @@
       ],
       "format": "cjs"
     },
+    ".open-next/server-functions/default/.next/server/app/users/[username]/page.js": {
+      "bytes": 24898,
+      "imports": [
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/app-paths"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/action-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/is-bot"
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-async-storage.external.js"
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/no-fallback-error.external"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
+          "kind": "require-call",
+          "original": "../../../webpack-runtime.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/profile/edit/page.js": {
+      "bytes": 21980,
+      "imports": [
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/app-paths"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/action-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/is-bot"
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-async-storage.external.js"
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/no-fallback-error.external"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
+          "kind": "require-call",
+          "original": "../../../webpack-runtime.js"
+        }
+      ],
+      "format": "cjs"
+    },
+    ".open-next/server-functions/default/.next/server/app/privacy/page.js": {
+      "bytes": 23699,
+      "imports": [
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/app-paths.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/app-paths"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/after-task-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/after-task-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js",
+          "kind": "require-call",
+          "original": "next/dist/compiled/next-server/app-page.runtime.prod.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/action-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/action-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/router/utils/is-bot.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/router/utils/is-bot"
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-async-storage.external.js"
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/dynamic-access-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/dynamic-access-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/server/app-render/work-unit-async-storage.external.js",
+          "kind": "require-call",
+          "original": "next/dist/server/app-render/work-unit-async-storage.external.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/node_modules/next/dist/shared/lib/no-fallback-error.external.js",
+          "kind": "require-call",
+          "original": "next/dist/shared/lib/no-fallback-error.external"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/webpack-runtime.js",
+          "kind": "require-call",
+          "original": "../../webpack-runtime.js"
+        }
+      ],
+      "format": "cjs"
+    },
     ".open-next/server-functions/default/node_modules/next/dist/server/require.js": {
-      "bytes": 15574,
+      "bytes": 22330,
       "imports": [
         {
           "path": "path",
@@ -5109,9 +5864,9 @@
           "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/pages/_document.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/app/favicon.ico/route.js",
+          "path": ".open-next/server-functions/default/.next/server/app/api/send-message-notification/route.js",
           "kind": "require-call",
-          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/favicon.ico/route.js"
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/api/send-message-notification/route.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/app/_not-found/page.js",
@@ -5119,14 +5874,19 @@
           "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/_not-found/page.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/app/messages/page.js",
+          "path": ".open-next/server-functions/default/.next/server/app/sitemap.xml/route.js",
           "kind": "require-call",
-          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/messages/page.js"
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/sitemap.xml/route.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/app/page.js",
+          "path": ".open-next/server-functions/default/.next/server/app/favicon.ico/route.js",
           "kind": "require-call",
-          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/page.js"
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/favicon.ico/route.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/forgot-password/page.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/forgot-password/page.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/app/listings/new/page.js",
@@ -5134,29 +5894,14 @@
           "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/listings/new/page.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/app/profile/edit/page.js",
+          "path": ".open-next/server-functions/default/.next/server/app/listings/[id]/page.js",
           "kind": "require-call",
-          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/profile/edit/page.js"
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/listings/[id]/page.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/app/search/page.js",
+          "path": ".open-next/server-functions/default/.next/server/app/listings/[id]/edit/page.js",
           "kind": "require-call",
-          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/search/page.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/.next/server/app/users/[username]/page.js",
-          "kind": "require-call",
-          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/users/[username]/page.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/.next/server/app/signup/page.js",
-          "kind": "require-call",
-          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/signup/page.js"
-        },
-        {
-          "path": ".open-next/server-functions/default/.next/server/app/login/page.js",
-          "kind": "require-call",
-          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/login/page.js"
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/listings/[id]/edit/page.js"
         },
         {
           "path": ".open-next/server-functions/default/.next/server/app/my-listings/page.js",
@@ -5164,9 +5909,69 @@
           "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/my-listings/page.js"
         },
         {
-          "path": ".open-next/server-functions/default/.next/server/app/listings/[id]/page.js",
+          "path": ".open-next/server-functions/default/.next/server/app/messages/page.js",
           "kind": "require-call",
-          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/listings/[id]/page.js"
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/messages/page.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/reset-password/page.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/reset-password/page.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/page.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/page.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/login/page.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/login/page.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/search/page.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/search/page.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/stores/[slug]/edit/page.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/stores/[slug]/edit/page.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/terms/page.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/terms/page.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/stores/new/page.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/stores/new/page.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/signup/page.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/signup/page.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/stores/[slug]/page.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/stores/[slug]/page.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/users/[username]/page.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/users/[username]/page.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/profile/edit/page.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/profile/edit/page.js"
+        },
+        {
+          "path": ".open-next/server-functions/default/.next/server/app/privacy/page.js",
+          "kind": "require-call",
+          "original": "/Users/grego/Documents/ventastecate/.open-next/server-functions/default/.next/server/app/privacy/page.js"
         }
       ],
       "format": "cjs"
@@ -6084,7 +6889,7 @@
       "format": "esm"
     },
     ".open-next/server-functions/default/index.mjs": {
-      "bytes": 85975,
+      "bytes": 89881,
       "imports": [
         {
           "path": "node:module",
@@ -6365,6 +7170,91 @@
         },
         {
           "path": "node:path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "node:crypto",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "util",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "path",
+          "kind": "require-call",
+          "external": true
+        },
+        {
+          "path": "util",
           "kind": "require-call",
           "external": true
         },
@@ -7261,40 +8151,70 @@
           "bytesInOutput": 586
         },
         ".open-next/server-functions/default/.next/server/app/page_client-reference-manifest.js": {
-          "bytesInOutput": 26226
+          "bytesInOutput": 26500
+        },
+        ".open-next/server-functions/default/.next/server/app/terms/page_client-reference-manifest.js": {
+          "bytesInOutput": 26528
+        },
+        ".open-next/server-functions/default/.next/server/app/sitemap.xml/route_client-reference-manifest.js": {
+          "bytesInOutput": 26590
         },
         ".open-next/server-functions/default/.next/server/app/signup/page_client-reference-manifest.js": {
-          "bytesInOutput": 26447
+          "bytesInOutput": 26721
         },
         ".open-next/server-functions/default/.next/server/app/search/page_client-reference-manifest.js": {
-          "bytesInOutput": 26867
+          "bytesInOutput": 27097
+        },
+        ".open-next/server-functions/default/.next/server/app/reset-password/page_client-reference-manifest.js": {
+          "bytesInOutput": 26753
+        },
+        ".open-next/server-functions/default/.next/server/app/privacy/page_client-reference-manifest.js": {
+          "bytesInOutput": 26537
         },
         ".open-next/server-functions/default/.next/server/app/my-listings/page_client-reference-manifest.js": {
-          "bytesInOutput": 27057
+          "bytesInOutput": 27287
         },
         ".open-next/server-functions/default/.next/server/app/messages/page_client-reference-manifest.js": {
-          "bytesInOutput": 26545
+          "bytesInOutput": 26821
         },
         ".open-next/server-functions/default/.next/server/app/login/page_client-reference-manifest.js": {
-          "bytesInOutput": 26443
+          "bytesInOutput": 26717
+        },
+        ".open-next/server-functions/default/.next/server/app/forgot-password/page_client-reference-manifest.js": {
+          "bytesInOutput": 26758
         },
         ".open-next/server-functions/default/.next/server/app/_not-found/page_client-reference-manifest.js": {
-          "bytesInOutput": 26310
+          "bytesInOutput": 26585
         },
-        ".open-next/server-functions/default/.next/server/app/profile/edit/page_client-reference-manifest.js": {
-          "bytesInOutput": 26560
+        ".open-next/server-functions/default/.next/server/app/stores/new/page_client-reference-manifest.js": {
+          "bytesInOutput": 26830
+        },
+        ".open-next/server-functions/default/.next/server/app/stores/[slug]/page_client-reference-manifest.js": {
+          "bytesInOutput": 27206
         },
         ".open-next/server-functions/default/.next/server/app/users/[username]/page_client-reference-manifest.js": {
-          "bytesInOutput": 27387
+          "bytesInOutput": 27618
         },
-        ".open-next/server-functions/default/.next/server/app/listings/[id]/page_client-reference-manifest.js": {
-          "bytesInOutput": 27274
+        ".open-next/server-functions/default/.next/server/app/profile/edit/page_client-reference-manifest.js": {
+          "bytesInOutput": 26837
         },
         ".open-next/server-functions/default/.next/server/app/listings/new/page_client-reference-manifest.js": {
-          "bytesInOutput": 26608
+          "bytesInOutput": 26838
+        },
+        ".open-next/server-functions/default/.next/server/app/listings/[id]/page_client-reference-manifest.js": {
+          "bytesInOutput": 27504
+        },
+        ".open-next/server-functions/default/.next/server/app/api/send-message-notification/route_client-reference-manifest.js": {
+          "bytesInOutput": 26645
+        },
+        ".open-next/server-functions/default/.next/server/app/stores/[slug]/edit/page_client-reference-manifest.js": {
+          "bytesInOutput": 27542
+        },
+        ".open-next/server-functions/default/.next/server/app/listings/[id]/edit/page_client-reference-manifest.js": {
+          "bytesInOutput": 27839
         },
         ".open-next/server-functions/default/node_modules/next/dist/server/load-manifest.external.js": {
-          "bytesInOutput": 23455
+          "bytesInOutput": 33163
         },
         ".open-next/server-functions/default/node_modules/react/cjs/react-jsx-runtime.production.js": {
           "bytesInOutput": 740
@@ -7302,35 +8222,41 @@
         ".open-next/server-functions/default/node_modules/react/jsx-runtime.js": {
           "bytesInOutput": 194
         },
-        ".open-next/server-functions/default/.next/server/chunks/215.js": {
-          "bytesInOutput": 11060
-        },
-        ".open-next/server-functions/default/.next/server/chunks/269.js": {
-          "bytesInOutput": 529931
-        },
-        ".open-next/server-functions/default/.next/server/chunks/316.js": {
-          "bytesInOutput": 103902
-        },
         ".open-next/server-functions/default/.next/server/chunks/331.js": {
-          "bytesInOutput": 132773
+          "bytesInOutput": 132772
         },
-        ".open-next/server-functions/default/.next/server/chunks/52.js": {
-          "bytesInOutput": 34490
+        ".open-next/server-functions/default/.next/server/chunks/397.js": {
+          "bytesInOutput": 104236
         },
-        ".open-next/server-functions/default/.next/server/chunks/536.js": {
-          "bytesInOutput": 10561
+        ".open-next/server-functions/default/.next/server/chunks/431.js": {
+          "bytesInOutput": 464856
+        },
+        ".open-next/server-functions/default/.next/server/chunks/502.js": {
+          "bytesInOutput": 128434
+        },
+        ".open-next/server-functions/default/.next/server/chunks/553.js": {
+          "bytesInOutput": 328323
+        },
+        ".open-next/server-functions/default/.next/server/chunks/608.js": {
+          "bytesInOutput": 29407
         },
         ".open-next/server-functions/default/.next/server/chunks/611.js": {
           "bytesInOutput": 71825
         },
-        ".open-next/server-functions/default/.next/server/chunks/674.js": {
-          "bytesInOutput": 459093
+        ".open-next/server-functions/default/.next/server/chunks/692.js": {
+          "bytesInOutput": 32002
         },
-        ".open-next/server-functions/default/.next/server/chunks/797.js": {
-          "bytesInOutput": 88599
+        ".open-next/server-functions/default/.next/server/chunks/721.js": {
+          "bytesInOutput": 10502
+        },
+        ".open-next/server-functions/default/.next/server/chunks/762.js": {
+          "bytesInOutput": 182
+        },
+        ".open-next/server-functions/default/.next/server/chunks/822.js": {
+          "bytesInOutput": 199347
         },
         ".open-next/server-functions/default/.next/server/webpack-runtime.js": {
-          "bytesInOutput": 1999
+          "bytesInOutput": 2081
         },
         ".open-next/server-functions/default/.next/server/pages/_app.js": {
           "bytesInOutput": 3583
@@ -7360,7 +8286,7 @@
           "bytesInOutput": 319
         },
         ".open-next/server-functions/default/node_modules/next/dist/compiled/jsonwebtoken/index.js": {
-          "bytesInOutput": 125938
+          "bytesInOutput": 125940
         },
         ".open-next/server-functions/default/node_modules/react-dom/server.browser.js": {
           "bytesInOutput": 451
@@ -7434,44 +8360,74 @@
         ".open-next/server-functions/default/node_modules/next/dist/compiled/next-server/app-route.runtime.prod.js": {
           "bytesInOutput": 170532
         },
-        ".open-next/server-functions/default/.next/server/app/favicon.ico/route.js": {
-          "bytesInOutput": 73300
+        ".open-next/server-functions/default/.next/server/app/api/send-message-notification/route.js": {
+          "bytesInOutput": 253462
         },
         ".open-next/server-functions/default/.next/server/app/_not-found/page.js": {
-          "bytesInOutput": 18898
+          "bytesInOutput": 21436
         },
-        ".open-next/server-functions/default/.next/server/app/messages/page.js": {
-          "bytesInOutput": 24097
+        ".open-next/server-functions/default/.next/server/app/sitemap.xml/route.js": {
+          "bytesInOutput": 13997
         },
-        ".open-next/server-functions/default/.next/server/app/page.js": {
-          "bytesInOutput": 28709
+        ".open-next/server-functions/default/.next/server/app/favicon.ico/route.js": {
+          "bytesInOutput": 41379
+        },
+        ".open-next/server-functions/default/.next/server/app/forgot-password/page.js": {
+          "bytesInOutput": 28801
         },
         ".open-next/server-functions/default/.next/server/app/listings/new/page.js": {
-          "bytesInOutput": 29846
-        },
-        ".open-next/server-functions/default/.next/server/app/profile/edit/page.js": {
-          "bytesInOutput": 22553
-        },
-        ".open-next/server-functions/default/.next/server/app/search/page.js": {
-          "bytesInOutput": 35654
-        },
-        ".open-next/server-functions/default/.next/server/app/users/[username]/page.js": {
-          "bytesInOutput": 25202
-        },
-        ".open-next/server-functions/default/.next/server/app/signup/page.js": {
-          "bytesInOutput": 27978
-        },
-        ".open-next/server-functions/default/.next/server/app/login/page.js": {
-          "bytesInOutput": 26821
-        },
-        ".open-next/server-functions/default/.next/server/app/my-listings/page.js": {
-          "bytesInOutput": 27952
+          "bytesInOutput": 29992
         },
         ".open-next/server-functions/default/.next/server/app/listings/[id]/page.js": {
-          "bytesInOutput": 25552
+          "bytesInOutput": 35164
+        },
+        ".open-next/server-functions/default/.next/server/app/listings/[id]/edit/page.js": {
+          "bytesInOutput": 30667
+        },
+        ".open-next/server-functions/default/.next/server/app/my-listings/page.js": {
+          "bytesInOutput": 28407
+        },
+        ".open-next/server-functions/default/.next/server/app/messages/page.js": {
+          "bytesInOutput": 25772
+        },
+        ".open-next/server-functions/default/.next/server/app/reset-password/page.js": {
+          "bytesInOutput": 29599
+        },
+        ".open-next/server-functions/default/.next/server/app/page.js": {
+          "bytesInOutput": 31083
+        },
+        ".open-next/server-functions/default/.next/server/app/login/page.js": {
+          "bytesInOutput": 29366
+        },
+        ".open-next/server-functions/default/.next/server/app/search/page.js": {
+          "bytesInOutput": 29088
+        },
+        ".open-next/server-functions/default/.next/server/app/stores/[slug]/edit/page.js": {
+          "bytesInOutput": 23078
+        },
+        ".open-next/server-functions/default/.next/server/app/terms/page.js": {
+          "bytesInOutput": 22841
+        },
+        ".open-next/server-functions/default/.next/server/app/stores/new/page.js": {
+          "bytesInOutput": 24469
+        },
+        ".open-next/server-functions/default/.next/server/app/signup/page.js": {
+          "bytesInOutput": 30641
+        },
+        ".open-next/server-functions/default/.next/server/app/stores/[slug]/page.js": {
+          "bytesInOutput": 23665
+        },
+        ".open-next/server-functions/default/.next/server/app/users/[username]/page.js": {
+          "bytesInOutput": 25290
+        },
+        ".open-next/server-functions/default/.next/server/app/profile/edit/page.js": {
+          "bytesInOutput": 22240
+        },
+        ".open-next/server-functions/default/.next/server/app/privacy/page.js": {
+          "bytesInOutput": 23856
         },
         ".open-next/server-functions/default/node_modules/next/dist/server/require.js": {
-          "bytesInOutput": 11902
+          "bytesInOutput": 17032
         },
         ".open-next/server-functions/default/node_modules/next/dist/lib/wait.js": {
           "bytesInOutput": 341
@@ -7582,10 +8538,10 @@
           "bytesInOutput": 5074
         },
         ".open-next/server-functions/default/index.mjs": {
-          "bytesInOutput": 60054
+          "bytesInOutput": 63481
         }
       },
-      "bytes": 4105656
+      "bytes": 4913417
     }
   }
 }

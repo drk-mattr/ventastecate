@@ -61,11 +61,17 @@ export function HeaderSearch() {
 
   // Sync state with URL params when navigating
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setQuery(searchParams.get('q') || '')
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCategory(searchParams.get('category') || 'all')
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocation(searchParams.get('location') || 'all')
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMinPrice(searchParams.get('minPrice') || '')
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMaxPrice(searchParams.get('maxPrice') || '')
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSort(searchParams.get('sort') || 'newest')
   }, [searchParams])
 
@@ -73,6 +79,7 @@ export function HeaderSearch() {
     if (geoLocation.latitude && geoLocation.longitude && !geoLocation.loading) {
       const nearest = getNearestLocation(geoLocation.latitude, geoLocation.longitude)
       if (nearest) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setDetectedLocation(nearest)
       }
     }

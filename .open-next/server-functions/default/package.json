@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy": "npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -20,6 +21,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.71.2",
+    "resend": "^6.9.2",
     "tailwind-merge": "^3.5.0",
     "zod": "^4.3.6"
   },

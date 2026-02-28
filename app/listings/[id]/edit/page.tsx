@@ -277,7 +277,7 @@ export default function EditListingPage() {
       // Upload new images
       if (newImages.length > 0) {
         const keptImages = existingImages.filter(img => !removedImageIds.includes(img.id))
-        let orderStart = keptImages.length
+        const orderStart = keptImages.length
 
         const imageUploads = newImages.map(async (file, index) => {
           const fileExt = file.name.split('.').pop()

@@ -60,8 +60,14 @@
       "dangerouslyAllowSVG": false,
       "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;",
       "contentDispositionType": "attachment",
-      "remotePatterns": [],
-      "unoptimized": false
+      "remotePatterns": [
+        {
+          "protocol": "https",
+          "hostname": "afhcrjuezhjsfzampbsz.supabase.co",
+          "pathname": "/storage/v1/object/public/**"
+        }
+      ],
+      "unoptimized": true
     },
     "devIndicators": {
       "position": "bottom-left"

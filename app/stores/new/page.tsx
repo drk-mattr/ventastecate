@@ -45,7 +45,7 @@ export default function NewStorePage() {
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [description, setDescription] = useState('')
-  const [location, setLocation] = useState('')
+  const [storeLocation, setStoreLocation] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -114,7 +114,7 @@ export default function NewStorePage() {
           slug,
           store_type: storeType,
           description: description || null,
-          location: location || null,
+          location: storeLocation || null,
           avatar_url: avatarUrl,
         })
         .select()
@@ -298,8 +298,8 @@ export default function NewStorePage() {
                   <Label htmlFor="location">Ubicación</Label>
                   <Input
                     id="location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    value={storeLocation}
+                    onChange={(e) => setStoreLocation(e.target.value)}
                     placeholder="Ej: Centro de Tecate"
                   />
                 </div>

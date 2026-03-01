@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
@@ -7,11 +8,21 @@ import { DynamicHero } from '@/components/home/dynamic-hero'
 import { ListingWithImages } from '@/lib/types/database'
 import { Button } from '@/components/ui/button'
 
-export default async function Home() {
+interface HomeProps {
+  searchParams: Promise<{ global?: string }>
+}
+
+export default async function Home({ searchParams }: HomeProps) {
   const supabase = await createClient()
-  
-  // Fetch active listings with images and profiles
-  const { data: listings } = await supabase
+  const { global: globalParam } = await searchParams
+  const isGlobal = globalParam === '1'
+
+  // Detect user country via Cloudflare header (null in local dev)
+  const headersList = await headers()
+  const userCountry = headersList.get('cf-ipcountry') ?? null
+
+  // Build query
+  let query = supabase
     .from('listings')
     .select(`
       *,
@@ -32,6 +43,13 @@ export default async function Home() {
       )
     `)
     .eq('status', 'active')
+
+  // Filter by country unless user opted into global view
+  if (userCountry && !isGlobal) {
+    query = query.eq('country_code', userCountry)
+  }
+
+  const { data: listings } = await query
     .order('created_at', { ascending: false })
     .limit(12)
 
@@ -46,7 +64,20 @@ export default async function Home() {
 
         {/* Listings Grid */}
         <div className="container mx-auto px-4 py-6">
-          <h2 className="text-base font-medium mb-4 text-gray-700">Anuncios Recientes</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-medium text-gray-700">
+              {isGlobal ? 'Anuncios en todo el mundo' : 'Anuncios Recientes'}
+            </h2>
+            {userCountry && (
+              <Link
+                href={isGlobal ? '/' : '/?global=1'}
+                className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                {isGlobal ? `📍 Solo en ${userCountry}` : '🌎 Ver todo el mundo'}
+              </Link>
+            )}
+          </div>
+
           {listingsWithImages.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {listingsWithImages.map((listing) => (
@@ -56,8 +87,15 @@ export default async function Home() {
           ) : (
             <div className="text-center py-12">
               <p className="text-sm text-gray-500 mb-4">
-                No hay anuncios disponibles.
+                {userCountry && !isGlobal
+                  ? `No hay anuncios en tu región aún.`
+                  : 'No hay anuncios disponibles.'}
               </p>
+              {userCountry && !isGlobal && (
+                <Link href="/?global=1" className="text-sm text-blue-600 hover:underline block mb-4">
+                  Ver anuncios de todo el mundo →
+                </Link>
+              )}
               <Button asChild size="sm">
                 <Link href="/listings/new">Publicar anuncio</Link>
               </Button>

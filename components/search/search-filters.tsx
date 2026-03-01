@@ -41,6 +41,7 @@ interface SearchFiltersProps {
   initialLocation?: string
   initialMinPrice?: string
   initialMaxPrice?: string
+  initialCountry?: string
 }
 
 export function SearchFilters({
@@ -49,6 +50,7 @@ export function SearchFilters({
   initialLocation = '',
   initialMinPrice = '',
   initialMaxPrice = '',
+  initialCountry,
 }: SearchFiltersProps) {
   const [query, setQuery] = useState(initialQuery)
   const [category, setCategory] = useState(initialCategory || 'all')
@@ -77,6 +79,7 @@ export function SearchFilters({
     if (location && location !== 'all') params.set('location', location)
     if (minPrice) params.set('minPrice', minPrice)
     if (maxPrice) params.set('maxPrice', maxPrice)
+    if (initialCountry === 'all') params.set('country', 'all')
 
     router.push(`/search?${params.toString()}`)
   }

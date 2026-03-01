@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useRegion } from '@/lib/region-context'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -87,6 +88,7 @@ export default function NewListingPage() {
 
   const router = useRouter()
   const { user, activeStore } = useAuth()
+  const userCountry = useRegion()
   const storeType = activeStore?.store_type || 'general'
   const supabase = createClient()
 
@@ -163,6 +165,7 @@ export default function NewListingPage() {
           price: priceConsultar ? 0 : parseFloat(price),
           category: finalCategory,
           location: location || activeStore?.location || '',
+          country_code: userCountry ?? null,
           metadata,
           status: 'active',
         })

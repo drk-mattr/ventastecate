@@ -6,6 +6,7 @@ import { AuthProvider } from "@/lib/auth/auth-context";
 import { GoogleTagManager, GoogleTagManagerNoScript } from "@/components/analytics/google-tag-manager";
 import { BrandProvider } from "@/lib/brand-context";
 import { getBrand } from "@/lib/brand";
+import { RegionProvider } from "@/lib/region-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -75,6 +76,7 @@ export default async function RootLayout({
   const headersList = await headers()
   const hostname = headersList.get('host') ?? ''
   const { name: brandName } = getBrand(hostname)
+  const countryCode = headersList.get('cf-ipcountry') ?? null
 
   return (
     <html lang="es-MX">
@@ -87,7 +89,9 @@ export default async function RootLayout({
         <GoogleTagManagerNoScript />
         <AuthProvider>
           <BrandProvider brandName={brandName}>
-            {children}
+            <RegionProvider countryCode={countryCode}>
+              {children}
+            </RegionProvider>
           </BrandProvider>
         </AuthProvider>
       </body>

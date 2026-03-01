@@ -1,7 +1,5 @@
 import { Resend } from 'resend'
 
-export const resend = new Resend(process.env.RESEND_API_KEY || '')
-
 export async function sendMessageNotification({
   to,
   recipientName,
@@ -21,6 +19,8 @@ export async function sendMessageNotification({
     console.warn('RESEND_API_KEY not set, skipping email notification')
     return { success: false, error: 'Email not configured' }
   }
+
+  const resend = new Resend(process.env.RESEND_API_KEY)
 
   try {
     await resend.emails.send({

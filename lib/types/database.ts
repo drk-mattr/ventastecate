@@ -61,6 +61,8 @@ export type Listing = {
   category: string
   location: string
   country_code?: string | null
+  city?: string | null
+  state_region?: string | null
   metadata?: ListingMetadata | null
   status: 'active' | 'sold' | 'inactive'
   created_at: string

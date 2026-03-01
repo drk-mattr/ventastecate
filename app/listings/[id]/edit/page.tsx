@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
 import { Header } from '@/components/layout/header'
+import { LocationPicker } from '@/components/listings/location-picker'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -73,6 +74,8 @@ export default function EditListingPage() {
   const [price, setPrice] = useState('')
   const [category, setCategory] = useState('')
   const [location, setLocation] = useState('')
+  const [city, setCity] = useState('')
+  const [stateRegion, setStateRegion] = useState('')
   const [status, setStatus] = useState('active')
   const [existingImages, setExistingImages] = useState<ExistingImage[]>([])
   const [removedImageIds, setRemovedImageIds] = useState<string[]>([])
@@ -143,6 +146,8 @@ export default function EditListingPage() {
       setPriceConsultar(listing.price === 0)
       setCategory(listing.category)
       setLocation(listing.location)
+      setCity(listing.city || '')
+      setStateRegion(listing.state_region || '')
       setStatus(listing.status)
       setListingType(listing.listing_type || 'product')
       setExistingImages(
@@ -246,6 +251,8 @@ export default function EditListingPage() {
           price: priceConsultar ? 0 : parseFloat(price),
           category,
           location,
+          city: city || null,
+          state_region: stateRegion || null,
           metadata,
           status,
         })
@@ -529,14 +536,20 @@ export default function EditListingPage() {
                 </>
               )}
 
+              <LocationPicker
+                city={city}
+                stateRegion={stateRegion}
+                onCityChange={setCity}
+                onStateRegionChange={setStateRegion}
+              />
+
               <div className="space-y-2">
-                <Label htmlFor="location">Ubicación *</Label>
+                <Label htmlFor="location">Colonia / Barrio</Label>
                 <Input
                   id="location"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  required
-                  placeholder="Ej: Centro de Tecate"
+                  placeholder="Ej: Centro, La Rumorosa, Col. Libertad"
                 />
               </div>
 

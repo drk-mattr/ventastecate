@@ -144,3 +144,32 @@ export async function reverseGeocode(
     return null
   }
 }
+
+// Structured location from coordinates — returns city, state/region, and country code
+export type StructuredLocation = {
+  city: string | null
+  state: string | null
+  countryCode: string | null // ISO 2-letter uppercase e.g. "MX", "ID", "PH"
+}
+
+export async function getStructuredLocation(
+  lat: number,
+  lon: number
+): Promise<StructuredLocation> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=10&accept-language=es`,
+      { headers: { 'User-Agent': 'VentasTecate/1.0' } }
+    )
+    if (!res.ok) return { city: null, state: null, countryCode: null }
+    const data = await res.json()
+    const addr = data.address
+    return {
+      city: addr?.city || addr?.town || addr?.village || addr?.county || null,
+      state: addr?.state || null,
+      countryCode: addr?.country_code?.toUpperCase() || null,
+    }
+  } catch {
+    return { city: null, state: null, countryCode: null }
+  }
+}

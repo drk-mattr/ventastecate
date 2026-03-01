@@ -39,3 +39,60 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Build / framework output
+.next/
+.open-next/
+out/
+dist/
+.vercel/
+.netlify/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+
+# Build output
+.next/
+.open-next/
+out/
+dist/
+
+# Deploy tooling
+.vercel/
+.netlify/
+
+# Local/AI tooling
+.claude/
+
+# OS junk
+.DS_Store
+
+# Build output
+.next/
+.open-next/
+out/
+dist/
+
+# Local tooling
+.claude/
+
+# OS junk
+.DS_Store
+
+# Build output
+.next/
+.open-next/
+out/
+dist/
+
+# Local tooling
+.claude/
+
+# OS junk
+.DS_Store

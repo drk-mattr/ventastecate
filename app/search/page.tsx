@@ -11,6 +11,8 @@ interface SearchPageProps {
     q?: string
     category?: string
     location?: string
+    city?: string
+    stateRegion?: string
     minPrice?: string
     maxPrice?: string
     sort?: string
@@ -20,7 +22,7 @@ interface SearchPageProps {
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const supabase = await createClient()
-  const { q, category, location, minPrice, maxPrice, sort, country } = await searchParams
+  const { q, category, location, city, stateRegion, minPrice, maxPrice, sort, country } = await searchParams
 
   // Detect user country via Cloudflare header (null in local dev)
   const headersList = await headers()
@@ -57,24 +59,24 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   if (q) {
     query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`)
   }
-
   if (category) {
     query = query.eq('category', category)
   }
-
   if (location) {
     query = query.ilike('location', `%${location}%`)
   }
-
+  if (city) {
+    query = query.ilike('city', `%${city}%`)
+  }
+  if (stateRegion) {
+    query = query.ilike('state_region', `%${stateRegion}%`)
+  }
   if (minPrice) {
     query = query.gte('price', parseFloat(minPrice))
   }
-
   if (maxPrice) {
     query = query.lte('price', parseFloat(maxPrice))
   }
-
-  // Country filter
   if (effectiveCountry) {
     query = query.eq('country_code', effectiveCountry)
   }
@@ -89,7 +91,6 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   }
 
   const { data: listings } = await query.limit(50)
-
   const listingsWithImages: ListingWithImages[] = listings || []
 
   // Build toggle URL (preserve other params, flip country)
@@ -97,6 +98,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   if (q) toggleParams.set('q', q)
   if (category) toggleParams.set('category', category)
   if (location) toggleParams.set('location', location)
+  if (city) toggleParams.set('city', city)
+  if (stateRegion) toggleParams.set('stateRegion', stateRegion)
   if (minPrice) toggleParams.set('minPrice', minPrice)
   if (maxPrice) toggleParams.set('maxPrice', maxPrice)
   if (sort) toggleParams.set('sort', sort)
@@ -114,7 +117,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             </h1>
             <p className="text-sm text-gray-600">
               {listingsWithImages.length} {listingsWithImages.length === 1 ? 'resultado' : 'resultados'}
-              {effectiveCountry && !isGlobal && ` en ${effectiveCountry}`}
+              {city && ` en ${city}`}
+              {stateRegion && !city && ` en ${stateRegion}`}
+              {effectiveCountry && !isGlobal && !city && !stateRegion && ` en ${effectiveCountry}`}
             </p>
           </div>
           {userCountry && (
@@ -128,19 +133,19 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Filters Sidebar */}
           <aside className="lg:col-span-1">
             <SearchFilters
               initialQuery={q}
               initialCategory={category}
               initialLocation={location}
+              initialCity={city}
+              initialStateRegion={stateRegion}
               initialMinPrice={minPrice}
               initialMaxPrice={maxPrice}
               initialCountry={country}
             />
           </aside>
 
-          {/* Results Grid */}
           <div className="lg:col-span-3">
             {listingsWithImages.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -150,9 +155,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               </div>
             ) : (
               <div className="text-center py-16 bg-gray-50 rounded-lg">
-                <p className="text-gray-500 mb-2">
-                  No se encontraron resultados
-                </p>
+                <p className="text-gray-500 mb-2">No se encontraron resultados</p>
                 {effectiveCountry && !isGlobal && (
                   <Link href={toggleHref} className="text-sm text-blue-600 hover:underline">
                     Buscar en todo el mundo →

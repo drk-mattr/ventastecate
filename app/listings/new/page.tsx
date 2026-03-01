@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useRegion } from '@/lib/region-context'
 import { Header } from '@/components/layout/header'
+import { LocationPicker } from '@/components/listings/location-picker'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -62,6 +63,8 @@ export default function NewListingPage() {
   const [priceConsultar, setPriceConsultar] = useState(false)
   const [category, setCategory] = useState('')
   const [location, setLocation] = useState('')
+  const [city, setCity] = useState('')
+  const [stateRegion, setStateRegion] = useState('')
   const [images, setImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -166,6 +169,8 @@ export default function NewListingPage() {
           category: finalCategory,
           location: location || activeStore?.location || '',
           country_code: userCountry ?? null,
+          city: city || null,
+          state_region: stateRegion || null,
           metadata,
           status: 'active',
         })
@@ -463,14 +468,20 @@ export default function NewListingPage() {
                 </>
               )}
 
+              <LocationPicker
+                city={city}
+                stateRegion={stateRegion}
+                onCityChange={setCity}
+                onStateRegionChange={setStateRegion}
+              />
+
               <div className="space-y-2">
-                <Label htmlFor="location">Ubicación *</Label>
+                <Label htmlFor="location">Colonia / Barrio</Label>
                 <Input
                   id="location"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  required
-                  placeholder="Ej: Centro de Tecate"
+                  placeholder="Ej: Centro, La Rumorosa, Col. Libertad"
                 />
               </div>
 

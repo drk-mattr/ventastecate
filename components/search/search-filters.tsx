@@ -39,6 +39,8 @@ interface SearchFiltersProps {
   initialQuery?: string
   initialCategory?: string
   initialLocation?: string
+  initialCity?: string
+  initialStateRegion?: string
   initialMinPrice?: string
   initialMaxPrice?: string
   initialCountry?: string
@@ -48,6 +50,8 @@ export function SearchFilters({
   initialQuery = '',
   initialCategory = '',
   initialLocation = '',
+  initialCity = '',
+  initialStateRegion = '',
   initialMinPrice = '',
   initialMaxPrice = '',
   initialCountry,
@@ -55,6 +59,8 @@ export function SearchFilters({
   const [query, setQuery] = useState(initialQuery)
   const [category, setCategory] = useState(initialCategory || 'all')
   const [location, setLocation] = useState(initialLocation || 'all')
+  const [city, setCity] = useState(initialCity)
+  const [stateRegion, setStateRegion] = useState(initialStateRegion)
   const [minPrice, setMinPrice] = useState(initialMinPrice)
   const [maxPrice, setMaxPrice] = useState(initialMaxPrice)
   const [detectedLocation, setDetectedLocation] = useState<string | null>(null)
@@ -77,6 +83,8 @@ export function SearchFilters({
     if (query) params.set('q', query)
     if (category && category !== 'all') params.set('category', category)
     if (location && location !== 'all') params.set('location', location)
+    if (city) params.set('city', city)
+    if (stateRegion) params.set('stateRegion', stateRegion)
     if (minPrice) params.set('minPrice', minPrice)
     if (maxPrice) params.set('maxPrice', maxPrice)
     if (initialCountry === 'all') params.set('country', 'all')
@@ -88,6 +96,8 @@ export function SearchFilters({
     setQuery('')
     setCategory('all')
     setLocation('all')
+    setCity('')
+    setStateRegion('')
     setMinPrice('')
     setMaxPrice('')
     router.push('/search')
@@ -164,6 +174,30 @@ export function SearchFilters({
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="filter-state" className="text-sm">Estado / Región</Label>
+          <Input
+            id="filter-state"
+            placeholder="Ej: Baja California"
+            value={stateRegion}
+            onChange={(e) => setStateRegion(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            className="h-9 text-sm"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="filter-city" className="text-sm">Ciudad</Label>
+          <Input
+            id="filter-city"
+            placeholder="Ej: Tecate, Jakarta, Manila"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            className="h-9 text-sm"
+          />
         </div>
 
         <div className="space-y-2">

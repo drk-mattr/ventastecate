@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useBrand } from '@/lib/brand-context'
 import { Button } from '@/components/ui/button'
 import { HeaderSearch } from '@/components/search/header-search'
 import {
@@ -20,6 +21,7 @@ import { Check, Bug } from 'lucide-react'
 export function Header() {
   const { user, profile, stores, activeStore, setActiveStore, signOut } = useAuth()
   const pathname = usePathname()
+  const brandName = useBrand()
   const isHomePage = pathname === '/'
 
   const getInitials = (name: string) => {
@@ -36,7 +38,7 @@ export function Header() {
       <div className="container mx-auto px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-4 shrink-0">
           <Link href="/" className="text-lg font-semibold">
-            Ventas Tecate
+            {brandName}
           </Link>
           <nav className="hidden lg:flex items-center gap-6">
             <Link href="/" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
@@ -121,14 +123,12 @@ export function Header() {
                     <Link href="/messages">Mensajes</Link>
                   </DropdownMenuItem>
 
-                  {/* Stores section: context switcher + links combined */}
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-[10px] uppercase text-gray-400 font-medium">
                     Mis Tiendas
                   </DropdownMenuLabel>
                   {stores.length > 0 && (
                     <>
-                      {/* Personal mode option */}
                       <DropdownMenuItem
                         onClick={() => setActiveStore(null)}
                         className="text-xs flex items-center justify-between"

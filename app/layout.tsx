@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { GoogleTagManager, GoogleTagManagerNoScript } from "@/components/analytics/google-tag-manager";
+import { BrandProvider } from "@/lib/brand-context";
+import { getBrand } from "@/lib/brand";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -64,11 +67,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers()
+  const hostname = headersList.get('host') ?? ''
+  const { name: brandName } = getBrand(hostname)
+
   return (
     <html lang="es-MX">
       <head>
@@ -79,7 +86,9 @@ export default function RootLayout({
       >
         <GoogleTagManagerNoScript />
         <AuthProvider>
-          {children}
+          <BrandProvider brandName={brandName}>
+            {children}
+          </BrandProvider>
         </AuthProvider>
       </body>
     </html>

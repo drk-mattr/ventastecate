@@ -1,9 +1,10 @@
-export type Lang = 'es' | 'tl' | 'en'
+export type Lang = 'es' | 'tl' | 'en' | 'id'
 
 const NORTH_AMERICA = new Set(['US', 'CA'])
 
 export function getLang(countryCode: string | null): Lang {
   if (countryCode === 'PH') return 'tl'
+  if (countryCode === 'ID') return 'id'
   if (countryCode && NORTH_AMERICA.has(countryCode)) return 'en'
   return 'es'
 }
@@ -454,7 +455,120 @@ const en: Translations = {
   },
 }
 
-export const translations: Record<Lang, Translations> = { es, tl, en }
+const id: Translations = {
+  lang: 'id',
+  nav: {
+    home: 'Beranda',
+    myListings: 'Iklan Saya',
+    messages: 'Pesan',
+    publish: 'Pasang Iklan',
+    login: 'Masuk',
+    register: 'Daftar',
+    logout: 'Keluar',
+    settings: 'Pengaturan',
+    myProfile: 'Profil Saya',
+    reportProblem: 'Laporkan Masalah',
+    storeMode: 'Mode toko',
+    publishAs: 'Pasang sebagai saya',
+    createStore: '+ Buat Toko',
+  },
+  search: {
+    placeholder: 'Cari di Ventas Tecate...',
+    filters: 'Filter',
+    applyFilters: 'Terapkan Filter',
+    clear: 'Hapus',
+    clearAll: 'Hapus semua',
+    category: 'Kategori',
+    allCategories: 'Semua kategori',
+    location: 'Lokasi',
+    allLocations: 'Semua lokasi',
+    nearMe: 'Dekat saya',
+    useMyLocation: 'Gunakan lokasi saya',
+    price: 'Harga (MXN)',
+    state: 'Provinsi / Wilayah',
+    city: 'Kota',
+    sortBy: 'Urutkan',
+    newest: 'Terbaru',
+    priceLowHigh: 'Harga: rendah ke tinggi',
+    priceHighLow: 'Harga: tinggi ke rendah',
+    stateRegionPlaceholder: 'Cth: Baja California',
+    cityPlaceholder: 'Cth: Tecate, Jakarta, Surabaya',
+    minPrice: 'Minimum',
+    maxPrice: 'Maksimum',
+    keywords: 'Kata kunci...',
+  },
+  hero: {
+    tagline: 'Beli & Jual di',
+    searchPlaceholder: 'Apa yang kamu cari?',
+    search: 'Cari',
+  },
+  categories: [
+    { value: 'Electrónica', label: 'Elektronik' },
+    { value: 'Muebles', label: 'Furnitur' },
+    { value: 'Vehículos', label: 'Kendaraan' },
+    { value: 'Ropa', label: 'Pakaian' },
+    { value: 'Deportes', label: 'Olahraga' },
+    { value: 'Hogar', label: 'Rumah & Taman' },
+    { value: 'Juguetes', label: 'Mainan' },
+    { value: 'Libros', label: 'Buku' },
+    { value: 'Mascotas', label: 'Hewan Peliharaan' },
+    { value: 'Servicios', label: 'Jasa' },
+    { value: 'Eventos', label: 'Acara' },
+    { value: 'Otros', label: 'Lainnya' },
+  ],
+  listings: {
+    recent: 'Iklan Terbaru',
+    worldwide: 'Iklan Seluruh Dunia',
+    noListings: 'Belum ada iklan tersedia.',
+    noListingsInRegion: 'Belum ada iklan di wilayah kamu.',
+    seeWorldwide: 'Lihat iklan seluruh dunia →',
+    postListing: 'Pasang iklan',
+    results: 'hasil',
+    result: 'hasil',
+    noResults: 'Tidak ada hasil yang ditemukan',
+    searchWorldwide: 'Cari di seluruh dunia →',
+    onlyIn: 'Hanya di',
+    seeAll: '🌎 Lihat seluruh dunia',
+    in: 'di',
+  },
+  auth: {
+    loginTitle: 'Masuk',
+    loginWelcome: 'Selamat datang di Ventas Tecate',
+    forgotPassword: 'Lupa kata sandi?',
+    loggingIn: 'Sedang masuk...',
+    noAccount: 'Belum punya akun?',
+    signUpLink: 'Daftar',
+    emailNotConfirmed: 'Harap konfirmasi email kamu sebelum masuk. Cek kotak masuk kamu.',
+    createAccount: 'Buat Akun',
+    joinTagline: 'Bergabung dengan Ventas Tecate',
+    username: 'Nama Pengguna',
+    displayName: 'Nama Tampilan',
+    passwordHint: 'Minimal 6 karakter',
+    iAccept: 'Saya menyetujui',
+    termsOfService: 'Syarat Layanan',
+    and: 'dan',
+    privacyPolicy: 'Kebijakan Privasi',
+    creating: 'Membuat akun...',
+    checkEmail: 'Cek email kamu!',
+    accountCreated: 'Akun berhasil dibuat!',
+    checkEmailHint: 'Cek email kamu dan klik tautan konfirmasi untuk mengaktifkan akun kamu.',
+    spamHint: 'Mungkin perlu beberapa menit. Cek folder spam jika tidak terlihat.',
+    alreadyHaveAccount: 'Sudah punya akun?',
+    signInLink: 'Masuk',
+    recoverPassword: 'Pulihkan Kata Sandi',
+    recoverDescription: 'Masukkan email kamu dan kami akan mengirimkan tautan untuk mengatur ulang kata sandi',
+    emailSent: 'Email terkirim!',
+    emailSentDescription: 'Cek kotak masuk di {email} dan ikuti tautan untuk mengatur ulang kata sandi kamu.',
+    backToLogin: 'Kembali ke Masuk',
+    sending: 'Mengirim...',
+    sendLink: 'Kirim Tautan',
+    email: 'Email',
+    password: 'Kata Sandi',
+    loading: 'Memuat...',
+  },
+}
+
+export const translations: Record<Lang, Translations> = { es, tl, en, id }
 
 export function getTranslations(countryCode: string | null): Translations {
   return translations[getLang(countryCode)]

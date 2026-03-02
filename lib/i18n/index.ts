@@ -1,7 +1,11 @@
-export type Lang = 'es' | 'tl'
+export type Lang = 'es' | 'tl' | 'en'
+
+const NORTH_AMERICA = new Set(['US', 'CA'])
 
 export function getLang(countryCode: string | null): Lang {
-  return countryCode === 'PH' ? 'tl' : 'es'
+  if (countryCode === 'PH') return 'tl'
+  if (countryCode && NORTH_AMERICA.has(countryCode)) return 'en'
+  return 'es'
 }
 
 // Category items: value is always the Spanish DB key, label is localized
@@ -337,7 +341,120 @@ const tl: Translations = {
   },
 }
 
-export const translations: Record<Lang, Translations> = { es, tl }
+const en: Translations = {
+  lang: 'en',
+  nav: {
+    home: 'Home',
+    myListings: 'My Listings',
+    messages: 'Messages',
+    publish: 'Post',
+    login: 'Log In',
+    register: 'Sign Up',
+    logout: 'Log Out',
+    settings: 'Settings',
+    myProfile: 'My Profile',
+    reportProblem: 'Report a Problem',
+    storeMode: 'Store mode',
+    publishAs: 'Post as myself',
+    createStore: '+ Create Store',
+  },
+  search: {
+    placeholder: 'Search Ventas Tecate...',
+    filters: 'Filters',
+    applyFilters: 'Apply Filters',
+    clear: 'Clear',
+    clearAll: 'Clear all',
+    category: 'Category',
+    allCategories: 'All categories',
+    location: 'Location',
+    allLocations: 'All locations',
+    nearMe: 'Near me',
+    useMyLocation: 'Use my location',
+    price: 'Price (MXN)',
+    state: 'State / Region',
+    city: 'City',
+    sortBy: 'Sort by',
+    newest: 'Newest',
+    priceLowHigh: 'Price: low to high',
+    priceHighLow: 'Price: high to low',
+    stateRegionPlaceholder: 'e.g. Baja California',
+    cityPlaceholder: 'e.g. Tecate, San Diego, Tijuana',
+    minPrice: 'Min',
+    maxPrice: 'Max',
+    keywords: 'Keywords...',
+  },
+  hero: {
+    tagline: 'Buy & Sell in',
+    searchPlaceholder: 'What are you looking for?',
+    search: 'Search',
+  },
+  categories: [
+    { value: 'Electrónica', label: 'Electronics' },
+    { value: 'Muebles', label: 'Furniture' },
+    { value: 'Vehículos', label: 'Vehicles' },
+    { value: 'Ropa', label: 'Clothing' },
+    { value: 'Deportes', label: 'Sports' },
+    { value: 'Hogar', label: 'Home & Garden' },
+    { value: 'Juguetes', label: 'Toys' },
+    { value: 'Libros', label: 'Books' },
+    { value: 'Mascotas', label: 'Pets' },
+    { value: 'Servicios', label: 'Services' },
+    { value: 'Eventos', label: 'Events' },
+    { value: 'Otros', label: 'Other' },
+  ],
+  listings: {
+    recent: 'Recent Listings',
+    worldwide: 'Listings Worldwide',
+    noListings: 'No listings available.',
+    noListingsInRegion: 'No listings in your region yet.',
+    seeWorldwide: 'See listings worldwide →',
+    postListing: 'Post a listing',
+    results: 'results',
+    result: 'result',
+    noResults: 'No results found',
+    searchWorldwide: 'Search worldwide →',
+    onlyIn: 'Only in',
+    seeAll: '🌎 See worldwide',
+    in: 'in',
+  },
+  auth: {
+    loginTitle: 'Log In',
+    loginWelcome: 'Welcome to Ventas Tecate',
+    forgotPassword: 'Forgot your password?',
+    loggingIn: 'Logging in...',
+    noAccount: "Don't have an account?",
+    signUpLink: 'Sign up',
+    emailNotConfirmed: 'Please confirm your email before logging in. Check your inbox.',
+    createAccount: 'Create Account',
+    joinTagline: 'Join Ventas Tecate',
+    username: 'Username',
+    displayName: 'Display Name',
+    passwordHint: 'Minimum 6 characters',
+    iAccept: 'I accept the',
+    termsOfService: 'Terms of Service',
+    and: 'and',
+    privacyPolicy: 'Privacy Policy',
+    creating: 'Creating account...',
+    checkEmail: 'Check your email!',
+    accountCreated: 'Account created successfully!',
+    checkEmailHint: 'Please check your email and click the confirmation link to activate your account.',
+    spamHint: "It may take a few minutes to arrive. Check your spam folder if you don't see it.",
+    alreadyHaveAccount: 'Already have an account?',
+    signInLink: 'Log in',
+    recoverPassword: 'Recover Password',
+    recoverDescription: 'Enter your email and we will send you a link to reset your password',
+    emailSent: 'Email sent!',
+    emailSentDescription: 'Check your inbox at {email} and follow the link to reset your password.',
+    backToLogin: 'Back to Log In',
+    sending: 'Sending...',
+    sendLink: 'Send Link',
+    email: 'Email',
+    password: 'Password',
+    loading: 'Loading...',
+  },
+}
+
+export const translations: Record<Lang, Translations> = { es, tl, en }
 
 export function getTranslations(countryCode: string | null): Translations {
   return translations[getLang(countryCode)]

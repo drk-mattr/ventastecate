@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useBrand } from '@/lib/brand-context'
+import { useTranslations } from '@/lib/hooks/use-translations'
 import { Button } from '@/components/ui/button'
 import { HeaderSearch } from '@/components/search/header-search'
 import {
@@ -22,6 +23,7 @@ export function Header() {
   const { user, profile, stores, activeStore, setActiveStore, signOut } = useAuth()
   const pathname = usePathname()
   const brandName = useBrand()
+  const t = useTranslations()
   const isHomePage = pathname === '/'
 
   const getInitials = (name: string) => {
@@ -42,15 +44,15 @@ export function Header() {
           </Link>
           <nav className="hidden lg:flex items-center gap-6">
             <Link href="/" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-              Inicio
+              {t.nav.home}
             </Link>
             {user && (
               <>
                 <Link href="/my-listings" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                  Mis Anuncios
+                  {t.nav.myListings}
                 </Link>
                 <Link href="/messages" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                  Mensajes
+                  {t.nav.messages}
                 </Link>
               </>
             )}
@@ -67,7 +69,7 @@ export function Header() {
           {user ? (
             <>
               <Button asChild size="sm" className="h-8 px-3 text-xs">
-                <Link href="/listings/new">Publicar</Link>
+                <Link href="/listings/new">{t.nav.publish}</Link>
               </Button>
               {activeStore && (
                 <span className="text-[10px] text-gray-500 hidden sm:block max-w-[100px] truncate" title={activeStore.name}>
@@ -108,19 +110,19 @@ export function Header() {
                       {activeStore ? activeStore.name : profile?.display_name}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {activeStore ? `🏪 Modo tienda` : `@${profile?.username}`}
+                      {activeStore ? `🏪 ${t.nav.storeMode}` : `@${profile?.username}`}
                     </p>
                   </div>
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem asChild className="text-xs">
-                    <Link href={`/users/${profile?.username}`}>Mi Perfil</Link>
+                    <Link href={`/users/${profile?.username}`}>{t.nav.myProfile}</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="text-xs">
-                    <Link href="/my-listings">Mis Anuncios</Link>
+                    <Link href="/my-listings">{t.nav.myListings}</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="text-xs">
-                    <Link href="/messages">Mensajes</Link>
+                    <Link href="/messages">{t.nav.messages}</Link>
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
@@ -133,7 +135,7 @@ export function Header() {
                         onClick={() => setActiveStore(null)}
                         className="text-xs flex items-center justify-between"
                       >
-                        <span>👤 Publicar como yo</span>
+                        <span>👤 {t.nav.publishAs}</span>
                         {!activeStore && <Check className="h-3 w-3" />}
                       </DropdownMenuItem>
                       {stores.map((store) => (
@@ -152,21 +154,21 @@ export function Header() {
                     </>
                   )}
                   <DropdownMenuItem asChild className="text-xs">
-                    <Link href="/stores/new">+ Crear Tienda</Link>
+                    <Link href="/stores/new">{t.nav.createStore}</Link>
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild className="text-xs">
-                    <Link href="/profile/edit">Configuración</Link>
+                    <Link href="/profile/edit">{t.nav.settings}</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="text-xs">
                     <Link href="/report" className="flex items-center gap-1.5">
                       <Bug className="h-3 w-3" />
-                      Reportar problema
+                      {t.nav.reportProblem}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => signOut()} className="text-xs">
-                    Cerrar Sesión
+                    {t.nav.logout}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -174,10 +176,10 @@ export function Header() {
           ) : (
             <>
               <Button variant="ghost" size="sm" asChild className="h-8 px-3 text-xs">
-                <Link href="/login">Iniciar Sesión</Link>
+                <Link href="/login">{t.nav.login}</Link>
               </Button>
               <Button size="sm" asChild className="h-8 px-3 text-xs">
-                <Link href="/signup">Registrarse</Link>
+                <Link href="/signup">{t.nav.register}</Link>
               </Button>
             </>
           )}

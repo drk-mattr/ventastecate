@@ -7,6 +7,7 @@ import { ListingCard } from '@/components/listings/listing-card'
 import { DynamicHero } from '@/components/home/dynamic-hero'
 import { ListingWithImages } from '@/lib/types/database'
 import { Button } from '@/components/ui/button'
+import { getTranslations } from '@/lib/i18n'
 
 interface HomeProps {
   searchParams: Promise<{ global?: string }>
@@ -20,6 +21,7 @@ export default async function Home({ searchParams }: HomeProps) {
   // Detect user country via Cloudflare header (null in local dev)
   const headersList = await headers()
   const userCountry = headersList.get('cf-ipcountry') ?? null
+  const t = getTranslations(userCountry)
 
   // Build query
   let query = supabase
@@ -66,14 +68,14 @@ export default async function Home({ searchParams }: HomeProps) {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-medium text-gray-700">
-              {isGlobal ? 'Anuncios en todo el mundo' : 'Anuncios Recientes'}
+              {isGlobal ? t.listings.worldwide : t.listings.recent}
             </h2>
             {userCountry && (
               <Link
                 href={isGlobal ? '/' : '/?global=1'}
                 className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
               >
-                {isGlobal ? `📍 Solo en ${userCountry}` : '🌎 Ver todo el mundo'}
+                {isGlobal ? `📍 ${t.listings.onlyIn} ${userCountry}` : t.listings.seeAll}
               </Link>
             )}
           </div>
@@ -88,16 +90,16 @@ export default async function Home({ searchParams }: HomeProps) {
             <div className="text-center py-12">
               <p className="text-sm text-gray-500 mb-4">
                 {userCountry && !isGlobal
-                  ? `No hay anuncios en tu región aún.`
-                  : 'No hay anuncios disponibles.'}
+                  ? t.listings.noListingsInRegion
+                  : t.listings.noListings}
               </p>
               {userCountry && !isGlobal && (
                 <Link href="/?global=1" className="text-sm text-blue-600 hover:underline block mb-4">
-                  Ver anuncios de todo el mundo →
+                  {t.listings.seeWorldwide}
                 </Link>
               )}
               <Button asChild size="sm">
-                <Link href="/listings/new">Publicar anuncio</Link>
+                <Link href="/listings/new">{t.listings.postListing}</Link>
               </Button>
             </div>
           )}

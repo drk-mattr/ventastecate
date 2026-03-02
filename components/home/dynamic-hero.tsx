@@ -3,26 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGeolocation, getNearestLocation, reverseGeocode } from '@/lib/hooks/use-geolocation'
+import { useTranslations } from '@/lib/hooks/use-translations'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Search, X, MapPin } from 'lucide-react'
-
-const CATEGORIES = [
-  'Electrónica',
-  'Muebles',
-  'Vehículos',
-  'Ropa',
-  'Deportes',
-  'Hogar',
-  'Juguetes',
-  'Libros',
-  'Mascotas',
-  'Servicios',
-  'Eventos',
-  'Otros',
-]
 
 const LOCATIONS = [
   'Centro',
@@ -36,6 +22,7 @@ const LOCATIONS = [
 ]
 
 export function DynamicHero() {
+  const t = useTranslations()
   const [locationText, setLocationText] = useState('Tecate')
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
@@ -74,7 +61,7 @@ export function DynamicHero() {
   }, [geoLocation.latitude, geoLocation.longitude, geoLocation.loading])
 
   const activeFilters = [
-    ...(category !== 'all' ? [{ key: 'category', label: category }] : []),
+    ...(category !== 'all' ? [{ key: 'category', label: t.categories.find(c => c.value === category)?.label ?? category }] : []),
     ...(location !== 'all' ? [{ key: 'location', label: `📍 ${location}` }] : []),
     ...(minPrice || maxPrice ? [{
       key: 'price',
@@ -111,7 +98,7 @@ export function DynamicHero() {
     <div className="bg-gray-50 border-b">
       <div className="container mx-auto px-4 py-6">
         <h1 className="text-2xl font-semibold text-center mb-5">
-          Compra y Vende en {locationText}
+          {t.hero.tagline} {locationText}
         </h1>
 
         <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
@@ -121,35 +108,35 @@ export function DynamicHero() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 type="search"
-                placeholder="¿Qué estás buscando?"
+                placeholder={t.hero.searchPlaceholder}
                 className="h-10 pl-10 text-sm bg-white"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
             </div>
-            <Button type="submit" className="h-10 px-6">Buscar</Button>
+            <Button type="submit" className="h-10 px-6">{t.hero.search}</Button>
           </div>
 
           {/* Row 2: Filters */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger className="h-9 text-xs bg-white">
-                <SelectValue placeholder="Categoría" />
+                <SelectValue placeholder={t.search.category} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas las categorías</SelectItem>
-                {CATEGORIES.map((cat) => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                <SelectItem value="all">{t.search.allCategories}</SelectItem>
+                {t.categories.map((cat) => (
+                  <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
             <Select value={location} onValueChange={setLocation}>
               <SelectTrigger className="h-9 text-xs bg-white">
-                <SelectValue placeholder="Ubicación" />
+                <SelectValue placeholder={t.search.location} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas las ubicaciones</SelectItem>
+                <SelectItem value="all">{t.search.allLocations}</SelectItem>
                 {detectedLocation && (
                   <SelectItem value={detectedLocation} className="font-semibold">
                     📍 {detectedLocation}
@@ -163,14 +150,14 @@ export function DynamicHero() {
 
             <Input
               type="number"
-              placeholder="$ Mínimo"
+              placeholder={`$ ${t.search.minPrice}`}
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value)}
               className="h-9 text-xs bg-white"
             />
             <Input
               type="number"
-              placeholder="$ Máximo"
+              placeholder={`$ ${t.search.maxPrice}`}
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
               className="h-9 text-xs bg-white"
@@ -187,7 +174,7 @@ export function DynamicHero() {
               className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1 mt-2"
             >
               <MapPin className="h-3 w-3" />
-              Usar mi ubicación: {detectedLocation}
+              {t.search.useMyLocation}: {detectedLocation}
             </button>
           )}
 
@@ -202,7 +189,7 @@ export function DynamicHero() {
                 </Badge>
               ))}
               <button onClick={clearAll} className="text-xs text-gray-500 hover:text-gray-700 ml-1">
-                Limpiar
+                {t.search.clear}
               </button>
             </div>
           )}

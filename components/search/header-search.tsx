@@ -10,21 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label'
 import { Search, SlidersHorizontal, X, MapPin } from 'lucide-react'
 import { useGeolocation, getNearestLocation } from '@/lib/hooks/use-geolocation'
-
-const CATEGORIES = [
-  'Electrónica',
-  'Muebles',
-  'Vehículos',
-  'Ropa',
-  'Deportes',
-  'Hogar',
-  'Juguetes',
-  'Libros',
-  'Mascotas',
-  'Servicios',
-  'Eventos',
-  'Otros',
-]
+import { useTranslations } from '@/lib/hooks/use-translations'
 
 const LOCATIONS = [
   'Centro',
@@ -37,13 +23,8 @@ const LOCATIONS = [
   'Otros',
 ]
 
-const SORT_OPTIONS = [
-  { value: 'newest', label: 'Más recientes' },
-  { value: 'price_asc', label: 'Precio: menor a mayor' },
-  { value: 'price_desc', label: 'Precio: mayor a menor' },
-]
-
 export function HeaderSearch() {
+  const t = useTranslations()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -84,6 +65,12 @@ export function HeaderSearch() {
       }
     }
   }, [geoLocation.latitude, geoLocation.longitude, geoLocation.loading])
+
+  const sortOptions = [
+    { value: 'newest', label: t.search.newest },
+    { value: 'price_asc', label: t.search.priceLowHigh },
+    { value: 'price_desc', label: t.search.priceHighLow },
+  ]
 
   const activeFilterCount = [category !== 'all' ? category : '', location !== 'all' ? location : '', minPrice, maxPrice, sort !== 'newest' ? sort : ''].filter(Boolean).length
 
@@ -152,7 +139,7 @@ export function HeaderSearch() {
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
           <Input
             type="search"
-            placeholder="Buscar en Ventas Tecate..."
+            placeholder={t.search.placeholder}
             className="h-8 pl-8 pr-3 text-sm"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -163,7 +150,7 @@ export function HeaderSearch() {
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="h-8 px-2.5 gap-1.5 text-xs shrink-0">
               <SlidersHorizontal className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Filtros</span>
+              <span className="hidden sm:inline">{t.search.filters}</span>
               {activeFilterCount > 0 && (
                 <Badge variant="default" className="h-4 w-4 p-0 flex items-center justify-center text-[10px] rounded-full">
                   {activeFilterCount}
@@ -174,28 +161,28 @@ export function HeaderSearch() {
           <PopoverContent className="w-80 p-4" align="end">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Filtros</h3>
+                <h3 className="text-sm font-semibold">{t.search.filters}</h3>
                 {activeFilterCount > 0 && (
                   <button
                     onClick={handleClearFilters}
                     className="text-xs text-blue-600 hover:text-blue-700"
                   >
-                    Limpiar todo
+                    {t.search.clearAll}
                   </button>
                 )}
               </div>
 
               {/* Category */}
               <div className="space-y-1.5">
-                <Label className="text-xs">Categoría</Label>
+                <Label className="text-xs">{t.search.category}</Label>
                 <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Todas las categorías" />
+                    <SelectValue placeholder={t.search.allCategories} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas las categorías</SelectItem>
-                    {CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    <SelectItem value="all">{t.search.allCategories}</SelectItem>
+                    {t.categories.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -204,7 +191,7 @@ export function HeaderSearch() {
               {/* Location */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs">Ubicación</Label>
+                  <Label className="text-xs">{t.search.location}</Label>
                   {detectedLocation && (
                     <button
                       type="button"
@@ -212,19 +199,19 @@ export function HeaderSearch() {
                       className="text-[10px] text-blue-600 hover:text-blue-700 flex items-center gap-0.5"
                     >
                       <MapPin className="h-2.5 w-2.5" />
-                      Cerca de mí
+                      {t.search.nearMe}
                     </button>
                   )}
                 </div>
                 <Select value={location} onValueChange={setLocation}>
                   <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Todas las ubicaciones" />
+                    <SelectValue placeholder={t.search.allLocations} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todas las ubicaciones</SelectItem>
+                    <SelectItem value="all">{t.search.allLocations}</SelectItem>
                     {detectedLocation && (
                       <SelectItem value={detectedLocation} className="font-semibold">
-                        📍 {detectedLocation} (Cerca de mí)
+                        📍 {detectedLocation} ({t.search.nearMe})
                       </SelectItem>
                     )}
                     {LOCATIONS.map((loc) => (
@@ -236,18 +223,18 @@ export function HeaderSearch() {
 
               {/* Price Range */}
               <div className="space-y-1.5">
-                <Label className="text-xs">Precio (MXN)</Label>
+                <Label className="text-xs">{t.search.price}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <Input
                     type="number"
-                    placeholder="Mínimo"
+                    placeholder={t.search.minPrice}
                     value={minPrice}
                     onChange={(e) => setMinPrice(e.target.value)}
                     className="h-8 text-xs"
                   />
                   <Input
                     type="number"
-                    placeholder="Máximo"
+                    placeholder={t.search.maxPrice}
                     value={maxPrice}
                     onChange={(e) => setMaxPrice(e.target.value)}
                     className="h-8 text-xs"
@@ -257,13 +244,13 @@ export function HeaderSearch() {
 
               {/* Sort */}
               <div className="space-y-1.5">
-                <Label className="text-xs">Ordenar por</Label>
+                <Label className="text-xs">{t.search.sortBy}</Label>
                 <Select value={sort} onValueChange={setSort}>
                   <SelectTrigger className="h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {SORT_OPTIONS.map((opt) => (
+                    {sortOptions.map((opt) => (
                       <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                     ))}
                   </SelectContent>
@@ -271,7 +258,7 @@ export function HeaderSearch() {
               </div>
 
               <Button onClick={handleApplyFilters} className="w-full h-8 text-xs">
-                Aplicar Filtros
+                {t.search.applyFilters}
               </Button>
             </div>
           </PopoverContent>
@@ -283,7 +270,7 @@ export function HeaderSearch() {
         <div className="flex flex-wrap gap-1.5 mt-1.5">
           {category !== 'all' && category && (
             <Badge variant="secondary" className="text-[10px] h-5 gap-1 pl-2 pr-1">
-              {category}
+              {t.categories.find(c => c.value === category)?.label ?? category}
               <button onClick={() => removeFilter('category')}><X className="h-2.5 w-2.5" /></button>
             </Badge>
           )}
@@ -301,7 +288,7 @@ export function HeaderSearch() {
           )}
           {sort !== 'newest' && (
             <Badge variant="secondary" className="text-[10px] h-5 gap-1 pl-2 pr-1">
-              {SORT_OPTIONS.find(o => o.value === sort)?.label}
+              {sortOptions.find(o => o.value === sort)?.label}
               <button onClick={() => removeFilter('sort')}><X className="h-2.5 w-2.5" /></button>
             </Badge>
           )}

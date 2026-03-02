@@ -4,12 +4,14 @@ import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslations } from '@/lib/hooks/use-translations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 function LoginForm() {
+  const t = useTranslations()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -30,9 +32,8 @@ function LoginForm() {
     })
 
     if (error) {
-      // Provide helpful message for email confirmation
       if (error.message.includes('Email not confirmed')) {
-        setError('Por favor confirma tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.')
+        setError(t.auth.emailNotConfirmed)
       } else {
         setError(error.message)
       }
@@ -47,13 +48,13 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Iniciar Sesión</CardTitle>
-          <CardDescription>Bienvenido a Ventas Tecate</CardDescription>
+          <CardTitle>{t.auth.loginTitle}</CardTitle>
+          <CardDescription>{t.auth.loginWelcome}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t.auth.email}</Label>
               <Input
                 id="email"
                 type="email"
@@ -65,9 +66,9 @@ function LoginForm() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Contraseña</Label>
+                <Label htmlFor="password">{t.auth.password}</Label>
                 <Link href="/forgot-password" className="text-xs text-blue-600 hover:underline">
-                  ¿Olvidaste tu contraseña?
+                  {t.auth.forgotPassword}
                 </Link>
               </div>
               <Input
@@ -85,13 +86,13 @@ function LoginForm() {
               </div>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Iniciando...' : 'Iniciar Sesión'}
+              {loading ? t.auth.loggingIn : t.auth.loginTitle}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
-            ¿No tienes cuenta?{' '}
+            {t.auth.noAccount}{' '}
             <Link href="/signup" className="text-blue-600 hover:underline">
-              Regístrate
+              {t.auth.signUpLink}
             </Link>
           </div>
         </CardContent>
@@ -101,10 +102,11 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
+  const t = useTranslations()
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <p>Cargando...</p>
+        <p>{t.auth.loading}</p>
       </div>
     }>
       <LoginForm />

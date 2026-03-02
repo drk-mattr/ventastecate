@@ -77,9 +77,10 @@ export default async function RootLayout({
   const hostname = headersList.get('host') ?? ''
   const { name: brandName } = getBrand(hostname)
   const countryCode = headersList.get('cf-ipcountry') ?? null
+  const htmlLang = countryCode === 'PH' ? 'fil' : 'es-MX'
 
   return (
-    <html lang="es-MX">
+    <html lang={htmlLang}>
       <head>
         <GoogleTagManager />
       </head>

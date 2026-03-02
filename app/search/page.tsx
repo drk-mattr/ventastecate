@@ -4,6 +4,7 @@ import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { SearchFilters } from '@/components/search/search-filters'
 import { ListingWithImages } from '@/lib/types/database'
+import { getTranslations } from '@/lib/i18n'
 import Link from 'next/link'
 
 interface SearchPageProps {
@@ -27,6 +28,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   // Detect user country via Cloudflare header (null in local dev)
   const headersList = await headers()
   const userCountry = headersList.get('cf-ipcountry') ?? null
+  const t = getTranslations(userCountry)
 
   // 'all' = user opted into global search; absent = use detected country
   const isGlobal = country === 'all'
@@ -106,6 +108,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   if (!isGlobal) toggleParams.set('country', 'all')
   const toggleHref = `/search?${toggleParams.toString()}`
 
+  const resultCount = listingsWithImages.length
+  const resultLabel = resultCount === 1 ? t.listings.result : t.listings.results
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
@@ -113,13 +118,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <div className="mb-6 flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-semibold mb-1">
-              {q ? `Resultados para "${q}"` : 'Buscar Anuncios'}
+              {q ? `"${q}"` : t.hero.search}
             </h1>
             <p className="text-sm text-gray-600">
-              {listingsWithImages.length} {listingsWithImages.length === 1 ? 'resultado' : 'resultados'}
-              {city && ` en ${city}`}
-              {stateRegion && !city && ` en ${stateRegion}`}
-              {effectiveCountry && !isGlobal && !city && !stateRegion && ` en ${effectiveCountry}`}
+              {resultCount} {resultLabel}
+              {city && ` ${t.listings.in} ${city}`}
+              {stateRegion && !city && ` ${t.listings.in} ${stateRegion}`}
+              {effectiveCountry && !isGlobal && !city && !stateRegion && ` ${t.listings.in} ${effectiveCountry}`}
             </p>
           </div>
           {userCountry && (
@@ -127,7 +132,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               href={toggleHref}
               className="text-xs text-gray-500 hover:text-gray-700 transition-colors shrink-0 mt-1"
             >
-              {isGlobal ? `📍 Solo en ${userCountry}` : '🌎 Ver todo el mundo'}
+              {isGlobal ? `📍 ${t.listings.onlyIn} ${userCountry}` : t.listings.seeAll}
             </Link>
           )}
         </div>
@@ -155,10 +160,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               </div>
             ) : (
               <div className="text-center py-16 bg-gray-50 rounded-lg">
-                <p className="text-gray-500 mb-2">No se encontraron resultados</p>
+                <p className="text-gray-500 mb-2">{t.listings.noResults}</p>
                 {effectiveCountry && !isGlobal && (
                   <Link href={toggleHref} className="text-sm text-blue-600 hover:underline">
-                    Buscar en todo el mundo →
+                    {t.listings.searchWorldwide}
                   </Link>
                 )}
               </div>

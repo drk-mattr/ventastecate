@@ -4,12 +4,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslations } from '@/lib/hooks/use-translations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function SignupPage() {
+  const t = useTranslations()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
@@ -77,13 +79,13 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Crear Cuenta</CardTitle>
-          <CardDescription>Únete a Ventas Tecate</CardDescription>
+          <CardTitle>{t.auth.createAccount}</CardTitle>
+          <CardDescription>{t.auth.joinTagline}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignup} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t.auth.email}</Label>
               <Input
                 id="email"
                 type="email"
@@ -94,7 +96,7 @@ export default function SignupPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="username">Nombre de Usuario</Label>
+              <Label htmlFor="username">{t.auth.username}</Label>
               <Input
                 id="username"
                 type="text"
@@ -107,7 +109,7 @@ export default function SignupPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="displayName">Nombre para Mostrar</Label>
+              <Label htmlFor="displayName">{t.auth.displayName}</Label>
               <Input
                 id="displayName"
                 type="text"
@@ -118,7 +120,7 @@ export default function SignupPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password">{t.auth.password}</Label>
               <Input
                 id="password"
                 type="password"
@@ -128,7 +130,7 @@ export default function SignupPage() {
                 minLength={6}
                 placeholder="••••••••"
               />
-              <p className="text-xs text-gray-500">Mínimo 6 caracteres</p>
+              <p className="text-xs text-gray-500">{t.auth.passwordHint}</p>
             </div>
             <div className="flex items-start space-x-2">
               <input
@@ -140,13 +142,13 @@ export default function SignupPage() {
                 required
               />
               <label htmlFor="terms" className="text-xs text-gray-600">
-                Acepto los{' '}
+                {t.auth.iAccept}{' '}
                 <Link href="/terms" target="_blank" className="text-blue-600 hover:underline">
-                  Términos de Servicio
+                  {t.auth.termsOfService}
                 </Link>
-                {' '}y la{' '}
+                {' '}{t.auth.and}{' '}
                 <Link href="/privacy" target="_blank" className="text-blue-600 hover:underline">
-                  Política de Privacidad
+                  {t.auth.privacyPolicy}
                 </Link>
               </label>
             </div>
@@ -157,19 +159,19 @@ export default function SignupPage() {
             )}
             {success && (
               <div className="text-sm text-green-600 bg-green-50 p-3 rounded space-y-2">
-                <p className="font-semibold">¡Cuenta creada exitosamente!</p>
-                <p>Por favor revisa tu correo electrónico y haz clic en el enlace de confirmación para activar tu cuenta.</p>
-                <p className="text-xs">Puede tardar unos minutos en llegar. Revisa tu carpeta de spam si no lo ves.</p>
+                <p className="font-semibold">{t.auth.accountCreated}</p>
+                <p>{t.auth.checkEmailHint}</p>
+                <p className="text-xs">{t.auth.spamHint}</p>
               </div>
             )}
             <Button type="submit" className="w-full" disabled={loading || success}>
-              {loading ? 'Creando cuenta...' : success ? '¡Revisa tu correo!' : 'Crear Cuenta'}
+              {loading ? t.auth.creating : success ? t.auth.checkEmail : t.auth.createAccount}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
-            ¿Ya tienes cuenta?{' '}
+            {t.auth.alreadyHaveAccount}{' '}
             <Link href="/login" className="text-blue-600 hover:underline">
-              Inicia sesión
+              {t.auth.signInLink}
             </Link>
           </div>
         </CardContent>

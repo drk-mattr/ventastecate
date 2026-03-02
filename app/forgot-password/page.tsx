@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { useTranslations } from '@/lib/hooks/use-translations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -37,21 +39,19 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Recuperar Contraseña</CardTitle>
-          <CardDescription>
-            Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña
-          </CardDescription>
+          <CardTitle>{t.auth.recoverPassword}</CardTitle>
+          <CardDescription>{t.auth.recoverDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           {sent ? (
             <div className="space-y-4">
               <div className="text-sm text-green-600 bg-green-50 p-4 rounded">
-                <p className="font-medium mb-1">¡Correo enviado!</p>
-                <p>Revisa tu bandeja de entrada en <strong>{email}</strong> y sigue el enlace para restablecer tu contraseña.</p>
+                <p className="font-medium mb-1">{t.auth.emailSent}</p>
+                <p>{t.auth.emailSentDescription.replace('{email}', email)}</p>
               </div>
               <div className="text-center text-sm">
                 <Link href="/login" className="text-blue-600 hover:underline">
-                  Volver a Iniciar Sesión
+                  {t.auth.backToLogin}
                 </Link>
               </div>
             </div>
@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
             <>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t.auth.email}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -75,12 +75,12 @@ export default function ForgotPasswordPage() {
                   </div>
                 )}
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Enviando...' : 'Enviar Enlace'}
+                  {loading ? t.auth.sending : t.auth.sendLink}
                 </Button>
               </form>
               <div className="mt-4 text-center text-sm">
                 <Link href="/login" className="text-blue-600 hover:underline">
-                  Volver a Iniciar Sesión
+                  {t.auth.backToLogin}
                 </Link>
               </div>
             </>

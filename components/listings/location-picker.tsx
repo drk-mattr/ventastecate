@@ -12,6 +12,7 @@ interface LocationPickerProps {
   stateRegion: string
   onCityChange: (v: string) => void
   onStateRegionChange: (v: string) => void
+  onCountryCodeChange?: (code: string) => void
 }
 
 export function LocationPicker({
@@ -19,6 +20,7 @@ export function LocationPicker({
   stateRegion,
   onCityChange,
   onStateRegionChange,
+  onCountryCodeChange,
 }: LocationPickerProps) {
   const [detecting, setDetecting] = useState(false)
   const [geoError, setGeoError] = useState('')
@@ -41,6 +43,7 @@ export function LocationPicker({
         )
         if (result.city) onCityChange(result.city)
         if (result.state) onStateRegionChange(result.state)
+        if (result.countryCode && onCountryCodeChange) onCountryCodeChange(result.countryCode)
         if (!result.city && !result.state) {
           setGeoError('No se pudo detectar tu ubicación')
         } else {

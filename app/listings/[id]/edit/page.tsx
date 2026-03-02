@@ -76,6 +76,7 @@ export default function EditListingPage() {
   const [location, setLocation] = useState('')
   const [city, setCity] = useState('')
   const [stateRegion, setStateRegion] = useState('')
+  const [countryCode, setCountryCode] = useState<string | null>(null)
   const [status, setStatus] = useState('active')
   const [existingImages, setExistingImages] = useState<ExistingImage[]>([])
   const [removedImageIds, setRemovedImageIds] = useState<string[]>([])
@@ -148,6 +149,7 @@ export default function EditListingPage() {
       setLocation(listing.location)
       setCity(listing.city || '')
       setStateRegion(listing.state_region || '')
+      setCountryCode(listing.country_code || null)
       setStatus(listing.status)
       setListingType(listing.listing_type || 'product')
       setExistingImages(
@@ -253,6 +255,7 @@ export default function EditListingPage() {
           location,
           city: city || null,
           state_region: stateRegion || null,
+          country_code: countryCode,
           metadata,
           status,
         })
@@ -541,6 +544,7 @@ export default function EditListingPage() {
                 stateRegion={stateRegion}
                 onCityChange={setCity}
                 onStateRegionChange={setStateRegion}
+                onCountryCodeChange={setCountryCode}
               />
 
               <div className="space-y-2">

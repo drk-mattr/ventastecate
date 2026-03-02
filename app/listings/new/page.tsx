@@ -65,6 +65,7 @@ export default function NewListingPage() {
   const [location, setLocation] = useState('')
   const [city, setCity] = useState('')
   const [stateRegion, setStateRegion] = useState('')
+  const [gpsCountryCode, setGpsCountryCode] = useState<string | null>(null)
   const [images, setImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -168,7 +169,7 @@ export default function NewListingPage() {
           price: priceConsultar ? 0 : parseFloat(price),
           category: finalCategory,
           location: location || activeStore?.location || '',
-          country_code: userCountry ?? null,
+          country_code: gpsCountryCode ?? userCountry ?? null,
           city: city || null,
           state_region: stateRegion || null,
           metadata,
@@ -473,6 +474,7 @@ export default function NewListingPage() {
                 stateRegion={stateRegion}
                 onCityChange={setCity}
                 onStateRegionChange={setStateRegion}
+                onCountryCodeChange={setGpsCountryCode}
               />
 
               <div className="space-y-2">

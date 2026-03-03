@@ -10,13 +10,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Webhook not configured' })
     }
 
+    // Cloudflare provides rich geo headers on every request
+    const ip         = request.headers.get('cf-connecting-ip') ?? request.headers.get('x-forwarded-for') ?? '—'
+    const country    = request.headers.get('cf-ipcountry') ?? '—'
+    const city       = request.headers.get('cf-ipcity') ?? '—'
+    const region     = request.headers.get('cf-region') ?? '—'
+    const timezone   = request.headers.get('cf-timezone') ?? '—'
+    const userAgent  = request.headers.get('user-agent') ?? '—'
+
+    // Build a readable location string
+    const locationParts = [city, region, country].filter(v => v && v !== '—')
+    const locationStr = locationParts.length ? locationParts.join(', ') : '—'
+
     const embed = {
       title: '🎉 Nuevo Usuario Registrado',
       color: 0x5865f2, // Discord blurple
       fields: [
-        { name: 'Nombre', value: displayName || '—', inline: true },
-        { name: 'Usuario', value: `@${username}`, inline: true },
-        { name: 'Email', value: email || '—', inline: false },
+        { name: 'Nombre',    value: displayName || '—', inline: true },
+        { name: 'Usuario',   value: `@${username}`,     inline: true },
+        { name: 'Email',     value: email || '—',       inline: false },
+        { name: '📍 Ubicación', value: locationStr,     inline: true },
+        { name: '🌐 Zona Horaria', value: timezone,     inline: true },
+        { name: '🖥️ IP',     value: `\`${ip}\``,        inline: false },
+        { name: '🔍 User Agent', value: userAgent.slice(0, 100), inline: false },
       ],
       timestamp: new Date().toISOString(),
       footer: { text: 'Ventas Tecate' },

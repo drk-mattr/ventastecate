@@ -39,7 +39,7 @@ export function Header() {
     <header className="border-b bg-white sticky top-0 z-50">
       <div className="container mx-auto px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-4 shrink-0">
-          <Link href="/" className="text-lg font-semibold">
+          <Link href="/" className="text-xl font-forum tracking-wide">
             {brandName}
           </Link>
           <nav className="hidden lg:flex items-center gap-6">

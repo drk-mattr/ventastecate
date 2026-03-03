@@ -30,6 +30,14 @@ const NEWS_CATEGORY_COLORS: Record<string, string> = {
   'Empleos':                 'bg-purple-100 text-purple-800',
 }
 
+const NEWS_CATEGORY_GRADIENTS: Record<string, string> = {
+  'Noticias Locales':        'from-blue-600 to-blue-800',
+  'Objetos Perdidos':        'from-amber-500 to-amber-700',
+  'Seguridad Pública':       'from-red-600 to-red-800',
+  'Anuncios Comunitarios':   'from-green-600 to-green-800',
+  'Empleos':                 'from-purple-600 to-purple-800',
+}
+
 export function ListingCard({ listing }: ListingCardProps) {
   const hasImages = listing.images && listing.images.length > 0
   const primaryImage = hasImages ? listing.images[0].image_url : null
@@ -42,74 +50,61 @@ export function ListingCard({ listing }: ListingCardProps) {
     ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(listing.price)
     : null
 
-  // ── News card: horizontal newspaper-style ──────────────────────────────────
+  // ── News card: standard grid card with category colour ────────────────────
   if (isNews) {
     const categoryColor = NEWS_CATEGORY_COLORS[listing.category] || 'bg-slate-100 text-slate-700'
-    const timeAgo = (() => {
-      // eslint-disable-next-line react-hooks/purity
-      const diff = Date.now() - new Date(listing.created_at).getTime()
-      const mins = Math.floor(diff / 60000)
-      const hours = Math.floor(mins / 60)
-      const days = Math.floor(hours / 24)
-      if (days > 0) return `hace ${days}d`
-      if (hours > 0) return `hace ${hours}h`
-      if (mins > 0) return `hace ${mins}m`
-      return 'ahora'
-    })()
+    const categoryGradient = NEWS_CATEGORY_GRADIENTS[listing.category] || 'from-slate-600 to-slate-800'
 
     return (
-      <Link href={`/listings/${listing.id}`} className="group col-span-full">
+      <Link href={`/listings/${listing.id}`} className="group">
         <div className="overflow-hidden rounded-lg border bg-white hover:shadow-md transition-shadow">
-          <div className="flex items-start gap-4 p-4">
-            {/* Left: text content */}
-            <div className="flex-1 min-w-0">
-              {/* Category + time */}
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${categoryColor}`}>
-                  {listing.category}
-                </span>
-                {listing.location && (
-                  <span className="text-xs text-gray-400 truncate">{listing.location}</span>
-                )}
-                <span className="text-xs text-gray-400 ml-auto shrink-0">{timeAgo}</span>
-              </div>
-
-              {/* Headline */}
-              <h3 className="font-semibold text-base leading-snug mb-1.5 group-hover:text-blue-700 transition-colors line-clamp-2">
-                {listing.title}
-              </h3>
-
-              {/* Excerpt */}
-              <p className="text-sm text-gray-500 line-clamp-2 leading-relaxed">
-                {listing.description}
-              </p>
-
-              {/* Author */}
-              <div className="flex items-center gap-1.5 mt-2">
-                <Newspaper className="h-3 w-3 text-gray-400" />
-                <span className="text-xs text-gray-400">
-                  {listing.store ? listing.store.name : listing.profile.display_name}
-                </span>
-              </div>
-            </div>
-
-            {/* Right: thumbnail if available */}
-            {primaryImage && (
-              <div className="relative shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-md overflow-hidden bg-gray-100">
-                <Image
-                  src={primaryImage}
-                  alt={listing.title}
-                  fill
-                  className="object-cover"
-                  sizes="96px"
-                />
-                {listing.status === 'sold' && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <Badge variant="secondary" className="text-[10px]">Cerrado</Badge>
-                  </div>
-                )}
+          {/* Square image or coloured gradient hero */}
+          <div className="relative aspect-square bg-gray-100">
+            {primaryImage ? (
+              <Image
+                src={primaryImage}
+                alt={listing.title}
+                fill
+                className="object-cover"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+              />
+            ) : (
+              <div className={`absolute inset-0 bg-gradient-to-br ${categoryGradient} flex flex-col items-center justify-center p-3 text-center`}>
+                <Newspaper className="h-5 w-5 text-white/60 mb-2 shrink-0" />
+                <p className="text-white font-bold text-sm leading-snug line-clamp-4">
+                  {listing.title}
+                </p>
               </div>
             )}
+            {/* Category pill overlaid top-left */}
+            <div className="absolute top-1.5 left-1.5">
+              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full leading-none ${categoryColor}`}>
+                {listing.category}
+              </span>
+            </div>
+            {listing.status === 'sold' && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <Badge variant="secondary" className="text-xs">Cerrado</Badge>
+              </div>
+            )}
+          </div>
+
+          {/* Info strip */}
+          <div className="p-3">
+            {primaryImage && (
+              <h3 className="font-semibold text-sm line-clamp-2 mb-1.5 group-hover:text-blue-600 transition-colors leading-snug">
+                {listing.title}
+              </h3>
+            )}
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[11px] text-gray-400 flex items-center gap-0.5 truncate">
+                <Newspaper className="h-3 w-3 shrink-0" />
+                {listing.store ? listing.store.name : listing.profile.display_name}
+              </span>
+              <span className="text-[11px] text-gray-400 shrink-0">
+                {new Date(listing.created_at).toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })}
+              </span>
+            </div>
           </div>
         </div>
       </Link>

@@ -46,6 +46,7 @@ export function ListingCard({ listing }: ListingCardProps) {
   if (isNews) {
     const categoryColor = NEWS_CATEGORY_COLORS[listing.category] || 'bg-slate-100 text-slate-700'
     const timeAgo = (() => {
+      // eslint-disable-next-line react-hooks/purity
       const diff = Date.now() - new Date(listing.created_at).getTime()
       const mins = Math.floor(diff / 60000)
       const hours = Math.floor(mins / 60)

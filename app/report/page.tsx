@@ -8,14 +8,18 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle2 } from 'lucide-react'
-
-const REPORT_TYPES = [
-  { value: 'bug', icon: '🐛', label: 'Reportar un problema' },
-  { value: 'suggestion', icon: '💡', label: 'Sugerencia' },
-  { value: 'other', icon: '📝', label: 'Otro' },
-]
+import { useTranslations } from '@/lib/hooks/use-translations'
 
 export default function ReportPage() {
+  const t = useTranslations()
+  const f = t.forms
+
+  const REPORT_TYPES = [
+    { value: 'bug', icon: '🐛', label: f.reportTypeBug },
+    { value: 'suggestion', icon: '💡', label: f.reportTypeSuggestion },
+    { value: 'other', icon: '📝', label: f.reportTypeOther },
+  ]
+
   const [type, setType] = useState('bug')
   const [description, setDescription] = useState('')
   const [email, setEmail] = useState('')
@@ -56,60 +60,60 @@ export default function ReportPage() {
           <Card>
             <CardContent className="py-12 text-center">
               <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h2 className="text-lg font-semibold mb-2">¡Gracias por tu reporte!</h2>
+              <h2 className="text-lg font-semibold mb-2">{f.reportThankYou}</h2>
               <p className="text-sm text-gray-500 mb-6">
-                Hemos recibido tu mensaje y lo revisaremos pronto.
+                {f.reportReceived}
               </p>
               <Button onClick={() => { setSent(false); setDescription(''); setEmail('') }} variant="outline" size="sm">
-                Enviar otro reporte
+                {f.reportSendAnother}
               </Button>
             </CardContent>
           </Card>
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle>Contacto y Reportes</CardTitle>
+              <CardTitle>{f.reportTitle}</CardTitle>
               <CardDescription>
-                ¿Encontraste un problema o tienes una sugerencia? Cuéntanos.
+                {f.reportDesc}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <Label>Tipo</Label>
+                  <Label>{f.reportTypeLabel}</Label>
                   <div className="grid grid-cols-3 gap-2">
-                    {REPORT_TYPES.map((t) => (
+                    {REPORT_TYPES.map((rt) => (
                       <button
-                        key={t.value}
+                        key={rt.value}
                         type="button"
-                        onClick={() => setType(t.value)}
+                        onClick={() => setType(rt.value)}
                         className={`p-3 rounded-lg border-2 text-center transition ${
-                          type === t.value
+                          type === rt.value
                             ? 'border-black bg-gray-50'
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
-                        <span className="text-xl block mb-1">{t.icon}</span>
-                        <span className="text-[11px] font-medium leading-tight block">{t.label}</span>
+                        <span className="text-xl block mb-1">{rt.icon}</span>
+                        <span className="text-[11px] font-medium leading-tight block">{rt.label}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Descripción *</Label>
+                  <Label htmlFor="description">{f.reportDescLabel}</Label>
                   <Textarea
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     required
-                    placeholder="Describe el problema o tu sugerencia..."
+                    placeholder={f.reportDescPlaceholder}
                     rows={5}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email para seguimiento (opcional)</Label>
+                  <Label htmlFor="email">{f.reportEmailLabel}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -126,7 +130,7 @@ export default function ReportPage() {
                 )}
 
                 <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? 'Enviando...' : 'Enviar Reporte'}
+                  {loading ? f.reportSubmitting : f.reportSubmit}
                 </Button>
               </form>
             </CardContent>

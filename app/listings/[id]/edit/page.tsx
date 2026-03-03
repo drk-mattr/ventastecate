@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useTranslations } from '@/lib/hooks/use-translations'
 import { Header } from '@/components/layout/header'
 import { LocationPicker } from '@/components/listings/location-picker'
 import { Button } from '@/components/ui/button'
@@ -57,13 +58,6 @@ const NEWS_CATEGORIES = [
   'Empleos',
 ]
 
-const TYPE_LABELS: Record<ListingType, { icon: string; label: string }> = {
-  product: { icon: '📦', label: 'Producto' },
-  service: { icon: '🔧', label: 'Servicio' },
-  event: { icon: '📢', label: 'Evento' },
-  news: { icon: '📰', label: 'Noticia' },
-}
-
 function getCategoriesForType(type: ListingType) {
   if (type === 'service') return SERVICE_CATEGORIES
   if (type === 'event') return EVENT_CATEGORIES
@@ -79,6 +73,9 @@ interface ExistingImage {
 
 export default function EditListingPage() {
   const { id } = useParams<{ id: string }>()
+  const t = useTranslations()
+  const f = t.forms
+
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
@@ -121,6 +118,13 @@ export default function EditListingPage() {
   const router = useRouter()
   const { user } = useAuth()
   const supabase = createClient()
+
+  const TYPE_LABELS: Record<ListingType, { icon: string; label: string }> = {
+    product: { icon: '📦', label: f.typeProductLabel },
+    service: { icon: '🔧', label: f.typeServiceLabel },
+    event: { icon: '📢', label: f.typeEventLabel },
+    news: { icon: '📰', label: f.typeNewsLabel },
+  }
 
   useEffect(() => {
     async function fetchListing() {
@@ -201,7 +205,7 @@ export default function EditListingPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (files.length + totalImages > 5) {
-      setError('Máximo 5 imágenes permitidas')
+      setError(f.maxImagesError)
       return
     }
 
@@ -278,7 +282,7 @@ export default function EditListingPage() {
       if (removedImageIds.length > 0) {
         // Get URLs for storage deletion
         const toRemove = existingImages.filter(img => removedImageIds.includes(img.id))
-        
+
         // Delete from storage
         for (const img of toRemove) {
           const path = img.image_url.split('/listing-images/')[1]
@@ -338,7 +342,7 @@ export default function EditListingPage() {
       <div className="min-h-screen bg-gray-50">
         <Header />
         <main className="container mx-auto px-4 py-8 max-w-3xl">
-          <p className="text-center text-gray-500">Cargando anuncio...</p>
+          <p className="text-center text-gray-500">{f.loadingListing}</p>
         </main>
       </div>
     )
@@ -352,8 +356,8 @@ export default function EditListingPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Editar Anuncio</CardTitle>
-                <CardDescription>Modifica la información de tu publicación</CardDescription>
+                <CardTitle>{f.editListing}</CardTitle>
+                <CardDescription>{f.modifyInfo}</CardDescription>
               </div>
               <Badge variant="outline" className="text-xs">
                 {TYPE_LABELS[listingType].icon} {TYPE_LABELS[listingType].label}
@@ -363,7 +367,9 @@ export default function EditListingPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="title">Título *</Label>
+                <Label htmlFor="title">
+                  {listingType === 'news' || listingType === 'event' ? f.headlineLabel : f.titleLabel}
+                </Label>
                 <Input
                   id="title"
                   value={title}
@@ -374,20 +380,20 @@ export default function EditListingPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Descripción *</Label>
+                <Label htmlFor="description">{f.descriptionLabel}</Label>
                 <Textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   required
-                  placeholder="Describe tu producto..."
+                  placeholder={f.descriptionPlaceholder}
                   rows={5}
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Precio (MXN) {priceConsultar ? '' : '*'}</Label>
+                  <Label htmlFor="price">{f.priceLabel} {priceConsultar ? '' : '*'}</Label>
                   <Input
                     id="price"
                     type="number"
@@ -397,7 +403,7 @@ export default function EditListingPage() {
                     onChange={(e) => setPrice(e.target.value)}
                     required={!priceConsultar}
                     disabled={priceConsultar}
-                    placeholder={priceConsultar ? 'A consultar' : '1000.00'}
+                    placeholder={priceConsultar ? f.consultPricePlaceholder : '1000.00'}
                   />
                   {(listingType === 'service' || listingType === 'event') && (
                     <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
@@ -407,16 +413,16 @@ export default function EditListingPage() {
                         onChange={(e) => { setPriceConsultar(e.target.checked); if (e.target.checked) setPrice('') }}
                         className="rounded"
                       />
-                      Precio a consultar
+                      {f.priceConsultCheckbox}
                     </label>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category">Categoría *</Label>
+                  <Label htmlFor="category">{f.categoryLabel}</Label>
                   <Select value={category} onValueChange={setCategory} required>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecciona una categoría" />
+                      <SelectValue placeholder={f.selectCategoryPlaceholder} />
                     </SelectTrigger>
                     <SelectContent>
                       {getCategoriesForType(listingType).map((cat) => (
@@ -558,31 +564,31 @@ export default function EditListingPage() {
               />
 
               <div className="space-y-2">
-                <Label htmlFor="location">Colonia / Barrio</Label>
+                <Label htmlFor="location">{f.neighborhoodLabel}</Label>
                 <Input
                   id="location"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Ej: Centro, La Rumorosa, Col. Libertad"
+                  placeholder={f.neighborhoodPlaceholder}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="status">Estado</Label>
+                <Label htmlFor="status">{f.statusLabel}</Label>
                 <Select value={status} onValueChange={setStatus}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Activo</SelectItem>
-                    <SelectItem value="sold">Vendido</SelectItem>
+                    <SelectItem value="active">{f.statusActive}</SelectItem>
+                    <SelectItem value="sold">{f.statusSold}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Existing Images */}
               <div className="space-y-2">
-                <Label>Imágenes actuales</Label>
+                <Label>{f.currentImages}</Label>
                 {existingImages.filter(img => !removedImageIds.includes(img.id)).length > 0 ? (
                   <div className="grid grid-cols-3 gap-4">
                     {existingImages
@@ -606,13 +612,13 @@ export default function EditListingPage() {
                       ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">Sin imágenes</p>
+                  <p className="text-sm text-gray-500">{f.noImages}</p>
                 )}
               </div>
 
               {/* New Images */}
               <div className="space-y-2">
-                <Label htmlFor="images">Agregar imágenes (Máximo {5 - totalImages + newImages.length > 5 ? 0 : 5 - totalImages} más)</Label>
+                <Label htmlFor="images">{f.addImages}</Label>
                 <Input
                   id="images"
                   type="file"
@@ -652,7 +658,7 @@ export default function EditListingPage() {
 
               <div className="flex gap-3">
                 <Button type="submit" disabled={loading} className="flex-1">
-                  {loading ? 'Guardando...' : 'Guardar Cambios'}
+                  {loading ? f.saving : f.saveChanges}
                 </Button>
                 <Button
                   type="button"
@@ -660,7 +666,7 @@ export default function EditListingPage() {
                   onClick={() => router.back()}
                   disabled={loading}
                 >
-                  Cancelar
+                  {f.cancel}
                 </Button>
               </div>
             </form>

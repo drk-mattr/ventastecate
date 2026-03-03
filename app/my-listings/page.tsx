@@ -1,19 +1,26 @@
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getTranslations } from '@/lib/i18n'
 
 export default async function MyListingsPage() {
   const supabase = await createClient()
-  
+
   const { data: { user } } = await supabase.auth.getUser()
-  
+
   if (!user) {
     redirect('/login?redirect=/my-listings')
   }
+
+  const headersList = await headers()
+  const userCountry = headersList.get('cf-ipcountry') ?? null
+  const t = getTranslations(userCountry)
+  const f = t.forms
 
   // Fetch user's listings
   const { data: listings } = await supabase
@@ -48,22 +55,22 @@ export default async function MyListingsPage() {
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Mis Anuncios</h1>
+          <h1 className="text-3xl font-bold">{f.myListings}</h1>
           <Button asChild>
-            <Link href="/listings/new">Crear Nuevo Anuncio</Link>
+            <Link href="/listings/new">{f.createNewListingBtn}</Link>
           </Button>
         </div>
 
         <Tabs defaultValue="active" className="space-y-6">
           <TabsList>
             <TabsTrigger value="active">
-              Activos ({activeListings.length})
+              {f.activeTab} ({activeListings.length})
             </TabsTrigger>
             <TabsTrigger value="sold">
-              Vendidos ({soldListings.length})
+              {f.soldTab} ({soldListings.length})
             </TabsTrigger>
             <TabsTrigger value="inactive">
-              Inactivos ({inactiveListings.length})
+              {f.inactiveTab} ({inactiveListings.length})
             </TabsTrigger>
           </TabsList>
 
@@ -76,9 +83,9 @@ export default async function MyListingsPage() {
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-gray-500 mb-4">No tienes anuncios activos</p>
+                <p className="text-gray-500 mb-4">{f.noActiveListings}</p>
                 <Button asChild>
-                  <Link href="/listings/new">Crear tu primer anuncio</Link>
+                  <Link href="/listings/new">{f.createFirstListingBtn}</Link>
                 </Button>
               </div>
             )}
@@ -93,7 +100,7 @@ export default async function MyListingsPage() {
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-gray-500">No tienes anuncios vendidos</p>
+                <p className="text-gray-500">{f.noSoldListings}</p>
               </div>
             )}
           </TabsContent>
@@ -107,7 +114,7 @@ export default async function MyListingsPage() {
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-gray-500">No tienes anuncios inactivos</p>
+                <p className="text-gray-500">{f.noInactiveListings}</p>
               </div>
             )}
           </TabsContent>

@@ -114,6 +114,151 @@ export type Translations = {
     password: string
     loading: string
   }
+  forms: {
+    // Page titles
+    createNewListing: string
+    editListing: string
+    myListings: string
+    editProfile: string
+    createStoreTitle: string
+    storeTypeTitle: string
+    // Sub-titles / descriptions
+    publishingAs: string
+    fillProductInfo: string
+    modifyInfo: string
+    whatWillYouSell: string
+    updatePersonalInfo: string
+    // Step wizard
+    step1: string
+    step2: string
+    // Listing type selector
+    listingTypeLabel: string
+    typeProductLabel: string
+    typeProductDesc: string
+    typeServiceLabel: string
+    typeServiceDesc: string
+    typeEventLabel: string
+    typeEventDesc: string
+    typeNewsLabel: string
+    typeNewsDesc: string
+    // Title field
+    titleLabel: string
+    headlineLabel: string
+    titlePlaceholderProduct: string
+    titlePlaceholderService: string
+    titlePlaceholderEvent: string
+    titlePlaceholderNews: string
+    noImageTip: string
+    // Description field
+    descriptionLabel: string
+    reportBodyLabel: string
+    descriptionPlaceholder: string
+    reportPlaceholder: string
+    // Category field
+    categoryLabel: string
+    selectCategoryPlaceholder: string
+    // Price field
+    priceLabel: string
+    priceConsultCheckbox: string
+    consultPricePlaceholder: string
+    // Location
+    neighborhoodLabel: string
+    neighborhoodPlaceholder: string
+    // Images
+    imagesLabel: string
+    imagesOptional: string
+    imagesNewsTip: string
+    maxImagesError: string
+    // Status (edit)
+    statusLabel: string
+    statusActive: string
+    statusSold: string
+    currentImages: string
+    noImages: string
+    addImages: string
+    // Profile
+    profilePhoto: string
+    changePhoto: string
+    usernameLabel: string
+    usernameCannotChange: string
+    displayNameLabel: string
+    bioLabel: string
+    bioPlaceholder: string
+    profileUpdated: string
+    // Store creation
+    storeLogo: string
+    uploadLogo: string
+    storeNameLabel: string
+    storeNamePlaceholder: string
+    storeUrlLabel: string
+    storeSlugHint: string
+    storeDescLabel: string
+    storeDescPlaceholder: string
+    storeLocationLabel: string
+    storeLocationPlaceholder: string
+    storeTypeGeneralLabel: string
+    storeTypeGeneralDesc: string
+    storeTypeRealEstateLabel: string
+    storeTypeRealEstateDesc: string
+    storeTypeAutomotiveLabel: string
+    storeTypeAutomotiveDesc: string
+    storeDetails: string
+    // My listings tabs
+    createNewListingBtn: string
+    createFirstListingBtn: string
+    activeTab: string
+    soldTab: string
+    inactiveTab: string
+    noActiveListings: string
+    noSoldListings: string
+    noInactiveListings: string
+    // Location picker
+    cityAndState: string
+    detecting: string
+    locationDetected: string
+    getMyLocation: string
+    geoNotSupported: string
+    locationDetectFail: string
+    locationPermissionDenied: string
+    cityLabel: string
+    cityFormPlaceholder: string
+    stateLabel: string
+    statePlaceholder: string
+    // Buttons
+    continue: string
+    back: string
+    cancel: string
+    publishListing: string
+    saveChanges: string
+    createStoreBtn: string
+    // Status messages
+    creating: string
+    saving: string
+    loadingListing: string
+    // Report page
+    reportTitle: string
+    reportDesc: string
+    reportTypeBug: string
+    reportTypeSuggestion: string
+    reportTypeOther: string
+    reportTypeLabel: string
+    reportDescLabel: string
+    reportDescPlaceholder: string
+    reportEmailLabel: string
+    reportSubmitting: string
+    reportSubmit: string
+    reportThankYou: string
+    reportReceived: string
+    reportSendAnother: string
+    // Messages page
+    messagesTitle: string
+    conversationsTitle: string
+    noConversations: string
+    selectConversation: string
+    messagePlaceholder: string
+    sendMessage: string
+    loadingMessages: string
+  }
 }
 
 const es: Translations = {
@@ -230,6 +375,132 @@ const es: Translations = {
     email: 'Email',
     password: 'Contraseña',
     loading: 'Cargando...',
+  },
+  forms: {
+    createNewListing: 'Crear Nuevo Anuncio',
+    editListing: 'Editar Anuncio',
+    myListings: 'Mis Anuncios',
+    editProfile: 'Editar Perfil',
+    createStoreTitle: 'Crear Tienda',
+    storeTypeTitle: 'Tipo de Tienda',
+    publishingAs: 'Publicando como',
+    fillProductInfo: 'Completa la información de tu producto',
+    modifyInfo: 'Modifica la información de tu publicación',
+    whatWillYouSell: '¿Qué tipo de productos venderás?',
+    updatePersonalInfo: 'Actualiza tu información personal',
+    step1: '1. Tipo de tienda',
+    step2: '2. Detalles',
+    listingTypeLabel: 'Tipo de publicación',
+    typeProductLabel: 'Producto',
+    typeProductDesc: 'Vende un artículo',
+    typeServiceLabel: 'Servicio',
+    typeServiceDesc: 'Ofrece un servicio',
+    typeEventLabel: 'Evento',
+    typeEventDesc: 'Publica un evento',
+    typeNewsLabel: 'Noticias',
+    typeNewsDesc: 'Noticias o avisos',
+    titleLabel: 'Título *',
+    headlineLabel: 'Titular / Título *',
+    titlePlaceholderProduct: 'Ej: iPhone 13 Pro Max',
+    titlePlaceholderService: 'Ej: Se pintan Casas',
+    titlePlaceholderEvent: 'Ej: Gran Bazar Navideño',
+    titlePlaceholderNews: 'Ej: Se busca perro perdido en el centro',
+    noImageTip: '💡 Si no agregas imágenes, el título se mostrará como portada de tu anuncio',
+    descriptionLabel: 'Descripción *',
+    reportBodyLabel: 'Cuerpo del reporte / aviso *',
+    descriptionPlaceholder: 'Describe tu producto...',
+    reportPlaceholder: 'Describe lo que ocurrió con todos los detalles relevantes...',
+    categoryLabel: 'Categoría *',
+    selectCategoryPlaceholder: 'Selecciona una categoría',
+    priceLabel: 'Precio (MXN)',
+    priceConsultCheckbox: 'Precio a consultar',
+    consultPricePlaceholder: 'A consultar',
+    neighborhoodLabel: 'Colonia / Barrio',
+    neighborhoodPlaceholder: 'Ej: Centro, La Rumorosa, Col. Libertad',
+    imagesLabel: 'Imágenes (Máximo 5)',
+    imagesOptional: '— Opcional',
+    imagesNewsTip: '— Agrega fotos del evento si las tienes',
+    maxImagesError: 'Máximo 5 imágenes permitidas',
+    statusLabel: 'Estado',
+    statusActive: 'Activo',
+    statusSold: 'Vendido',
+    currentImages: 'Imágenes actuales',
+    noImages: 'Sin imágenes',
+    addImages: 'Agregar imágenes',
+    profilePhoto: 'Foto de Perfil',
+    changePhoto: 'Cambiar foto',
+    usernameLabel: 'Nombre de Usuario',
+    usernameCannotChange: 'El nombre de usuario no se puede cambiar',
+    displayNameLabel: 'Nombre para Mostrar *',
+    bioLabel: 'Biografía',
+    bioPlaceholder: 'Cuéntanos sobre ti...',
+    profileUpdated: '¡Perfil actualizado exitosamente! Redirigiendo...',
+    storeLogo: 'Logo de la Tienda',
+    uploadLogo: 'Subir logo',
+    storeNameLabel: 'Nombre de la Tienda *',
+    storeNamePlaceholder: 'Ej: Tienda Lupita',
+    storeUrlLabel: 'URL de la Tienda *',
+    storeSlugHint: 'Solo letras minúsculas, números y guiones. Mínimo 3 caracteres.',
+    storeDescLabel: 'Descripción',
+    storeDescPlaceholder: 'Describe tu tienda...',
+    storeLocationLabel: 'Ubicación',
+    storeLocationPlaceholder: 'Ej: Centro de Tecate',
+    storeTypeGeneralLabel: 'General',
+    storeTypeGeneralDesc: 'Vende todo tipo de productos: ropa, electrónica, muebles, etc.',
+    storeTypeRealEstateLabel: 'Inmuebles',
+    storeTypeRealEstateDesc: 'Venta y renta de casas, departamentos, terrenos y locales.',
+    storeTypeAutomotiveLabel: 'Automotriz',
+    storeTypeAutomotiveDesc: 'Venta de autos, camionetas y vehículos.',
+    storeDetails: 'Completa los detalles de tu tienda',
+    createNewListingBtn: 'Crear Nuevo Anuncio',
+    createFirstListingBtn: 'Crear tu primer anuncio',
+    activeTab: 'Activos',
+    soldTab: 'Vendidos',
+    inactiveTab: 'Inactivos',
+    noActiveListings: 'No tienes anuncios activos',
+    noSoldListings: 'No tienes anuncios vendidos',
+    noInactiveListings: 'No tienes anuncios inactivos',
+    cityAndState: 'Ciudad y Estado',
+    detecting: 'Detectando...',
+    locationDetected: 'Ubicación detectada ✓',
+    getMyLocation: 'Obtener mi ubicación',
+    geoNotSupported: 'Tu navegador no soporta geolocalización',
+    locationDetectFail: 'No se pudo detectar tu ubicación',
+    locationPermissionDenied: 'Activa el permiso de ubicación en tu navegador',
+    cityLabel: 'Ciudad',
+    cityFormPlaceholder: 'Ej: Tecate',
+    stateLabel: 'Estado / Provincia / Región',
+    statePlaceholder: 'Ej: Baja California',
+    continue: 'Continuar',
+    back: 'Atrás',
+    cancel: 'Cancelar',
+    publishListing: 'Publicar Anuncio',
+    saveChanges: 'Guardar Cambios',
+    createStoreBtn: 'Crear Tienda',
+    creating: 'Creando...',
+    saving: 'Guardando...',
+    loadingListing: 'Cargando anuncio...',
+    reportTitle: 'Contacto y Reportes',
+    reportDesc: '¿Encontraste un problema o tienes una sugerencia? Cuéntanos.',
+    reportTypeBug: 'Reportar un problema',
+    reportTypeSuggestion: 'Sugerencia',
+    reportTypeOther: 'Otro',
+    reportTypeLabel: 'Tipo',
+    reportDescLabel: 'Descripción *',
+    reportDescPlaceholder: 'Describe el problema o tu sugerencia...',
+    reportEmailLabel: 'Email para seguimiento (opcional)',
+    reportSubmitting: 'Enviando...',
+    reportSubmit: 'Enviar Reporte',
+    reportThankYou: '¡Gracias por tu reporte!',
+    reportReceived: 'Hemos recibido tu mensaje y lo revisaremos pronto.',
+    reportSendAnother: 'Enviar otro reporte',
+    messagesTitle: 'Mensajes',
+    conversationsTitle: 'Conversaciones',
+    noConversations: 'No tienes conversaciones',
+    selectConversation: 'Selecciona una conversación para comenzar',
+    messagePlaceholder: 'Escribe un mensaje...',
+    sendMessage: 'Enviar',
+    loadingMessages: 'Cargando mensajes...',
   },
 }
 
@@ -348,6 +619,132 @@ const tl: Translations = {
     password: 'Password',
     loading: 'Naglo-load...',
   },
+  forms: {
+    createNewListing: 'Gumawa ng Bagong Listing',
+    editListing: 'I-edit ang Listing',
+    myListings: 'Aking mga Listing',
+    editProfile: 'I-edit ang Profile',
+    createStoreTitle: 'Gumawa ng Store',
+    storeTypeTitle: 'Uri ng Store',
+    publishingAs: 'Nagpo-post bilang',
+    fillProductInfo: 'Kumpletuhin ang impormasyon ng iyong produkto',
+    modifyInfo: 'Baguhin ang impormasyon ng iyong post',
+    whatWillYouSell: 'Anong uri ng produkto ang iyong ibebenta?',
+    updatePersonalInfo: 'I-update ang iyong personal na impormasyon',
+    step1: '1. Uri ng store',
+    step2: '2. Mga Detalye',
+    listingTypeLabel: 'Uri ng post',
+    typeProductLabel: 'Produkto',
+    typeProductDesc: 'Ibenta ang isang bagay',
+    typeServiceLabel: 'Serbisyo',
+    typeServiceDesc: 'Mag-alok ng serbisyo',
+    typeEventLabel: 'Event',
+    typeEventDesc: 'Mag-post ng event',
+    typeNewsLabel: 'Balita',
+    typeNewsDesc: 'Balita o anunsyo',
+    titleLabel: 'Pamagat *',
+    headlineLabel: 'Headline / Pamagat *',
+    titlePlaceholderProduct: 'Hal: iPhone 13 Pro Max',
+    titlePlaceholderService: 'Hal: Nagpipinta ng Bahay',
+    titlePlaceholderEvent: 'Hal: Pasko Bazaar',
+    titlePlaceholderNews: 'Hal: Nawawalang aso sa sentro',
+    noImageTip: '💡 Kung walang larawan, ang pamagat ang gagamitin bilang cover ng iyong listing',
+    descriptionLabel: 'Paglalarawan *',
+    reportBodyLabel: 'Nilalaman ng ulat / abiso *',
+    descriptionPlaceholder: 'Ilarawan ang iyong produkto...',
+    reportPlaceholder: 'Ilarawan ang nangyari kasama ang lahat ng mahahalagang detalye...',
+    categoryLabel: 'Kategorya *',
+    selectCategoryPlaceholder: 'Pumili ng kategorya',
+    priceLabel: 'Presyo (MXN)',
+    priceConsultCheckbox: 'Presyo sa usapan',
+    consultPricePlaceholder: 'Sa usapan',
+    neighborhoodLabel: 'Barangay / Lugar',
+    neighborhoodPlaceholder: 'Hal: Sentro, Poblacion',
+    imagesLabel: 'Mga Larawan (Max 5)',
+    imagesOptional: '— Opsyonal',
+    imagesNewsTip: '— Magdagdag ng mga larawan kung mayroon ka',
+    maxImagesError: 'Maximum 5 larawan ang pinapayagan',
+    statusLabel: 'Status',
+    statusActive: 'Aktibo',
+    statusSold: 'Nabenta',
+    currentImages: 'Mga kasalukuyang larawan',
+    noImages: 'Walang mga larawan',
+    addImages: 'Magdagdag ng mga larawan',
+    profilePhoto: 'Larawan sa Profile',
+    changePhoto: 'Palitan ang larawan',
+    usernameLabel: 'Username',
+    usernameCannotChange: 'Hindi maaaring baguhin ang username',
+    displayNameLabel: 'Display Name *',
+    bioLabel: 'Bio',
+    bioPlaceholder: 'Ikuwento mo ang tungkol sa iyo...',
+    profileUpdated: 'Matagumpay na na-update ang profile! Nire-redirect...',
+    storeLogo: 'Logo ng Store',
+    uploadLogo: 'Mag-upload ng logo',
+    storeNameLabel: 'Pangalan ng Store *',
+    storeNamePlaceholder: 'Hal: Tindahan ni Juan',
+    storeUrlLabel: 'URL ng Store *',
+    storeSlugHint: 'Maliliit na titik, numero, at gitling lamang. Minimum 3 na karakter.',
+    storeDescLabel: 'Paglalarawan',
+    storeDescPlaceholder: 'Ilarawan ang iyong store...',
+    storeLocationLabel: 'Lokasyon',
+    storeLocationPlaceholder: 'Hal: Sentro ng Tecate',
+    storeTypeGeneralLabel: 'General',
+    storeTypeGeneralDesc: 'Magbenta ng lahat ng uri ng produkto: damit, elektronika, muwebles, atbp.',
+    storeTypeRealEstateLabel: 'Real Estate',
+    storeTypeRealEstateDesc: 'Pagbebenta at paupahan ng mga bahay, apartment, lupa, at komersyal na espasyo.',
+    storeTypeAutomotiveLabel: 'Sasakyan',
+    storeTypeAutomotiveDesc: 'Pagbebenta ng mga kotse, trak, at sasakyan.',
+    storeDetails: 'Kumpletuhin ang mga detalye ng iyong store',
+    createNewListingBtn: 'Gumawa ng Bagong Listing',
+    createFirstListingBtn: 'Gumawa ng iyong unang listing',
+    activeTab: 'Aktibo',
+    soldTab: 'Nabenta',
+    inactiveTab: 'Hindi Aktibo',
+    noActiveListings: 'Wala kang aktibong mga listing',
+    noSoldListings: 'Wala kang mga nabentang listing',
+    noInactiveListings: 'Wala kang hindi aktibong mga listing',
+    cityAndState: 'Lungsod at Probinsya',
+    detecting: 'Dine-detect...',
+    locationDetected: 'Natukoy ang lokasyon ✓',
+    getMyLocation: 'Kunin ang aking lokasyon',
+    geoNotSupported: 'Hindi sinusuportahan ng iyong browser ang geolocation',
+    locationDetectFail: 'Hindi matukoy ang iyong lokasyon',
+    locationPermissionDenied: 'I-enable ang location permission sa iyong browser',
+    cityLabel: 'Lungsod',
+    cityFormPlaceholder: 'Hal: Manila',
+    stateLabel: 'Probinsya / Rehiyon',
+    statePlaceholder: 'Hal: Metro Manila',
+    continue: 'Ituloy',
+    back: 'Bumalik',
+    cancel: 'Kanselahin',
+    publishListing: 'I-post ang Listing',
+    saveChanges: 'I-save ang mga Pagbabago',
+    createStoreBtn: 'Gumawa ng Store',
+    creating: 'Ginagawa...',
+    saving: 'Sine-save...',
+    loadingListing: 'Nilo-load ang listing...',
+    reportTitle: 'Makipag-ugnayan at Mag-ulat',
+    reportDesc: 'May nakitang problema o may mungkahi ka? Sabihin mo sa amin.',
+    reportTypeBug: 'Mag-ulat ng problema',
+    reportTypeSuggestion: 'Mungkahi',
+    reportTypeOther: 'Iba pa',
+    reportTypeLabel: 'Uri',
+    reportDescLabel: 'Paglalarawan *',
+    reportDescPlaceholder: 'Ilarawan ang problema o iyong mungkahi...',
+    reportEmailLabel: 'Email para sa follow-up (opsyonal)',
+    reportSubmitting: 'Nagpapadala...',
+    reportSubmit: 'Ipadala ang Ulat',
+    reportThankYou: 'Salamat sa iyong ulat!',
+    reportReceived: 'Natanggap namin ang iyong mensahe at susuriin namin ito sa lalong madaling panahon.',
+    reportSendAnother: 'Magpadala ng isa pang ulat',
+    messagesTitle: 'Mga Mensahe',
+    conversationsTitle: 'Mga Usapan',
+    noConversations: 'Wala kang mga usapan',
+    selectConversation: 'Pumili ng usapan para magsimula',
+    messagePlaceholder: 'Sumulat ng mensahe...',
+    sendMessage: 'Ipadala',
+    loadingMessages: 'Nilo-load ang mga mensahe...',
+  },
 }
 
 const en: Translations = {
@@ -465,6 +862,132 @@ const en: Translations = {
     password: 'Password',
     loading: 'Loading...',
   },
+  forms: {
+    createNewListing: 'Create New Listing',
+    editListing: 'Edit Listing',
+    myListings: 'My Listings',
+    editProfile: 'Edit Profile',
+    createStoreTitle: 'Create Store',
+    storeTypeTitle: 'Store Type',
+    publishingAs: 'Publishing as',
+    fillProductInfo: 'Fill in your product details',
+    modifyInfo: 'Update your listing information',
+    whatWillYouSell: 'What type of products will you sell?',
+    updatePersonalInfo: 'Update your personal information',
+    step1: '1. Store type',
+    step2: '2. Details',
+    listingTypeLabel: 'Listing type',
+    typeProductLabel: 'Product',
+    typeProductDesc: 'Sell an item',
+    typeServiceLabel: 'Service',
+    typeServiceDesc: 'Offer a service',
+    typeEventLabel: 'Event',
+    typeEventDesc: 'Post an event',
+    typeNewsLabel: 'News',
+    typeNewsDesc: 'News or announcements',
+    titleLabel: 'Title *',
+    headlineLabel: 'Headline / Title *',
+    titlePlaceholderProduct: 'e.g. iPhone 13 Pro Max',
+    titlePlaceholderService: 'e.g. House Painting Services',
+    titlePlaceholderEvent: 'e.g. Christmas Bazaar',
+    titlePlaceholderNews: 'e.g. Lost dog near downtown',
+    noImageTip: '💡 If no images are added, the title will be used as your listing cover',
+    descriptionLabel: 'Description *',
+    reportBodyLabel: 'Report / announcement body *',
+    descriptionPlaceholder: 'Describe your product...',
+    reportPlaceholder: 'Describe what happened with all relevant details...',
+    categoryLabel: 'Category *',
+    selectCategoryPlaceholder: 'Select a category',
+    priceLabel: 'Price (MXN)',
+    priceConsultCheckbox: 'Price on request',
+    consultPricePlaceholder: 'On request',
+    neighborhoodLabel: 'Neighborhood / Area',
+    neighborhoodPlaceholder: 'e.g. Downtown, Eastside',
+    imagesLabel: 'Images (Max 5)',
+    imagesOptional: '— Optional',
+    imagesNewsTip: '— Add event photos if you have them',
+    maxImagesError: 'Maximum 5 images allowed',
+    statusLabel: 'Status',
+    statusActive: 'Active',
+    statusSold: 'Sold',
+    currentImages: 'Current images',
+    noImages: 'No images',
+    addImages: 'Add images',
+    profilePhoto: 'Profile Photo',
+    changePhoto: 'Change photo',
+    usernameLabel: 'Username',
+    usernameCannotChange: 'Username cannot be changed',
+    displayNameLabel: 'Display Name *',
+    bioLabel: 'Bio',
+    bioPlaceholder: 'Tell us about yourself...',
+    profileUpdated: 'Profile updated successfully! Redirecting...',
+    storeLogo: 'Store Logo',
+    uploadLogo: 'Upload logo',
+    storeNameLabel: 'Store Name *',
+    storeNamePlaceholder: "e.g. Lupita's Store",
+    storeUrlLabel: 'Store URL *',
+    storeSlugHint: 'Lowercase letters, numbers, and dashes only. Minimum 3 characters.',
+    storeDescLabel: 'Description',
+    storeDescPlaceholder: 'Describe your store...',
+    storeLocationLabel: 'Location',
+    storeLocationPlaceholder: 'e.g. Downtown Tecate',
+    storeTypeGeneralLabel: 'General',
+    storeTypeGeneralDesc: 'Sell all types of products: clothing, electronics, furniture, etc.',
+    storeTypeRealEstateLabel: 'Real Estate',
+    storeTypeRealEstateDesc: 'Sale and rental of houses, apartments, land, and commercial spaces.',
+    storeTypeAutomotiveLabel: 'Automotive',
+    storeTypeAutomotiveDesc: 'Sale of cars, trucks, and vehicles.',
+    storeDetails: 'Complete your store details',
+    createNewListingBtn: 'Create New Listing',
+    createFirstListingBtn: 'Create your first listing',
+    activeTab: 'Active',
+    soldTab: 'Sold',
+    inactiveTab: 'Inactive',
+    noActiveListings: 'You have no active listings',
+    noSoldListings: 'You have no sold listings',
+    noInactiveListings: 'You have no inactive listings',
+    cityAndState: 'City & State',
+    detecting: 'Detecting...',
+    locationDetected: 'Location detected ✓',
+    getMyLocation: 'Get my location',
+    geoNotSupported: 'Your browser does not support geolocation',
+    locationDetectFail: 'Could not detect your location',
+    locationPermissionDenied: 'Enable location permission in your browser',
+    cityLabel: 'City',
+    cityFormPlaceholder: 'e.g. Tecate',
+    stateLabel: 'State / Province / Region',
+    statePlaceholder: 'e.g. Baja California',
+    continue: 'Continue',
+    back: 'Back',
+    cancel: 'Cancel',
+    publishListing: 'Publish Listing',
+    saveChanges: 'Save Changes',
+    createStoreBtn: 'Create Store',
+    creating: 'Creating...',
+    saving: 'Saving...',
+    loadingListing: 'Loading listing...',
+    reportTitle: 'Contact & Reports',
+    reportDesc: 'Found a problem or have a suggestion? Let us know.',
+    reportTypeBug: 'Report a problem',
+    reportTypeSuggestion: 'Suggestion',
+    reportTypeOther: 'Other',
+    reportTypeLabel: 'Type',
+    reportDescLabel: 'Description *',
+    reportDescPlaceholder: 'Describe the problem or your suggestion...',
+    reportEmailLabel: 'Email for follow-up (optional)',
+    reportSubmitting: 'Sending...',
+    reportSubmit: 'Send Report',
+    reportThankYou: 'Thank you for your report!',
+    reportReceived: 'We have received your message and will review it soon.',
+    reportSendAnother: 'Send another report',
+    messagesTitle: 'Messages',
+    conversationsTitle: 'Conversations',
+    noConversations: 'You have no conversations',
+    selectConversation: 'Select a conversation to start',
+    messagePlaceholder: 'Write a message...',
+    sendMessage: 'Send',
+    loadingMessages: 'Loading messages...',
+  },
 }
 
 const id: Translations = {
@@ -581,6 +1104,132 @@ const id: Translations = {
     email: 'Email',
     password: 'Kata Sandi',
     loading: 'Memuat...',
+  },
+  forms: {
+    createNewListing: 'Buat Iklan Baru',
+    editListing: 'Edit Iklan',
+    myListings: 'Iklan Saya',
+    editProfile: 'Edit Profil',
+    createStoreTitle: 'Buat Toko',
+    storeTypeTitle: 'Jenis Toko',
+    publishingAs: 'Memposting sebagai',
+    fillProductInfo: 'Lengkapi informasi produk kamu',
+    modifyInfo: 'Ubah informasi iklan kamu',
+    whatWillYouSell: 'Jenis produk apa yang akan kamu jual?',
+    updatePersonalInfo: 'Perbarui informasi pribadi kamu',
+    step1: '1. Jenis toko',
+    step2: '2. Detail',
+    listingTypeLabel: 'Jenis iklan',
+    typeProductLabel: 'Produk',
+    typeProductDesc: 'Jual sebuah barang',
+    typeServiceLabel: 'Jasa',
+    typeServiceDesc: 'Tawarkan jasa',
+    typeEventLabel: 'Acara',
+    typeEventDesc: 'Pasang iklan acara',
+    typeNewsLabel: 'Berita',
+    typeNewsDesc: 'Berita atau pengumuman',
+    titleLabel: 'Judul *',
+    headlineLabel: 'Judul Berita *',
+    titlePlaceholderProduct: 'Cth: iPhone 13 Pro Max',
+    titlePlaceholderService: 'Cth: Jasa Cat Rumah',
+    titlePlaceholderEvent: 'Cth: Bazar Natal',
+    titlePlaceholderNews: 'Cth: Anjing hilang di pusat kota',
+    noImageTip: '💡 Jika tidak ada gambar, judul akan ditampilkan sebagai sampul iklan kamu',
+    descriptionLabel: 'Deskripsi *',
+    reportBodyLabel: 'Isi laporan / pengumuman *',
+    descriptionPlaceholder: 'Deskripsikan produk kamu...',
+    reportPlaceholder: 'Ceritakan apa yang terjadi dengan semua detail yang relevan...',
+    categoryLabel: 'Kategori *',
+    selectCategoryPlaceholder: 'Pilih kategori',
+    priceLabel: 'Harga (MXN)',
+    priceConsultCheckbox: 'Harga nego',
+    consultPricePlaceholder: 'Nego',
+    neighborhoodLabel: 'Kelurahan / Kawasan',
+    neighborhoodPlaceholder: 'Cth: Pusat Kota, Kec. Gambir',
+    imagesLabel: 'Gambar (Maksimal 5)',
+    imagesOptional: '— Opsional',
+    imagesNewsTip: '— Tambahkan foto acara jika ada',
+    maxImagesError: 'Maksimal 5 gambar diizinkan',
+    statusLabel: 'Status',
+    statusActive: 'Aktif',
+    statusSold: 'Terjual',
+    currentImages: 'Gambar saat ini',
+    noImages: 'Tidak ada gambar',
+    addImages: 'Tambah gambar',
+    profilePhoto: 'Foto Profil',
+    changePhoto: 'Ganti foto',
+    usernameLabel: 'Nama Pengguna',
+    usernameCannotChange: 'Nama pengguna tidak bisa diubah',
+    displayNameLabel: 'Nama Tampilan *',
+    bioLabel: 'Bio',
+    bioPlaceholder: 'Ceritakan tentang diri kamu...',
+    profileUpdated: 'Profil berhasil diperbarui! Mengalihkan...',
+    storeLogo: 'Logo Toko',
+    uploadLogo: 'Unggah logo',
+    storeNameLabel: 'Nama Toko *',
+    storeNamePlaceholder: 'Cth: Toko Lupita',
+    storeUrlLabel: 'URL Toko *',
+    storeSlugHint: 'Hanya huruf kecil, angka, dan tanda hubung. Minimal 3 karakter.',
+    storeDescLabel: 'Deskripsi',
+    storeDescPlaceholder: 'Ceritakan tentang toko kamu...',
+    storeLocationLabel: 'Lokasi',
+    storeLocationPlaceholder: 'Cth: Pusat Kota Tecate',
+    storeTypeGeneralLabel: 'Umum',
+    storeTypeGeneralDesc: 'Jual semua jenis produk: pakaian, elektronik, furnitur, dll.',
+    storeTypeRealEstateLabel: 'Properti',
+    storeTypeRealEstateDesc: 'Jual dan sewa rumah, apartemen, tanah, dan ruang komersial.',
+    storeTypeAutomotiveLabel: 'Otomotif',
+    storeTypeAutomotiveDesc: 'Jual mobil, truk, dan kendaraan.',
+    storeDetails: 'Lengkapi detail toko kamu',
+    createNewListingBtn: 'Buat Iklan Baru',
+    createFirstListingBtn: 'Buat iklan pertama kamu',
+    activeTab: 'Aktif',
+    soldTab: 'Terjual',
+    inactiveTab: 'Tidak Aktif',
+    noActiveListings: 'Kamu tidak punya iklan aktif',
+    noSoldListings: 'Kamu tidak punya iklan terjual',
+    noInactiveListings: 'Kamu tidak punya iklan tidak aktif',
+    cityAndState: 'Kota & Provinsi',
+    detecting: 'Mendeteksi...',
+    locationDetected: 'Lokasi terdeteksi ✓',
+    getMyLocation: 'Dapatkan lokasi saya',
+    geoNotSupported: 'Browser kamu tidak mendukung geolokasi',
+    locationDetectFail: 'Tidak bisa mendeteksi lokasi kamu',
+    locationPermissionDenied: 'Aktifkan izin lokasi di browser kamu',
+    cityLabel: 'Kota',
+    cityFormPlaceholder: 'Cth: Jakarta',
+    stateLabel: 'Provinsi / Wilayah',
+    statePlaceholder: 'Cth: DKI Jakarta',
+    continue: 'Lanjutkan',
+    back: 'Kembali',
+    cancel: 'Batal',
+    publishListing: 'Pasang Iklan',
+    saveChanges: 'Simpan Perubahan',
+    createStoreBtn: 'Buat Toko',
+    creating: 'Membuat...',
+    saving: 'Menyimpan...',
+    loadingListing: 'Memuat iklan...',
+    reportTitle: 'Kontak & Laporan',
+    reportDesc: 'Menemukan masalah atau punya saran? Beritahu kami.',
+    reportTypeBug: 'Laporkan masalah',
+    reportTypeSuggestion: 'Saran',
+    reportTypeOther: 'Lainnya',
+    reportTypeLabel: 'Jenis',
+    reportDescLabel: 'Deskripsi *',
+    reportDescPlaceholder: 'Ceritakan masalah atau saran kamu...',
+    reportEmailLabel: 'Email untuk tindak lanjut (opsional)',
+    reportSubmitting: 'Mengirim...',
+    reportSubmit: 'Kirim Laporan',
+    reportThankYou: 'Terima kasih atas laporan kamu!',
+    reportReceived: 'Kami telah menerima pesanmu dan akan segera meninjaunya.',
+    reportSendAnother: 'Kirim laporan lain',
+    messagesTitle: 'Pesan',
+    conversationsTitle: 'Percakapan',
+    noConversations: 'Kamu tidak punya percakapan',
+    selectConversation: 'Pilih percakapan untuk memulai',
+    messagePlaceholder: 'Tulis pesan...',
+    sendMessage: 'Kirim',
+    loadingMessages: 'Memuat pesan...',
   },
 }
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useTranslations } from '@/lib/hooks/use-translations'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,6 +18,8 @@ export default function EditProfilePage() {
   const router = useRouter()
   const supabase = createClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const t = useTranslations()
+  const f = t.forms
 
   const [displayName, setDisplayName] = useState('')
   const [bio, setBio] = useState('')
@@ -66,12 +69,10 @@ export default function EditProfilePage() {
     try {
       let avatarUrl = profile?.avatar_url || null
 
-      // Upload avatar if changed
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop()
         const fileName = `${user.id}/avatar.${fileExt}`
 
-        // Remove old avatar if it exists
         if (profile?.avatar_url) {
           const oldPath = profile.avatar_url.split('/avatars/')[1]
           if (oldPath) {
@@ -107,7 +108,6 @@ export default function EditProfilePage() {
       await refreshProfile()
       setLoading(false)
 
-      // Redirect back to profile after 1.5 seconds
       setTimeout(() => {
         router.push(`/users/${profile?.username}`)
       }, 1500)
@@ -123,7 +123,7 @@ export default function EditProfilePage() {
       <div className="min-h-screen bg-gray-50">
         <Header />
         <div className="container mx-auto px-4 py-8">
-          <p>Cargando...</p>
+          <p>{f.loadingListing}</p>
         </div>
       </div>
     )
@@ -135,14 +135,14 @@ export default function EditProfilePage() {
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         <Card>
           <CardHeader>
-            <CardTitle>Editar Perfil</CardTitle>
-            <CardDescription>Actualiza tu información personal</CardDescription>
+            <CardTitle>{f.editProfile}</CardTitle>
+            <CardDescription>{f.updatePersonalInfo}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Avatar Upload */}
               <div className="space-y-2">
-                <Label>Foto de Perfil</Label>
+                <Label>{f.profilePhoto}</Label>
                 <div className="flex items-center gap-4">
                   <div
                     className="relative h-20 w-20 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center cursor-pointer hover:opacity-80 transition"
@@ -168,9 +168,9 @@ export default function EditProfilePage() {
                       size="sm"
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      Cambiar foto
+                      {f.changePhoto}
                     </Button>
-                    <p className="text-xs text-gray-500 mt-1">JPG, PNG. Máximo 2MB.</p>
+                    <p className="text-xs text-gray-500 mt-1">JPG, PNG. Max 2MB.</p>
                   </div>
                   <input
                     ref={fileInputRef}
@@ -183,7 +183,7 @@ export default function EditProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="username">Nombre de Usuario</Label>
+                <Label htmlFor="username">{f.usernameLabel}</Label>
                 <Input
                   id="username"
                   value={profile.username}
@@ -191,33 +191,33 @@ export default function EditProfilePage() {
                   className="bg-gray-100"
                 />
                 <p className="text-xs text-gray-500">
-                  El nombre de usuario no se puede cambiar
+                  {f.usernameCannotChange}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="displayName">Nombre para Mostrar *</Label>
+                <Label htmlFor="displayName">{f.displayNameLabel}</Label>
                 <Input
                   id="displayName"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   required
-                  placeholder="Tu Nombre"
+                  placeholder={profile.display_name}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="bio">Biografía</Label>
+                <Label htmlFor="bio">{f.bioLabel}</Label>
                 <Textarea
                   id="bio"
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
-                  placeholder="Cuéntanos sobre ti..."
+                  placeholder={f.bioPlaceholder}
                   rows={4}
                   maxLength={500}
                 />
                 <p className="text-xs text-gray-500">
-                  {bio.length}/500 caracteres
+                  {bio.length}/500
                 </p>
               </div>
 
@@ -229,13 +229,13 @@ export default function EditProfilePage() {
 
               {success && (
                 <div className="text-sm text-green-600 bg-green-50 p-3 rounded">
-                  ¡Perfil actualizado exitosamente! Redirigiendo...
+                  {f.profileUpdated}
                 </div>
               )}
 
               <div className="flex gap-3">
                 <Button type="submit" disabled={loading} className="flex-1">
-                  {loading ? 'Guardando...' : 'Guardar Cambios'}
+                  {loading ? f.saving : f.saveChanges}
                 </Button>
                 <Button
                   type="button"
@@ -243,7 +243,7 @@ export default function EditProfilePage() {
                   onClick={() => router.back()}
                   disabled={loading}
                 >
-                  Cancelar
+                  {f.cancel}
                 </Button>
               </div>
             </form>

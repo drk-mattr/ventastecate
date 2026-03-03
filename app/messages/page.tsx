@@ -5,6 +5,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useTranslations } from '@/lib/hooks/use-translations'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,6 +18,8 @@ function MessagesContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
+  const t = useTranslations()
+  const f = t.forms
 
   const [conversations, setConversations] = useState<any[]>([])
   const [selectedConversation, setSelectedConversation] = useState<any>(null)
@@ -24,7 +27,6 @@ function MessagesContent() {
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
 
-  // Get query params for creating new conversation
   const listingId = searchParams.get('listing')
   const sellerId = searchParams.get('seller')
 
@@ -33,14 +35,12 @@ function MessagesContent() {
       router.push('/login?redirect=/messages')
       return
     }
-    
     fetchConversations()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
   useEffect(() => {
     if (listingId && sellerId && user) {
-      // Create or get existing conversation
       createOrGetConversation(listingId, sellerId)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -49,7 +49,6 @@ function MessagesContent() {
   useEffect(() => {
     if (selectedConversation) {
       fetchMessages(selectedConversation.id)
-      // Mark messages as read
       markMessagesAsRead(selectedConversation.id)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -77,7 +76,6 @@ function MessagesContent() {
   const createOrGetConversation = async (listingId: string, sellerId: string) => {
     if (!user || user.id === sellerId) return
 
-    // Check if conversation exists
     const { data: existing } = await supabase
       .from('conversations')
       .select(`
@@ -96,7 +94,6 @@ function MessagesContent() {
       return
     }
 
-    // Create new conversation
     const { data: newConv } = await supabase
       .from('conversations')
       .insert({
@@ -130,7 +127,7 @@ function MessagesContent() {
 
   const markMessagesAsRead = async (conversationId: string) => {
     if (!user) return
-    
+
     await supabase
       .from('messages')
       .update({ read: true })
@@ -156,14 +153,12 @@ function MessagesContent() {
     if (data) {
       setMessages([...messages, data])
       setNewMessage('')
-      
-      // Update conversation timestamp
+
       await supabase
         .from('conversations')
         .update({ updated_at: new Date().toISOString() })
         .eq('id', selectedConversation.id)
-      
-      // Send email notification (async, don't wait)
+
       fetch('/api/send-message-notification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -180,7 +175,7 @@ function MessagesContent() {
       <div className="min-h-screen bg-gray-50">
         <Header />
         <div className="container mx-auto px-4 py-8">
-          <p>Cargando...</p>
+          <p>{f.loadingMessages}</p>
         </div>
       </div>
     )
@@ -190,13 +185,13 @@ function MessagesContent() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       <main className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6">Mensajes</h1>
-        
+        <h1 className="text-3xl font-bold mb-6">{f.messagesTitle}</h1>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[600px]">
           {/* Conversations List */}
           <Card className="md:col-span-1 overflow-hidden flex flex-col">
             <div className="p-4 border-b">
-              <h2 className="font-semibold">Conversaciones</h2>
+              <h2 className="font-semibold">{f.conversationsTitle}</h2>
             </div>
             <div className="flex-1 overflow-y-auto">
               {conversations.length > 0 ? (
@@ -244,7 +239,7 @@ function MessagesContent() {
                 })
               ) : (
                 <div className="p-4 text-center text-gray-500">
-                  No tienes conversaciones
+                  {f.noConversations}
                 </div>
               )}
             </div>
@@ -323,18 +318,18 @@ function MessagesContent() {
                     <Input
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Escribe un mensaje..."
+                      placeholder={f.messagePlaceholder}
                       className="flex-1"
                     />
                     <Button type="submit" disabled={!newMessage.trim()}>
-                      Enviar
+                      {f.sendMessage}
                     </Button>
                   </div>
                 </form>
               </>
             ) : (
               <div className="flex-1 flex items-center justify-center text-gray-500">
-                Selecciona una conversación para comenzar
+                {f.selectConversation}
               </div>
             )}
           </Card>
@@ -345,12 +340,14 @@ function MessagesContent() {
 }
 
 export default function MessagesPage() {
+  const t = useTranslations()
+  const f = t.forms
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50">
         <Header />
         <div className="container mx-auto px-4 py-8">
-          <p>Cargando mensajes...</p>
+          <p>{f.loadingMessages}</p>
         </div>
       </div>
     }>

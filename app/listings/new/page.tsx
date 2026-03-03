@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useRegion } from '@/lib/region-context'
+import { useTranslations } from '@/lib/hooks/use-translations'
 import { Header } from '@/components/layout/header'
 import { LocationPicker } from '@/components/listings/location-picker'
 import { Button } from '@/components/ui/button'
@@ -17,51 +18,19 @@ import { RealEstateMetadata, AutomotiveMetadata, ListingType } from '@/lib/types
 import Image from 'next/image'
 
 const PRODUCT_CATEGORIES = [
-  'Electrónica',
-  'Muebles',
-  'Vehículos',
-  'Ropa',
-  'Deportes',
-  'Hogar',
-  'Juguetes',
-  'Libros',
-  'Mascotas',
-  'Otros',
+  'Electrónica', 'Muebles', 'Vehículos', 'Ropa', 'Deportes',
+  'Hogar', 'Juguetes', 'Libros', 'Mascotas', 'Otros',
 ]
 
 const SERVICE_CATEGORIES = [
-  'Plomería',
-  'Electricidad',
-  'Albañilería',
-  'Pintura',
-  'Belleza y Uñas',
-  'Reparaciones',
-  'Limpieza',
-  'Jardinería',
-  'Clases y Tutorías',
-  'Fletes y Mudanzas',
-  'Otros Servicios',
+  'Plomería', 'Electricidad', 'Albañilería', 'Pintura', 'Belleza y Uñas',
+  'Reparaciones', 'Limpieza', 'Jardinería', 'Clases y Tutorías', 'Fletes y Mudanzas', 'Otros Servicios',
 ]
 
-const EVENT_CATEGORIES = [
-  'Eventos',
-  'Anuncios Comunitarios',
-  'Empleos',
-]
+const EVENT_CATEGORIES = ['Eventos', 'Anuncios Comunitarios', 'Empleos']
 
 const NEWS_CATEGORIES = [
-  'Noticias Locales',
-  'Objetos Perdidos',
-  'Seguridad Pública',
-  'Anuncios Comunitarios',
-  'Empleos',
-]
-
-const LISTING_TYPE_OPTIONS: { value: ListingType; icon: string; label: string; description: string }[] = [
-  { value: 'product', icon: '📦', label: 'Producto', description: 'Vende un artículo' },
-  { value: 'service', icon: '🔧', label: 'Servicio', description: 'Ofrece un servicio' },
-  { value: 'event', icon: '📢', label: 'Evento', description: 'Publica un evento' },
-  { value: 'news', icon: '📰', label: 'Noticias', description: 'Noticias o avisos' },
+  'Noticias Locales', 'Objetos Perdidos', 'Seguridad Pública', 'Anuncios Comunitarios', 'Empleos',
 ]
 
 export default function NewListingPage() {
@@ -102,28 +71,32 @@ export default function NewListingPage() {
   const router = useRouter()
   const { user, activeStore } = useAuth()
   const userCountry = useRegion()
+  const t = useTranslations()
+  const f = t.forms
   const storeType = activeStore?.store_type || 'general'
   const supabase = createClient()
+
+  const LISTING_TYPE_OPTIONS: { value: ListingType; icon: string; label: string; description: string }[] = [
+    { value: 'product', icon: '📦', label: f.typeProductLabel, description: f.typeProductDesc },
+    { value: 'service', icon: '🔧', label: f.typeServiceLabel, description: f.typeServiceDesc },
+    { value: 'event',   icon: '📢', label: f.typeEventLabel,   description: f.typeEventDesc },
+    { value: 'news',    icon: '📰', label: f.typeNewsLabel,    description: f.typeNewsDesc },
+  ]
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     if (files.length + images.length > 5) {
-      setError('Máximo 5 imágenes permitidas')
+      setError(f.maxImagesError)
       return
     }
-
     setImages([...images, ...files])
-    
-    // Create preview URLs
     const newPreviews = files.map(file => URL.createObjectURL(file))
     setImagePreviews([...imagePreviews, ...newPreviews])
   }
 
   const removeImage = (index: number) => {
-    const newImages = images.filter((_, i) => i !== index)
-    const newPreviews = imagePreviews.filter((_, i) => i !== index)
-    setImages(newImages)
-    setImagePreviews(newPreviews)
+    setImages(images.filter((_, i) => i !== index))
+    setImagePreviews(imagePreviews.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,7 +107,6 @@ export default function NewListingPage() {
     setError('')
 
     try {
-      // Build metadata based on store type
       let metadata = null
       if (storeType === 'real_estate') {
         metadata = {
@@ -150,23 +122,19 @@ export default function NewListingPage() {
       } else if (storeType === 'automotive') {
         metadata = {
           type: 'automotive',
-          make,
-          model,
+          make, model,
           year: parseInt(year),
           ...(mileageKm && { mileage_km: parseInt(mileageKm) }),
-          transmission,
-          fuel_type: fuelType,
+          transmission, fuel_type: fuelType,
           ...(color && { color }),
           ...(doors && { doors: parseInt(doors) }),
         } as AutomotiveMetadata
       }
 
-      // Determine category for specialized store types
       let finalCategory = category
       if (storeType === 'real_estate') finalCategory = 'Inmuebles'
       else if (storeType === 'automotive') finalCategory = 'Vehículos'
 
-      // Create the listing
       const finalPrice = listingType === 'news' ? 0 : priceConsultar ? 0 : parseFloat(price)
 
       const { data: listing, error: listingError } = await supabase
@@ -175,8 +143,7 @@ export default function NewListingPage() {
           user_id: user.id,
           store_id: activeStore?.id || null,
           listing_type: listingType,
-          title,
-          description,
+          title, description,
           price: finalPrice,
           category: finalCategory,
           location: location || activeStore?.location || '',
@@ -191,32 +158,15 @@ export default function NewListingPage() {
 
       if (listingError) throw listingError
 
-      // Upload images
       if (images.length > 0) {
         const imageUploads = images.map(async (file, index) => {
           const fileExt = file.name.split('.').pop()
           const fileName = `${user.id}/${listing.id}/${Date.now()}-${index}.${fileExt}`
-          
-          const { error: uploadError } = await supabase.storage
-            .from('listing-images')
-            .upload(fileName, file)
-
+          const { error: uploadError } = await supabase.storage.from('listing-images').upload(fileName, file)
           if (uploadError) throw uploadError
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('listing-images')
-            .getPublicUrl(fileName)
-
-          // Save image record
-          await supabase
-            .from('listing_images')
-            .insert({
-              listing_id: listing.id,
-              image_url: publicUrl,
-              order_index: index,
-            })
+          const { data: { publicUrl } } = supabase.storage.from('listing-images').getPublicUrl(fileName)
+          await supabase.from('listing_images').insert({ listing_id: listing.id, image_url: publicUrl, order_index: index })
         })
-
         await Promise.all(imageUploads)
       }
 
@@ -234,11 +184,11 @@ export default function NewListingPage() {
       <main className="container mx-auto px-4 py-8 max-w-3xl">
         <Card>
           <CardHeader>
-            <CardTitle>Crear Nuevo Anuncio</CardTitle>
+            <CardTitle>{f.createNewListing}</CardTitle>
             <CardDescription>
               {activeStore
-                ? `Publicando como 🏪 ${activeStore.name}`
-                : 'Completa la información de tu producto'}
+                ? `${f.publishingAs} 🏪 ${activeStore.name}`
+                : f.fillProductInfo}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -246,7 +196,7 @@ export default function NewListingPage() {
               {/* Listing type selector */}
               {storeType === 'general' && (
                 <div className="space-y-2">
-                  <Label>Tipo de publicación</Label>
+                  <Label>{f.listingTypeLabel}</Label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {LISTING_TYPE_OPTIONS.map((opt) => (
                       <button
@@ -270,7 +220,7 @@ export default function NewListingPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="title">
-                  {listingType === 'news' ? 'Titular / Título *' : 'Título *'}
+                  {listingType === 'news' ? f.headlineLabel : f.titleLabel}
                 </Label>
                 <Input
                   id="title"
@@ -278,33 +228,27 @@ export default function NewListingPage() {
                   onChange={(e) => setTitle(e.target.value)}
                   required
                   placeholder={
-                    listingType === 'service' ? 'Ej: Se pintan Casas' :
-                    listingType === 'event' ? 'Ej: Gran Bazar Navideño' :
-                    listingType === 'news' ? 'Ej: Se busca perro perdido en el centro' :
-                    'Ej: iPhone 13 Pro Max'
+                    listingType === 'service' ? f.titlePlaceholderService :
+                    listingType === 'event'   ? f.titlePlaceholderEvent :
+                    listingType === 'news'    ? f.titlePlaceholderNews :
+                    f.titlePlaceholderProduct
                   }
                 />
                 {listingType !== 'product' && listingType !== 'news' && (
-                  <p className="text-xs text-gray-500">
-                    💡 Si no agregas imágenes, el título se mostrará como portada de tu anuncio
-                  </p>
+                  <p className="text-xs text-gray-500">{f.noImageTip}</p>
                 )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="description">
-                  {listingType === 'news' ? 'Cuerpo del reporte / aviso *' : 'Descripción *'}
+                  {listingType === 'news' ? f.reportBodyLabel : f.descriptionLabel}
                 </Label>
                 <Textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   required
-                  placeholder={
-                    listingType === 'news'
-                      ? 'Describe lo que ocurrió con todos los detalles relevantes...'
-                      : 'Describe tu producto...'
-                  }
+                  placeholder={listingType === 'news' ? f.reportPlaceholder : f.descriptionPlaceholder}
                   rows={listingType === 'news' ? 8 : 5}
                 />
               </div>
@@ -312,10 +256,10 @@ export default function NewListingPage() {
               {/* News type: no price field, just category */}
               {listingType === 'news' ? (
                 <div className="space-y-2">
-                  <Label htmlFor="category">Categoría *</Label>
+                  <Label htmlFor="category">{f.categoryLabel}</Label>
                   <Select value={category} onValueChange={setCategory} required>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecciona una categoría" />
+                      <SelectValue placeholder={f.selectCategoryPlaceholder} />
                     </SelectTrigger>
                     <SelectContent>
                       {NEWS_CATEGORIES.map((cat) => (
@@ -325,80 +269,67 @@ export default function NewListingPage() {
                   </Select>
                 </div>
               ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="price">
-                    Precio (MXN) {priceConsultar ? '' : '*'}
-                  </Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    required={!priceConsultar}
-                    disabled={priceConsultar}
-                    placeholder={priceConsultar ? 'A consultar' : '1000.00'}
-                  />
-                  {(listingType === 'service' || listingType === 'event') && (
-                    <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={priceConsultar}
-                        onChange={(e) => { setPriceConsultar(e.target.checked); if (e.target.checked) setPrice('') }}
-                        className="rounded"
-                      />
-                      Precio a consultar
-                    </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="price">
+                      {f.priceLabel} {priceConsultar ? '' : '*'}
+                    </Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      required={!priceConsultar}
+                      disabled={priceConsultar}
+                      placeholder={priceConsultar ? f.consultPricePlaceholder : '1000.00'}
+                    />
+                    {(listingType === 'service' || listingType === 'event') && (
+                      <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={priceConsultar}
+                          onChange={(e) => { setPriceConsultar(e.target.checked); if (e.target.checked) setPrice('') }}
+                          className="rounded"
+                        />
+                        {f.priceConsultCheckbox}
+                      </label>
+                    )}
+                  </div>
+
+                  {storeType === 'general' ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="category">{f.categoryLabel}</Label>
+                      <Select value={category} onValueChange={setCategory} required>
+                        <SelectTrigger>
+                          <SelectValue placeholder={f.selectCategoryPlaceholder} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(listingType === 'service' ? SERVICE_CATEGORIES : listingType === 'event' ? EVENT_CATEGORIES : PRODUCT_CATEGORIES).map((cat) => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : storeType === 'real_estate' ? (
+                    <div className="space-y-2">
+                      <Label>Tipo de Operación *</Label>
+                      <Select value={transactionType} onValueChange={setTransactionType}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="venta">Venta</SelectItem>
+                          <SelectItem value="renta">Renta</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="year">Año *</Label>
+                      <Input id="year" type="number" min="1950" max="2027" value={year} onChange={(e) => setYear(e.target.value)} required placeholder="2024" />
+                    </div>
                   )}
                 </div>
-
-                {storeType === 'general' ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Categoría *</Label>
-                    <Select value={category} onValueChange={setCategory} required>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona una categoría" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(listingType === 'service' ? SERVICE_CATEGORIES : listingType === 'event' ? EVENT_CATEGORIES : PRODUCT_CATEGORIES).map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : storeType === 'real_estate' ? (
-                  <div className="space-y-2">
-                    <Label>Tipo de Operación *</Label>
-                    <Select value={transactionType} onValueChange={setTransactionType}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="venta">Venta</SelectItem>
-                        <SelectItem value="renta">Renta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label htmlFor="year">Año *</Label>
-                    <Input
-                      id="year"
-                      type="number"
-                      min="1950"
-                      max="2027"
-                      value={year}
-                      onChange={(e) => setYear(e.target.value)}
-                      required
-                      placeholder="2024"
-                    />
-                  </div>
-                )}
-              </div>
               )}
 
               {/* Real Estate Fields */}
@@ -407,9 +338,7 @@ export default function NewListingPage() {
                   <div className="space-y-2">
                     <Label>Tipo de Propiedad *</Label>
                     <Select value={propertyType} onValueChange={setPropertyType}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="casa">Casa</SelectItem>
                         <SelectItem value="departamento">Departamento</SelectItem>
@@ -419,31 +348,14 @@ export default function NewListingPage() {
                       </SelectContent>
                     </Select>
                   </div>
-
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="bedrooms">Recámaras</Label>
-                      <Input id="bedrooms" type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} placeholder="3" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="bathrooms">Baños</Label>
-                      <Input id="bathrooms" type="number" min="0" step="0.5" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} placeholder="2" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="parking">Estacionamientos</Label>
-                      <Input id="parking" type="number" min="0" value={parkingSpots} onChange={(e) => setParkingSpots(e.target.value)} placeholder="2" />
-                    </div>
+                    <div className="space-y-2"><Label htmlFor="bedrooms">Recámaras</Label><Input id="bedrooms" type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} placeholder="3" /></div>
+                    <div className="space-y-2"><Label htmlFor="bathrooms">Baños</Label><Input id="bathrooms" type="number" min="0" step="0.5" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} placeholder="2" /></div>
+                    <div className="space-y-2"><Label htmlFor="parking">Estacionamientos</Label><Input id="parking" type="number" min="0" value={parkingSpots} onChange={(e) => setParkingSpots(e.target.value)} placeholder="2" /></div>
                   </div>
-
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="constructionM2">m² Construidos</Label>
-                      <Input id="constructionM2" type="number" min="0" value={constructionM2} onChange={(e) => setConstructionM2(e.target.value)} placeholder="120" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lotM2">m² Terreno</Label>
-                      <Input id="lotM2" type="number" min="0" value={lotM2} onChange={(e) => setLotM2(e.target.value)} placeholder="200" />
-                    </div>
+                    <div className="space-y-2"><Label htmlFor="constructionM2">m² Construidos</Label><Input id="constructionM2" type="number" min="0" value={constructionM2} onChange={(e) => setConstructionM2(e.target.value)} placeholder="120" /></div>
+                    <div className="space-y-2"><Label htmlFor="lotM2">m² Terreno</Label><Input id="lotM2" type="number" min="0" value={lotM2} onChange={(e) => setLotM2(e.target.value)} placeholder="200" /></div>
                   </div>
                 </>
               )}
@@ -452,21 +364,11 @@ export default function NewListingPage() {
               {storeType === 'automotive' && (
                 <>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="make">Marca *</Label>
-                      <Input id="make" value={make} onChange={(e) => setMake(e.target.value)} required placeholder="Toyota" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="model">Modelo *</Label>
-                      <Input id="model" value={model} onChange={(e) => setModel(e.target.value)} required placeholder="Tacoma" />
-                    </div>
+                    <div className="space-y-2"><Label htmlFor="make">Marca *</Label><Input id="make" value={make} onChange={(e) => setMake(e.target.value)} required placeholder="Toyota" /></div>
+                    <div className="space-y-2"><Label htmlFor="model">Modelo *</Label><Input id="model" value={model} onChange={(e) => setModel(e.target.value)} required placeholder="Tacoma" /></div>
                   </div>
-
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="mileage">Kilómetros</Label>
-                      <Input id="mileage" type="number" min="0" value={mileageKm} onChange={(e) => setMileageKm(e.target.value)} placeholder="45000" />
-                    </div>
+                    <div className="space-y-2"><Label htmlFor="mileage">Kilómetros</Label><Input id="mileage" type="number" min="0" value={mileageKm} onChange={(e) => setMileageKm(e.target.value)} placeholder="45000" /></div>
                     <div className="space-y-2">
                       <Label>Transmisión</Label>
                       <Select value={transmission} onValueChange={setTransmission}>
@@ -490,12 +392,8 @@ export default function NewListingPage() {
                       </Select>
                     </div>
                   </div>
-
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="color">Color</Label>
-                      <Input id="color" value={color} onChange={(e) => setColor(e.target.value)} placeholder="Blanco" />
-                    </div>
+                    <div className="space-y-2"><Label htmlFor="color">Color</Label><Input id="color" value={color} onChange={(e) => setColor(e.target.value)} placeholder="Blanco" /></div>
                     <div className="space-y-2">
                       <Label>Puertas</Label>
                       <Select value={doors} onValueChange={setDoors}>
@@ -520,19 +418,19 @@ export default function NewListingPage() {
               />
 
               <div className="space-y-2">
-                <Label htmlFor="location">Colonia / Barrio</Label>
+                <Label htmlFor="location">{f.neighborhoodLabel}</Label>
                 <Input
                   id="location"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Ej: Centro, La Rumorosa, Col. Libertad"
+                  placeholder={f.neighborhoodPlaceholder}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="images">
-                  Imágenes (Máximo 5){listingType !== 'product' ? ' — Opcional' : ''}
-                  {listingType === 'news' && <span className="text-xs text-gray-400 font-normal ml-1">— Agrega fotos del evento si las tienes</span>}
+                  {f.imagesLabel}{listingType !== 'product' ? ` ${f.imagesOptional}` : ''}
+                  {listingType === 'news' && <span className="text-xs text-gray-400 font-normal ml-1">{f.imagesNewsTip}</span>}
                 </Label>
                 <Input
                   id="images"
@@ -546,19 +444,12 @@ export default function NewListingPage() {
                   <div className="grid grid-cols-3 gap-4 mt-4">
                     {imagePreviews.map((preview, index) => (
                       <div key={index} className="relative aspect-square">
-                        <Image
-                          src={preview}
-                          alt={`Preview ${index + 1}`}
-                          fill
-                          className="object-cover rounded-lg"
-                        />
+                        <Image src={preview} alt={`Preview ${index + 1}`} fill className="object-cover rounded-lg" />
                         <button
                           type="button"
                           onClick={() => removeImage(index)}
                           className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
-                        >
-                          ×
-                        </button>
+                        >×</button>
                       </div>
                     ))}
                   </div>
@@ -566,22 +457,15 @@ export default function NewListingPage() {
               </div>
 
               {error && (
-                <div className="text-sm text-red-600 bg-red-50 p-3 rounded">
-                  {error}
-                </div>
+                <div className="text-sm text-red-600 bg-red-50 p-3 rounded">{error}</div>
               )}
 
               <div className="flex gap-3">
                 <Button type="submit" disabled={loading} className="flex-1">
-                  {loading ? 'Creando...' : 'Publicar Anuncio'}
+                  {loading ? f.creating : f.publishListing}
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.back()}
-                  disabled={loading}
-                >
-                  Cancelar
+                <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>
+                  {f.cancel}
                 </Button>
               </div>
             </form>

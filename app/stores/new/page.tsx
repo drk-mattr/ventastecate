@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useTranslations } from '@/lib/hooks/use-translations'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,32 +14,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { StoreType } from '@/lib/types/database'
 import Image from 'next/image'
 
-const STORE_TYPES: { value: StoreType; icon: string; label: string; description: string }[] = [
-  {
-    value: 'general',
-    icon: '🏪',
-    label: 'General',
-    description: 'Vende todo tipo de productos: ropa, electrónica, muebles, etc.',
-  },
-  {
-    value: 'real_estate',
-    icon: '🏠',
-    label: 'Inmuebles',
-    description: 'Venta y renta de casas, departamentos, terrenos y locales.',
-  },
-  {
-    value: 'automotive',
-    icon: '🚗',
-    label: 'Automotriz',
-    description: 'Venta de autos, camionetas y vehículos.',
-  },
-]
-
 export default function NewStorePage() {
   const { user, refreshStores } = useAuth()
   const router = useRouter()
   const supabase = createClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const t = useTranslations()
+  const f = t.forms
+
+  const STORE_TYPES: { value: StoreType; icon: string; label: string; description: string }[] = [
+    { value: 'general',     icon: '🏪', label: f.storeTypeGeneralLabel,     description: f.storeTypeGeneralDesc },
+    { value: 'real_estate', icon: '🏠', label: f.storeTypeRealEstateLabel,  description: f.storeTypeRealEstateDesc },
+    { value: 'automotive',  icon: '🚗', label: f.storeTypeAutomotiveLabel,  description: f.storeTypeAutomotiveDesc },
+  ]
 
   const [step, setStep] = useState(1)
   const [storeType, setStoreType] = useState<StoreType | null>(null)
@@ -79,7 +67,7 @@ export default function NewStorePage() {
     if (!user || !storeType) return
 
     if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug) || slug.length < 3) {
-      setError('El slug debe tener al menos 3 caracteres, solo letras minúsculas, números y guiones')
+      setError(f.storeSlugHint)
       return
     }
 
@@ -147,38 +135,34 @@ export default function NewStorePage() {
       <main className="container mx-auto px-4 py-8 max-w-2xl">
         {/* Step indicator */}
         <div className="flex items-center gap-2 mb-6 text-sm text-gray-500">
-          <span className={step === 1 ? 'font-semibold text-gray-900' : ''}>
-            1. Tipo de tienda
-          </span>
+          <span className={step === 1 ? 'font-semibold text-gray-900' : ''}>{f.step1}</span>
           <span>→</span>
-          <span className={step === 2 ? 'font-semibold text-gray-900' : ''}>
-            2. Detalles
-          </span>
+          <span className={step === 2 ? 'font-semibold text-gray-900' : ''}>{f.step2}</span>
         </div>
 
         {step === 1 && (
           <Card>
             <CardHeader>
-              <CardTitle>Tipo de Tienda</CardTitle>
-              <CardDescription>¿Qué tipo de productos venderás?</CardDescription>
+              <CardTitle>{f.storeTypeTitle}</CardTitle>
+              <CardDescription>{f.whatWillYouSell}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {STORE_TYPES.map((t) => (
+              {STORE_TYPES.map((st) => (
                 <button
-                  key={t.value}
+                  key={st.value}
                   type="button"
-                  onClick={() => setStoreType(t.value)}
+                  onClick={() => setStoreType(st.value)}
                   className={`w-full text-left p-4 rounded-lg border-2 transition ${
-                    storeType === t.value
+                    storeType === st.value
                       ? 'border-black bg-gray-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{t.icon}</span>
+                    <span className="text-2xl">{st.icon}</span>
                     <div>
-                      <p className="font-medium text-sm">{t.label}</p>
-                      <p className="text-xs text-gray-500">{t.description}</p>
+                      <p className="font-medium text-sm">{st.label}</p>
+                      <p className="text-xs text-gray-500">{st.description}</p>
                     </div>
                   </div>
                 </button>
@@ -190,7 +174,7 @@ export default function NewStorePage() {
                   disabled={!storeType}
                   className="w-full"
                 >
-                  Continuar
+                  {f.continue}
                 </Button>
               </div>
             </CardContent>
@@ -200,17 +184,17 @@ export default function NewStorePage() {
         {step === 2 && (
           <Card>
             <CardHeader>
-              <CardTitle>Crear Tienda</CardTitle>
+              <CardTitle>{f.createStoreTitle}</CardTitle>
               <CardDescription>
-                {STORE_TYPES.find(t => t.value === storeType)?.icon}{' '}
-                {STORE_TYPES.find(t => t.value === storeType)?.label} — Completa los detalles de tu tienda
+                {STORE_TYPES.find(st => st.value === storeType)?.icon}{' '}
+                {STORE_TYPES.find(st => st.value === storeType)?.label} — {f.storeDetails}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Avatar */}
                 <div className="space-y-2">
-                  <Label>Logo de la Tienda</Label>
+                  <Label>{f.storeLogo}</Label>
                   <div className="flex items-center gap-4">
                     <div
                       className="relative h-20 w-20 rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center cursor-pointer hover:opacity-80 transition"
@@ -225,7 +209,7 @@ export default function NewStorePage() {
                         />
                       ) : (
                         <span className="text-2xl text-gray-400">
-                          {STORE_TYPES.find(t => t.value === storeType)?.icon || '🏪'}
+                          {STORE_TYPES.find(st => st.value === storeType)?.icon || '🏪'}
                         </span>
                       )}
                     </div>
@@ -236,9 +220,9 @@ export default function NewStorePage() {
                         size="sm"
                         onClick={() => fileInputRef.current?.click()}
                       >
-                        Subir logo
+                        {f.uploadLogo}
                       </Button>
-                      <p className="text-xs text-gray-500 mt-1">JPG, PNG. Máximo 2MB.</p>
+                      <p className="text-xs text-gray-500 mt-1">JPG, PNG. Max 2MB.</p>
                     </div>
                     <input
                       ref={fileInputRef}
@@ -251,18 +235,18 @@ export default function NewStorePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nombre de la Tienda *</Label>
+                  <Label htmlFor="name">{f.storeNameLabel}</Label>
                   <Input
                     id="name"
                     value={name}
                     onChange={(e) => handleNameChange(e.target.value)}
                     required
-                    placeholder="Ej: Tienda Lupita"
+                    placeholder={f.storeNamePlaceholder}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="slug">URL de la Tienda *</Label>
+                  <Label htmlFor="slug">{f.storeUrlLabel}</Label>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-500 shrink-0">ventastecate.com/stores/</span>
                     <Input
@@ -275,32 +259,32 @@ export default function NewStorePage() {
                     />
                   </div>
                   <p className="text-xs text-gray-500">
-                    Solo letras minúsculas, números y guiones. Mínimo 3 caracteres.
+                    {f.storeSlugHint}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Descripción</Label>
+                  <Label htmlFor="description">{f.storeDescLabel}</Label>
                   <Textarea
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe tu tienda..."
+                    placeholder={f.storeDescPlaceholder}
                     rows={4}
                     maxLength={500}
                   />
                   <p className="text-xs text-gray-500">
-                    {description.length}/500 caracteres
+                    {description.length}/500
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="location">Ubicación</Label>
+                  <Label htmlFor="location">{f.storeLocationLabel}</Label>
                   <Input
                     id="location"
                     value={storeLocation}
                     onChange={(e) => setStoreLocation(e.target.value)}
-                    placeholder="Ej: Centro de Tecate"
+                    placeholder={f.storeLocationPlaceholder}
                   />
                 </div>
 
@@ -317,10 +301,10 @@ export default function NewStorePage() {
                     onClick={() => setStep(1)}
                     disabled={loading}
                   >
-                    Atrás
+                    {f.back}
                   </Button>
                   <Button type="submit" disabled={loading} className="flex-1">
-                    {loading ? 'Creando...' : 'Crear Tienda'}
+                    {loading ? f.creating : f.createStoreBtn}
                   </Button>
                 </div>
               </form>

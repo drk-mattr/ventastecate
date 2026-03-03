@@ -65,14 +65,15 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   if (category) {
     query = query.eq('category', category)
   }
+  // location param searches across all three location columns
   if (location) {
-    query = query.ilike('location', `%${location}%`)
-  }
-  if (city) {
-    query = query.ilike('city', `%${city}%`)
-  }
-  if (stateRegion) {
-    query = query.ilike('state_region', `%${stateRegion}%`)
+    query = query.or(
+      `location.ilike.%${location}%,city.ilike.%${location}%,state_region.ilike.%${location}%`
+    )
+  } else {
+    // Legacy URL compat: separate city / stateRegion params still work
+    if (city) query = query.ilike('city', `%${city}%`)
+    if (stateRegion) query = query.ilike('state_region', `%${stateRegion}%`)
   }
   if (minPrice) {
     query = query.gte('price', parseFloat(minPrice))
@@ -123,9 +124,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             </h1>
             <p className="text-sm text-gray-600">
               {resultCount} {resultLabel}
-              {city && ` ${t.listings.in} ${city}`}
-              {stateRegion && !city && ` ${t.listings.in} ${stateRegion}`}
-              {effectiveCountry && !isGlobal && !city && !stateRegion && ` ${t.listings.in} ${effectiveCountry}`}
+              {(location || city || stateRegion) && ` ${t.listings.in} ${location || city || stateRegion}`}
+              {effectiveCountry && !isGlobal && !location && !city && !stateRegion && ` ${t.listings.in} ${effectiveCountry}`}
             </p>
           </div>
           {userCountry && (

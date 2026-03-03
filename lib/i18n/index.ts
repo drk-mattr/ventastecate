@@ -50,6 +50,7 @@ export type Translations = {
     priceHighLow: string
     stateRegionPlaceholder: string
     cityPlaceholder: string
+    locationPlaceholder: string
     minPrice: string
     maxPrice: string
     keywords: string
@@ -299,6 +300,7 @@ const es: Translations = {
     priceHighLow: 'Precio: mayor a menor',
     stateRegionPlaceholder: 'Ej: Baja California',
     cityPlaceholder: 'Ej: Tecate, Jakarta, Manila',
+    locationPlaceholder: 'Ciudad, barrio, región...',
     minPrice: 'Mínimo',
     maxPrice: 'Máximo',
     keywords: 'Palabras clave...',
@@ -542,6 +544,7 @@ const tl: Translations = {
     priceHighLow: 'Presyo: mataas hanggang mababa',
     stateRegionPlaceholder: 'Hal: Baja California',
     cityPlaceholder: 'Hal: Tecate, Jakarta, Manila',
+    locationPlaceholder: 'Lungsod, lugar, rehiyon...',
     minPrice: 'Minimum',
     maxPrice: 'Maximum',
     keywords: 'Mga keyword...',
@@ -785,6 +788,7 @@ const en: Translations = {
     priceHighLow: 'Price: high to low',
     stateRegionPlaceholder: 'e.g. Baja California',
     cityPlaceholder: 'e.g. Tecate, San Diego, Tijuana',
+    locationPlaceholder: 'City, neighborhood, region...',
     minPrice: 'Min',
     maxPrice: 'Max',
     keywords: 'Keywords...',
@@ -1028,6 +1032,7 @@ const id: Translations = {
     priceHighLow: 'Harga: tinggi ke rendah',
     stateRegionPlaceholder: 'Cth: Baja California',
     cityPlaceholder: 'Cth: Tecate, Jakarta, Surabaya',
+    locationPlaceholder: 'Kota, kelurahan, wilayah...',
     minPrice: 'Minimum',
     maxPrice: 'Maksimum',
     keywords: 'Kata kunci...',

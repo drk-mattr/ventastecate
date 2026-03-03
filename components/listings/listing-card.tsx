@@ -60,52 +60,56 @@ export function ListingCard({ listing }: ListingCardProps) {
     ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(listing.price)
     : null
 
-  // ── News card: editorial layout with landscape image ─────────────────────
+  // ── News card: editorial layout ───────────────────────────────────────────
   if (isNews) {
     const categoryColor = NEWS_CATEGORY_COLORS[listing.category] || 'text-slate-500'
 
     return (
       <Link href={`/listings/${listing.id}`} className="group h-full">
         <div className="h-full flex flex-col overflow-hidden rounded-lg border bg-white hover:shadow-md transition-shadow">
-          {/* Category label above image */}
-          <div className="px-3 pt-2.5 pb-1.5">
-            <p className={`text-[11px] font-semibold uppercase tracking-wide ${categoryColor}`}>
+          {/* Category label */}
+          {listing.category && (
+            <p className={`text-[10px] font-bold uppercase tracking-wider px-3 pt-2.5 pb-0 leading-none ${categoryColor}`}>
               {listing.category}
             </p>
-          </div>
+          )}
 
-          {/* Landscape image (16:9) — only shown when image exists */}
-          {primaryImage && (
-            <div className="relative aspect-video bg-gray-100 mx-3 shrink-0">
+          {/* Landscape image */}
+          <div className="relative aspect-video bg-gray-100 shrink-0 mt-2">
+            {primaryImage ? (
               <Image
                 src={primaryImage}
                 alt={listing.title}
                 fill
-                className="object-cover rounded"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                className="object-cover"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
               />
-              {listing.status === 'sold' && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded">
-                  <Badge variant="secondary" className="text-xs">Cerrado</Badge>
-                </div>
-              )}
-            </div>
-          )}
+            ) : (
+              <div className="absolute inset-0 bg-gray-50 flex items-center justify-center">
+                <Newspaper className="h-8 w-8 text-gray-200" />
+              </div>
+            )}
+            {listing.status === 'sold' && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <Badge variant="secondary" className="text-xs">Cerrado</Badge>
+              </div>
+            )}
+          </div>
 
-          {/* Editorial content */}
-          <div className="p-3 flex flex-col flex-1">
-            {/* Headline */}
-            <h3 className="font-bold text-sm leading-snug line-clamp-2 mb-1.5 group-hover:underline">
+          {/* Content */}
+          <div className="flex flex-col flex-1 px-3 py-2.5">
+            <h3 className="font-semibold text-sm line-clamp-2 mb-1.5 group-hover:underline leading-snug">
               {listing.title}
             </h3>
-            {/* Excerpt */}
             {listing.description && (
-              <p className="text-[12px] text-gray-500 leading-snug line-clamp-2 mb-2">
+              <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed flex-1">
                 {listing.description}
               </p>
             )}
-            {/* Time ago — pinned to bottom */}
-            <p className="text-[11px] text-gray-400 mt-auto">{timeAgo(listing.created_at)}</p>
+            {/* Footer — time, views, comments */}
+            <div className="flex items-center gap-2 mt-auto pt-2">
+              <span className="text-[11px] text-gray-400">{timeAgo(listing.created_at)}</span>
+            </div>
           </div>
         </div>
       </Link>

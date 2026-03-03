@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Wrench, Megaphone, Store, Newspaper } from 'lucide-react'
+import { Wrench, Megaphone, Store, Newspaper, Eye, MessageCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ListingWithImages } from '@/lib/types/database'
 
@@ -67,15 +67,8 @@ export function ListingCard({ listing }: ListingCardProps) {
     return (
       <Link href={`/listings/${listing.id}`} className="group h-full">
         <div className="h-full flex flex-col overflow-hidden rounded-lg border bg-white hover:shadow-md transition-shadow">
-          {/* Category label */}
-          {listing.category && (
-            <p className={`text-[10px] font-bold uppercase tracking-wider px-3 pt-2.5 pb-0 leading-none ${categoryColor}`}>
-              {listing.category}
-            </p>
-          )}
-
-          {/* Landscape image */}
-          <div className="relative aspect-video bg-gray-100 shrink-0 mt-2">
+          {/* Full-bleed landscape image — touches top/left/right edges */}
+          <div className="relative aspect-video bg-gray-100 shrink-0">
             {primaryImage ? (
               <Image
                 src={primaryImage}
@@ -97,7 +90,13 @@ export function ListingCard({ listing }: ListingCardProps) {
           </div>
 
           {/* Content */}
-          <div className="flex flex-col flex-1 px-3 py-2.5">
+          <div className="flex flex-col flex-1 px-3 pt-2.5 pb-3">
+            {/* Category label */}
+            {listing.category && (
+              <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 leading-none ${categoryColor}`}>
+                {listing.category}
+              </p>
+            )}
             <h3 className="font-semibold text-sm line-clamp-2 mb-1.5 group-hover:underline leading-snug">
               {listing.title}
             </h3>
@@ -107,8 +106,16 @@ export function ListingCard({ listing }: ListingCardProps) {
               </p>
             )}
             {/* Footer — time, views, comments */}
-            <div className="flex items-center gap-2 mt-auto pt-2">
+            <div className="flex items-center gap-3 mt-auto pt-2">
               <span className="text-[11px] text-gray-400">{timeAgo(listing.created_at)}</span>
+              <span className="flex items-center gap-0.5 text-[11px] text-gray-400 ml-auto">
+                <Eye className="h-3 w-3" />
+                {(listing as any).view_count ?? 0}
+              </span>
+              <span className="flex items-center gap-0.5 text-[11px] text-gray-400">
+                <MessageCircle className="h-3 w-3" />
+                {(listing as any).comment_count ?? 0}
+              </span>
             </div>
           </div>
         </div>

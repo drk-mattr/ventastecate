@@ -23,11 +23,11 @@ const TYPE_BADGE: Record<string, { icon: React.ElementType; label: string } | nu
 }
 
 const NEWS_CATEGORY_COLORS: Record<string, string> = {
-  'Noticias Locales':        'bg-blue-100 text-blue-800',
-  'Objetos Perdidos':        'bg-amber-100 text-amber-800',
-  'Seguridad Pública':       'bg-red-100 text-red-800',
-  'Anuncios Comunitarios':   'bg-green-100 text-green-800',
-  'Empleos':                 'bg-purple-100 text-purple-800',
+  'Noticias Locales':        'text-blue-600',
+  'Objetos Perdidos':        'text-amber-600',
+  'Seguridad Pública':       'text-red-600',
+  'Anuncios Comunitarios':   'text-green-600',
+  'Empleos':                 'text-purple-600',
 }
 
 const NEWS_CATEGORY_GRADIENTS: Record<string, string> = {
@@ -36,6 +36,16 @@ const NEWS_CATEGORY_GRADIENTS: Record<string, string> = {
   'Seguridad Pública':       'from-red-600 to-red-800',
   'Anuncios Comunitarios':   'from-green-600 to-green-800',
   'Empleos':                 'from-purple-600 to-purple-800',
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  return `${days}d ago`
 }
 
 export function ListingCard({ listing }: ListingCardProps) {
@@ -50,61 +60,52 @@ export function ListingCard({ listing }: ListingCardProps) {
     ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(listing.price)
     : null
 
-  // ── News card: standard grid card with category colour ────────────────────
+  // ── News card: editorial layout with landscape image ─────────────────────
   if (isNews) {
-    const categoryColor = NEWS_CATEGORY_COLORS[listing.category] || 'bg-slate-100 text-slate-700'
-    const categoryGradient = NEWS_CATEGORY_GRADIENTS[listing.category] || 'from-slate-600 to-slate-800'
+    const categoryColor = NEWS_CATEGORY_COLORS[listing.category] || 'text-slate-500'
 
     return (
-      <Link href={`/listings/${listing.id}`} className="group">
-        <div className="overflow-hidden rounded-lg border bg-white hover:shadow-md transition-shadow">
-          {/* Square image or coloured gradient hero */}
-          <div className="relative aspect-square bg-gray-100">
-            {primaryImage ? (
+      <Link href={`/listings/${listing.id}`} className="group h-full">
+        <div className="h-full flex flex-col overflow-hidden rounded-lg border bg-white hover:shadow-md transition-shadow">
+          {/* Category label above image */}
+          <div className="px-3 pt-2.5 pb-1.5">
+            <p className={`text-[11px] font-semibold uppercase tracking-wide ${categoryColor}`}>
+              {listing.category}
+            </p>
+          </div>
+
+          {/* Landscape image (16:9) — only shown when image exists */}
+          {primaryImage && (
+            <div className="relative aspect-video bg-gray-100 mx-3 shrink-0">
               <Image
                 src={primaryImage}
                 alt={listing.title}
                 fill
-                className="object-cover"
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                className="object-cover rounded"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
-            ) : (
-              <div className={`absolute inset-0 bg-gradient-to-br ${categoryGradient} flex flex-col items-center justify-center p-3 text-center`}>
-                <Newspaper className="h-5 w-5 text-white/60 mb-2 shrink-0" />
-                <p className="text-white font-bold text-sm leading-snug line-clamp-4">
-                  {listing.title}
-                </p>
-              </div>
-            )}
-            {/* Category pill overlaid top-left */}
-            <div className="absolute top-1.5 left-1.5">
-              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full leading-none ${categoryColor}`}>
-                {listing.category}
-              </span>
+              {listing.status === 'sold' && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded">
+                  <Badge variant="secondary" className="text-xs">Cerrado</Badge>
+                </div>
+              )}
             </div>
-            {listing.status === 'sold' && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <Badge variant="secondary" className="text-xs">Cerrado</Badge>
-              </div>
-            )}
-          </div>
+          )}
 
-          {/* Info strip */}
-          <div className="p-3">
-            {primaryImage && (
-              <h3 className="font-semibold text-sm line-clamp-2 mb-1.5 group-hover:text-blue-600 transition-colors leading-snug">
-                {listing.title}
-              </h3>
+          {/* Editorial content */}
+          <div className="p-3 flex flex-col flex-1">
+            {/* Headline */}
+            <h3 className="font-bold text-sm leading-snug line-clamp-2 mb-1.5 group-hover:underline">
+              {listing.title}
+            </h3>
+            {/* Excerpt */}
+            {listing.description && (
+              <p className="text-[12px] text-gray-500 leading-snug line-clamp-2 mb-2">
+                {listing.description}
+              </p>
             )}
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-[11px] text-gray-400 flex items-center gap-0.5 truncate">
-                <Newspaper className="h-3 w-3 shrink-0" />
-                {listing.store ? listing.store.name : listing.profile.display_name}
-              </span>
-              <span className="text-[11px] text-gray-400 shrink-0">
-                {new Date(listing.created_at).toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })}
-              </span>
-            </div>
+            {/* Time ago — pinned to bottom */}
+            <p className="text-[11px] text-gray-400 mt-auto">{timeAgo(listing.created_at)}</p>
           </div>
         </div>
       </Link>

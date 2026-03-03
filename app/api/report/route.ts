@@ -36,14 +36,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Error de configuración' }, { status: 500 })
     }
 
+    // Cloudflare geo headers
+    const ip       = request.headers.get('cf-connecting-ip') ?? request.headers.get('x-forwarded-for') ?? '—'
+    const country  = request.headers.get('cf-ipcountry') ?? '—'
+    const city     = request.headers.get('cf-ipcity') ?? '—'
+    const region   = request.headers.get('cf-region') ?? '—'
+    const timezone = request.headers.get('cf-timezone') ?? '—'
+    const ua       = request.headers.get('user-agent') ?? '—'
+
+    const locationParts = [city, region, country].filter(v => v && v !== '—')
+    const locationStr = locationParts.length ? locationParts.join(', ') : '—'
+
     // Send to Discord
     const embed = {
       title: `${TYPE_LABELS[type] || type} — Ventas Tecate`,
       description: description.slice(0, 2000),
       color: type === 'bug' ? 0xff4444 : type === 'suggestion' ? 0x4488ff : 0x888888,
       fields: [
-        { name: 'Usuario', value: username, inline: true },
-        ...(email ? [{ name: 'Email', value: email, inline: true }] : []),
+        { name: 'Usuario',       value: username,              inline: true },
+        ...(email ? [{ name: 'Email', value: email,            inline: true }] : []),
+        { name: '📍 Ubicación',  value: locationStr,           inline: false },
+        { name: '🌐 Zona Horaria', value: timezone,            inline: true },
+        { name: '🖥️ IP',         value: `\`${ip}\``,           inline: true },
+        { name: '🔍 User Agent', value: ua.slice(0, 100),      inline: false },
       ],
       timestamp: new Date().toISOString(),
     }
@@ -51,9 +66,7 @@ export async function POST(request: NextRequest) {
     const res = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        embeds: [embed],
-      }),
+      body: JSON.stringify({ embeds: [embed] }),
     })
 
     if (!res.ok) {

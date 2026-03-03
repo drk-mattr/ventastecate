@@ -70,6 +70,13 @@ export default function SignupPage() {
       setError(signUpError.message)
       setLoading(false)
     } else {
+      // Notify Discord about new registration (fire-and-forget)
+      fetch('/api/discord-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, displayName, email }),
+      }).catch(() => {/* non-critical, ignore errors */})
+
       setSuccess(true)
       setLoading(false)
     }

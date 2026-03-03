@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { MapPin } from 'lucide-react'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
@@ -75,7 +76,9 @@ export default async function Home({ searchParams }: HomeProps) {
                 href={isGlobal ? '/' : '/?global=1'}
                 className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
               >
-                {isGlobal ? `📍 ${t.listings.onlyIn} ${userCountry}` : t.listings.seeAll}
+                {isGlobal ? (
+                  <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{t.listings.onlyIn} {userCountry}</span>
+                ) : t.listings.seeAll}
               </Link>
             )}
           </div>

@@ -62,7 +62,7 @@ export function DynamicHero() {
 
   const activeFilters = [
     ...(category !== 'all' ? [{ key: 'category', label: t.categories.find(c => c.value === category)?.label ?? category }] : []),
-    ...(location !== 'all' ? [{ key: 'location', label: `📍 ${location}` }] : []),
+    ...(location !== 'all' ? [{ key: 'location', label: location }] : []),
     ...(minPrice || maxPrice ? [{
       key: 'price',
       label: minPrice && maxPrice ? `$${minPrice} – $${maxPrice}` : minPrice ? `Desde $${minPrice}` : `Hasta $${maxPrice}`,
@@ -139,7 +139,7 @@ export function DynamicHero() {
                 <SelectItem value="all">{t.search.allLocations}</SelectItem>
                 {detectedLocation && (
                   <SelectItem value={detectedLocation} className="font-semibold">
-                    📍 {detectedLocation}
+                    <span className="flex items-center gap-1.5"><MapPin className="h-3 w-3" />{detectedLocation}</span>
                   </SelectItem>
                 )}
                 {LOCATIONS.map((loc) => (

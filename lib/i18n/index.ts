@@ -189,7 +189,7 @@ const es: Translations = {
     noResults: 'No se encontraron resultados',
     searchWorldwide: 'Buscar en todo el mundo →',
     onlyIn: 'Solo en',
-    seeAll: '🌎 Ver todo el mundo',
+    seeAll: 'Ver todo el mundo',
     in: 'en',
   },
   auth: {
@@ -302,7 +302,7 @@ const tl: Translations = {
     noResults: 'Walang nakitang resulta',
     searchWorldwide: 'Maghanap sa buong mundo →',
     onlyIn: 'Sa',
-    seeAll: '🌎 Tingnan ang buong mundo',
+    seeAll: 'Tingnan ang buong mundo',
     in: 'sa',
   },
   auth: {
@@ -415,7 +415,7 @@ const en: Translations = {
     noResults: 'No results found',
     searchWorldwide: 'Search worldwide →',
     onlyIn: 'Only in',
-    seeAll: '🌎 See worldwide',
+    seeAll: 'See worldwide',
     in: 'in',
   },
   auth: {
@@ -528,7 +528,7 @@ const id: Translations = {
     noResults: 'Tidak ada hasil yang ditemukan',
     searchWorldwide: 'Cari di seluruh dunia →',
     onlyIn: 'Hanya di',
-    seeAll: '🌎 Lihat seluruh dunia',
+    seeAll: 'Lihat seluruh dunia',
     in: 'di',
   },
   auth: {

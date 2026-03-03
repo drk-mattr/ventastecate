@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Check, Bug } from 'lucide-react'
+import { Check, Bug, Store, User } from 'lucide-react'
 
 export function Header() {
   const { user, profile, stores, activeStore, setActiveStore, signOut } = useAuth()
@@ -72,8 +72,8 @@ export function Header() {
                 <Link href="/listings/new">{t.nav.publish}</Link>
               </Button>
               {activeStore && (
-                <span className="text-[10px] text-gray-500 hidden sm:block max-w-[100px] truncate" title={activeStore.name}>
-                  🏪 {activeStore.name}
+                <span className="text-[10px] text-gray-500 hidden sm:flex items-center gap-0.5 max-w-[100px] truncate" title={activeStore.name}>
+                  <Store className="h-3 w-3 shrink-0" />{activeStore.name}
                 </span>
               )}
               <DropdownMenu>
@@ -89,7 +89,7 @@ export function Header() {
                             className="object-cover"
                           />
                         ) : (
-                          <span className="text-sm">🏪</span>
+                          <Store className="h-4 w-4 text-gray-500" />
                         )
                       ) : profile?.avatar_url ? (
                         <Image
@@ -110,7 +110,9 @@ export function Header() {
                       {activeStore ? activeStore.name : profile?.display_name}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {activeStore ? `🏪 ${t.nav.storeMode}` : `@${profile?.username}`}
+                      {activeStore ? (
+                        <span className="flex items-center gap-1"><Store className="h-3 w-3" />{t.nav.storeMode}</span>
+                      ) : `@${profile?.username}`}
                     </p>
                   </div>
                   <DropdownMenuSeparator />
@@ -135,7 +137,7 @@ export function Header() {
                         onClick={() => setActiveStore(null)}
                         className="text-xs flex items-center justify-between"
                       >
-                        <span>👤 {t.nav.publishAs}</span>
+                        <span className="flex items-center gap-1"><User className="h-3 w-3" />{t.nav.publishAs}</span>
                         {!activeStore && <Check className="h-3 w-3" />}
                       </DropdownMenuItem>
                       {stores.map((store) => (
@@ -145,7 +147,7 @@ export function Header() {
                             className="text-xs flex-1 flex items-center justify-between"
                           >
                             <Link href={`/stores/${store.slug}`} onClick={(e) => e.stopPropagation()} className="truncate hover:underline">
-                              🏪 {store.name}
+                              <span className="flex items-center gap-1"><Store className="h-3 w-3 shrink-0" /><span className="truncate">{store.name}</span></span>
                             </Link>
                             {activeStore?.id === store.id && <Check className="h-3 w-3 shrink-0" />}
                           </DropdownMenuItem>

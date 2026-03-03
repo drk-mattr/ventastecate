@@ -151,7 +151,7 @@ export function SearchFilters({
               <SelectItem value="all">{t.search.allLocations}</SelectItem>
               {detectedLocation && (
                 <SelectItem value={detectedLocation} className="font-semibold">
-                  📍 {detectedLocation} ({t.search.nearMe})
+                  <span className="flex items-center gap-1.5"><MapPin className="h-3 w-3" />{detectedLocation} ({t.search.nearMe})</span>
                 </SelectItem>
               )}
               {LOCATIONS.map((loc) => (

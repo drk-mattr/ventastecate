@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import { Wrench, Megaphone, Store } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ListingWithImages } from '@/lib/types/database'
 
@@ -8,10 +9,16 @@ interface ListingCardProps {
 }
 
 const TYPE_STYLES = {
-  service: { gradient: 'from-blue-600 to-blue-800', badge: '🔧 Servicio' },
-  event: { gradient: 'from-amber-500 to-orange-600', badge: '📢 Evento' },
-  product: { gradient: 'from-gray-500 to-gray-700', badge: '' },
+  service: { gradient: 'from-blue-600 to-blue-800' },
+  event: { gradient: 'from-amber-500 to-orange-600' },
+  product: { gradient: 'from-gray-500 to-gray-700' },
 } as const
+
+const TYPE_BADGE: Record<string, { icon: React.ElementType; label: string } | null> = {
+  service: { icon: Wrench, label: 'Servicio' },
+  event: { icon: Megaphone, label: 'Evento' },
+  product: null,
+}
 
 export function ListingCard({ listing }: ListingCardProps) {
   const hasImages = listing.images && listing.images.length > 0
@@ -97,14 +104,18 @@ export function ListingCard({ listing }: ListingCardProps) {
             <span className="truncate">{listing.location}</span>
           </div>
           <div className="flex items-center gap-1.5 mt-1.5">
-            {(isService || isEvent) && (
-              <span className="text-[11px] text-gray-400">
-                {TYPE_STYLES[listingType].badge}
-              </span>
-            )}
+            {TYPE_BADGE[listingType] && (() => {
+              const badge = TYPE_BADGE[listingType]!
+              const Icon = badge.icon
+              return (
+                <span className="text-[11px] text-gray-400 flex items-center gap-0.5">
+                  <Icon className="h-3 w-3" />{badge.label}
+                </span>
+              )
+            })()}
             {listing.store && (
-              <span className="text-[11px] text-gray-400 truncate">
-                🏪 {listing.store.name}
+              <span className="text-[11px] text-gray-400 flex items-center gap-0.5 truncate">
+                <Store className="h-3 w-3 shrink-0" />{listing.store.name}
               </span>
             )}
           </div>

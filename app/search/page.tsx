@@ -6,6 +6,7 @@ import { SearchFilters } from '@/components/search/search-filters'
 import { ListingWithImages } from '@/lib/types/database'
 import { getTranslations } from '@/lib/i18n'
 import Link from 'next/link'
+import { MapPin } from 'lucide-react'
 
 interface SearchPageProps {
   searchParams: Promise<{
@@ -132,7 +133,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
               href={toggleHref}
               className="text-xs text-gray-500 hover:text-gray-700 transition-colors shrink-0 mt-1"
             >
-              {isGlobal ? `📍 ${t.listings.onlyIn} ${userCountry}` : t.listings.seeAll}
+              {isGlobal ? (
+                <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{t.listings.onlyIn} {userCountry}</span>
+              ) : t.listings.seeAll}
             </Link>
           )}
         </div>

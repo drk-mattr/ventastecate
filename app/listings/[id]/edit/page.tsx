@@ -49,15 +49,25 @@ const EVENT_CATEGORIES = [
   'Empleos',
 ]
 
+const NEWS_CATEGORIES = [
+  'Noticias Locales',
+  'Objetos Perdidos',
+  'Seguridad Pública',
+  'Anuncios Comunitarios',
+  'Empleos',
+]
+
 const TYPE_LABELS: Record<ListingType, { icon: string; label: string }> = {
   product: { icon: '📦', label: 'Producto' },
   service: { icon: '🔧', label: 'Servicio' },
   event: { icon: '📢', label: 'Evento' },
+  news: { icon: '📰', label: 'Noticia' },
 }
 
 function getCategoriesForType(type: ListingType) {
   if (type === 'service') return SERVICE_CATEGORIES
   if (type === 'event') return EVENT_CATEGORIES
+  if (type === 'news') return NEWS_CATEGORIES
   return PRODUCT_CATEGORIES
 }
 

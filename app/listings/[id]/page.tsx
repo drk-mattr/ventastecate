@@ -5,9 +5,11 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import type { ListingMetadata, RealEstateMetadata, AutomotiveMetadata, ListingType } from '@/lib/types/database'
+import type { ListingMetadata, RealEstateMetadata, AutomotiveMetadata, ListingType, ListingComment } from '@/lib/types/database'
 import { ListingImageGallery } from '@/components/listings/listing-image-gallery'
+import { CommentSection } from '@/components/listings/comment-section'
 import Image from 'next/image'
+import { MapPin, Calendar, Newspaper } from 'lucide-react'
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -131,6 +133,18 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const listingType: ListingType = listing.listing_type || 'product'
   const isService = listingType === 'service'
   const isEvent = listingType === 'event'
+  const isNews = listingType === 'news'
+
+  // Fetch comments for news posts
+  let comments: ListingComment[] = []
+  if (isNews) {
+    const { data: commentData } = await supabase
+      .from('listing_comments')
+      .select('*, profile:profiles(username, display_name, avatar_url)')
+      .eq('listing_id', id)
+      .order('created_at', { ascending: true })
+    comments = (commentData as ListingComment[]) || []
+  }
 
   const formattedPrice = listing.price > 0
     ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(listing.price)
@@ -186,7 +200,85 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
         <Header />
       <main className="container mx-auto px-4 py-4 max-w-7xl">
 
-        {isEvent ? (
+        {isNews ? (
+          /* ── News / Announcement article layout ── */
+          <article className="max-w-2xl mx-auto">
+
+            {/* Category badge + breadcrumb */}
+            <div className="flex items-center gap-2 mb-4">
+              <Badge variant="secondary" className="text-xs">{listing.category}</Badge>
+              <span className="text-gray-300">·</span>
+              <span className="text-xs text-gray-400 flex items-center gap-1">
+                <Newspaper className="h-3 w-3" /> Noticia / Aviso
+              </span>
+            </div>
+
+            {/* Headline */}
+            <h1 className="text-2xl sm:text-3xl font-bold leading-tight mb-4">{listing.title}</h1>
+
+            {/* Byline */}
+            <div className="flex items-center gap-3 pb-4 border-b mb-6">
+              <div className="relative h-9 w-9 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold overflow-hidden shrink-0">
+                {listing.store?.avatar_url ? (
+                  <Image src={listing.store.avatar_url} alt={listing.store.name} fill className="object-cover" />
+                ) : listing.profile.avatar_url ? (
+                  <Image src={listing.profile.avatar_url} alt={listing.profile.display_name} fill className="object-cover" />
+                ) : (
+                  <span>{(listing.store?.name || listing.profile.display_name)[0].toUpperCase()}</span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                {listing.store ? (
+                  <Link href={`/stores/${listing.store.slug}`} className="text-sm font-semibold hover:underline">{listing.store.name}</Link>
+                ) : (
+                  <Link href={`/users/${listing.profile.username}`} className="text-sm font-semibold hover:underline">{listing.profile.display_name}</Link>
+                )}
+                <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {new Date(listing.created_at).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </span>
+                  {listing.location && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />{listing.location}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {isOwner && (
+                <Button asChild size="sm" variant="outline" className="shrink-0">
+                  <Link href={`/listings/${listing.id}/edit`}>Editar</Link>
+                </Button>
+              )}
+            </div>
+
+            {/* Hero image */}
+            {sortedImages.length > 0 && (
+              <div className="mb-6 rounded-lg overflow-hidden">
+                <ListingImageGallery
+                  images={sortedImages}
+                  listingTitle={listing.title}
+                  isSold={listing.status === 'sold'}
+                  listingType={listingType}
+                />
+              </div>
+            )}
+
+            {/* Article body */}
+            <div className="prose prose-sm max-w-none">
+              <p className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
+                {listing.description}
+              </p>
+            </div>
+
+            {/* Comment section */}
+            <CommentSection
+              listingId={listing.id}
+              initialComments={comments}
+              currentUserId={user?.id ?? null}
+            />
+          </article>
+        ) : isEvent ? (
           /* ── Event layout: poster left, info right ── */
           <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 items-start max-w-4xl mx-auto">
             {/* Left — fixed-width sticky poster */}

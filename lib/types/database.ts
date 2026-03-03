@@ -8,7 +8,7 @@ export type Profile = {
   updated_at: string
 }
 
-export type ListingType = 'product' | 'service' | 'event'
+export type ListingType = 'product' | 'service' | 'event' | 'news'
 
 export type StoreType = 'general' | 'real_estate' | 'automotive'
 
@@ -107,4 +107,13 @@ export type ConversationWithDetails = Conversation & {
   seller: Profile
   messages: Message[]
   unread_count?: number
+}
+
+export type ListingComment = {
+  id: string
+  listing_id: string
+  user_id: string
+  content: string
+  created_at: string
+  profile?: Pick<Profile, 'username' | 'display_name' | 'avatar_url'>
 }

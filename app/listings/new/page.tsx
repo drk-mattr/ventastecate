@@ -49,10 +49,19 @@ const EVENT_CATEGORIES = [
   'Empleos',
 ]
 
-const LISTING_TYPE_OPTIONS: { value: ListingType; icon: string; label: string }[] = [
-  { value: 'product', icon: '📦', label: 'Producto' },
-  { value: 'service', icon: '🔧', label: 'Servicio' },
-  { value: 'event', icon: '📢', label: 'Evento' },
+const NEWS_CATEGORIES = [
+  'Noticias Locales',
+  'Objetos Perdidos',
+  'Seguridad Pública',
+  'Anuncios Comunitarios',
+  'Empleos',
+]
+
+const LISTING_TYPE_OPTIONS: { value: ListingType; icon: string; label: string; description: string }[] = [
+  { value: 'product', icon: '📦', label: 'Producto', description: 'Vende un artículo' },
+  { value: 'service', icon: '🔧', label: 'Servicio', description: 'Ofrece un servicio' },
+  { value: 'event', icon: '📢', label: 'Evento', description: 'Publica un evento' },
+  { value: 'news', icon: '📰', label: 'Noticias', description: 'Noticias o avisos' },
 ]
 
 export default function NewListingPage() {
@@ -158,6 +167,8 @@ export default function NewListingPage() {
       else if (storeType === 'automotive') finalCategory = 'Vehículos'
 
       // Create the listing
+      const finalPrice = listingType === 'news' ? 0 : priceConsultar ? 0 : parseFloat(price)
+
       const { data: listing, error: listingError } = await supabase
         .from('listings')
         .insert({
@@ -166,7 +177,7 @@ export default function NewListingPage() {
           listing_type: listingType,
           title,
           description,
-          price: priceConsultar ? 0 : parseFloat(price),
+          price: finalPrice,
           category: finalCategory,
           location: location || activeStore?.location || '',
           country_code: gpsCountryCode ?? userCountry ?? null,
@@ -236,7 +247,7 @@ export default function NewListingPage() {
               {storeType === 'general' && (
                 <div className="space-y-2">
                   <Label>Tipo de publicación</Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {LISTING_TYPE_OPTIONS.map((opt) => (
                       <button
                         key={opt.value}
@@ -249,7 +260,8 @@ export default function NewListingPage() {
                         }`}
                       >
                         <span className="text-xl block mb-1">{opt.icon}</span>
-                        <span className="text-xs font-medium">{opt.label}</span>
+                        <span className="text-xs font-semibold">{opt.label}</span>
+                        <span className="text-[10px] text-gray-400 block leading-tight mt-0.5">{opt.description}</span>
                       </button>
                     ))}
                   </div>
@@ -257,15 +269,22 @@ export default function NewListingPage() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="title">Título *</Label>
+                <Label htmlFor="title">
+                  {listingType === 'news' ? 'Titular / Título *' : 'Título *'}
+                </Label>
                 <Input
                   id="title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   required
-                  placeholder={listingType === 'service' ? 'Ej: Se pintan Casas' : listingType === 'event' ? 'Ej: Gran Bazar Navideño' : 'Ej: iPhone 13 Pro Max'}
+                  placeholder={
+                    listingType === 'service' ? 'Ej: Se pintan Casas' :
+                    listingType === 'event' ? 'Ej: Gran Bazar Navideño' :
+                    listingType === 'news' ? 'Ej: Se busca perro perdido en el centro' :
+                    'Ej: iPhone 13 Pro Max'
+                  }
                 />
-                {listingType !== 'product' && (
+                {listingType !== 'product' && listingType !== 'news' && (
                   <p className="text-xs text-gray-500">
                     💡 Si no agregas imágenes, el título se mostrará como portada de tu anuncio
                   </p>
@@ -273,17 +292,39 @@ export default function NewListingPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Descripción *</Label>
+                <Label htmlFor="description">
+                  {listingType === 'news' ? 'Cuerpo del reporte / aviso *' : 'Descripción *'}
+                </Label>
                 <Textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   required
-                  placeholder="Describe tu producto..."
-                  rows={5}
+                  placeholder={
+                    listingType === 'news'
+                      ? 'Describe lo que ocurrió con todos los detalles relevantes...'
+                      : 'Describe tu producto...'
+                  }
+                  rows={listingType === 'news' ? 8 : 5}
                 />
               </div>
 
+              {/* News type: no price field, just category */}
+              {listingType === 'news' ? (
+                <div className="space-y-2">
+                  <Label htmlFor="category">Categoría *</Label>
+                  <Select value={category} onValueChange={setCategory} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona una categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NEWS_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="price">
@@ -358,6 +399,7 @@ export default function NewListingPage() {
                   </div>
                 )}
               </div>
+              )}
 
               {/* Real Estate Fields */}
               {storeType === 'real_estate' && (
@@ -490,6 +532,7 @@ export default function NewListingPage() {
               <div className="space-y-2">
                 <Label htmlFor="images">
                   Imágenes (Máximo 5){listingType !== 'product' ? ' — Opcional' : ''}
+                  {listingType === 'news' && <span className="text-xs text-gray-400 font-normal ml-1">— Agrega fotos del evento si las tienes</span>}
                 </Label>
                 <Input
                   id="images"

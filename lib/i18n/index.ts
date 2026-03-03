@@ -175,6 +175,10 @@ const es: Translations = {
     { value: 'Mascotas', label: 'Mascotas' },
     { value: 'Servicios', label: 'Servicios' },
     { value: 'Eventos', label: 'Eventos' },
+    { value: 'Noticias Locales', label: 'Noticias Locales' },
+    { value: 'Objetos Perdidos', label: 'Objetos Perdidos' },
+    { value: 'Seguridad Pública', label: 'Seguridad Pública' },
+    { value: 'Anuncios Comunitarios', label: 'Anuncios Comunitarios' },
     { value: 'Otros', label: 'Otros' },
   ],
   listings: {
@@ -288,6 +292,10 @@ const tl: Translations = {
     { value: 'Mascotas', label: 'Alagang Hayop' },
     { value: 'Servicios', label: 'Serbisyo' },
     { value: 'Eventos', label: 'Events' },
+    { value: 'Noticias Locales', label: 'Lokal na Balita' },
+    { value: 'Objetos Perdidos', label: 'Nawawalang Bagay' },
+    { value: 'Seguridad Pública', label: 'Pampublikong Kaligtasan' },
+    { value: 'Anuncios Comunitarios', label: 'Anunsyo ng Komunidad' },
     { value: 'Otros', label: 'Iba pa' },
   ],
   listings: {
@@ -401,6 +409,10 @@ const en: Translations = {
     { value: 'Mascotas', label: 'Pets' },
     { value: 'Servicios', label: 'Services' },
     { value: 'Eventos', label: 'Events' },
+    { value: 'Noticias Locales', label: 'Local News' },
+    { value: 'Objetos Perdidos', label: 'Lost & Found' },
+    { value: 'Seguridad Pública', label: 'Public Safety' },
+    { value: 'Anuncios Comunitarios', label: 'Community Announcements' },
     { value: 'Otros', label: 'Other' },
   ],
   listings: {
@@ -514,6 +526,10 @@ const id: Translations = {
     { value: 'Mascotas', label: 'Hewan Peliharaan' },
     { value: 'Servicios', label: 'Jasa' },
     { value: 'Eventos', label: 'Acara' },
+    { value: 'Noticias Locales', label: 'Berita Lokal' },
+    { value: 'Objetos Perdidos', label: 'Barang Hilang' },
+    { value: 'Seguridad Pública', label: 'Keamanan Publik' },
+    { value: 'Anuncios Comunitarios', label: 'Pengumuman Komunitas' },
     { value: 'Otros', label: 'Lainnya' },
   ],
   listings: {

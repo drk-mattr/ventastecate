@@ -21,7 +21,7 @@ export function DynamicHero() {
   const [location, setLocation] = useState('')
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
-  const [detectedLocation, setDetectedLocation] = useState<string | null>(null)
+  const [_detectedLocation, setDetectedLocation] = useState<string | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [activeType, setActiveType] = useState('all')
   const router = useRouter()

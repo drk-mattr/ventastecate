@@ -102,10 +102,10 @@ export function ListingCard({ listing }: ListingCardProps) {
           <div className="flex items-center gap-2 mt-auto pt-1.5">
             <span className="text-[10px] text-gray-400">{timeAgo(listing.created_at)}</span>
             <span className="flex items-center gap-0.5 text-[10px] text-gray-400 ml-auto">
-              <Eye className="h-2.5 w-2.5" />{(listing as any).view_count ?? 0}
+              <Eye className="h-2.5 w-2.5" />{(listing as ListingWithImages & { view_count?: number }).view_count ?? 0}
             </span>
             <span className="flex items-center gap-0.5 text-[10px] text-gray-400">
-              <MessageCircle className="h-2.5 w-2.5" />{(listing as any).comment_count ?? 0}
+              <MessageCircle className="h-2.5 w-2.5" />{(listing as ListingWithImages & { comment_count?: number }).comment_count ?? 0}
             </span>
           </div>
         </div>

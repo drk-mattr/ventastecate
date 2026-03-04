@@ -9,10 +9,11 @@
 
 ```
 ┌─────────────────────────────┐
-│                             │  ← full-bleed 16:9 image (touches all 3 edges)
-│         IMAGE               │
-│                             │
-├─────────────────────────────┤
+│  ┌───────────────────────┐  │  ← inset image with px-3 pt-3 padding
+│  │                       │  │    rounded-xl corners inside the card
+│  │        IMAGE          │  │    16:9 aspect ratio, object-cover
+│  │                       │  │
+│  └───────────────────────┘  │
 │ CATEGORY LABEL              │  ← 10px bold uppercase, category color
 │ Headline of the article     │  ← 14px semibold, 2-line clamp
 │ that wraps here             │
@@ -43,7 +44,8 @@ Do **not** set an explicit pixel height. Height is derived from the grid equaliz
 
 - **Aspect ratio:** `aspect-video` (16:9)
 - **Fit:** `object-cover` — crops to fill, never letterboxes
-- **Placement:** Full-bleed at top of card. No margin, no padding, no inset. The card's `overflow-hidden rounded-lg` clips the corners.
+- **Placement:** Inset with `px-3 pt-3` padding — image does NOT touch card edges. Inner div has `rounded-xl overflow-hidden` for its own corners.
+- **Card shape:** `rounded-2xl` outer card (slightly larger radius than standard cards)
 - **No-image fallback:** Light gray (`bg-gray-50`) background with a centered `Newspaper` icon (`h-8 w-8 text-gray-200`). No colored block, no gradient.
 - **Closed/sold overlay:** `bg-black/50` with "Cerrado" badge — same as other card types.
 
@@ -118,7 +120,7 @@ gap-3  — spacing between footer elements
 
 ## What NOT to Change
 
-- Do not add horizontal margin/padding to the image div — it breaks the full-bleed edge-to-edge look.
+- Do not remove the `px-3 pt-3` image wrapper padding — the inset look is intentional.
 - Do not use `aspect-square` for the news image — that's reserved for product cards.
 - Do not use a colored gradient block as a no-image fallback — product/service cards use that pattern; news cards use a neutral gray.
 - Do not move the category label back above the image — this was tried and creates uneven card heights when mixed with product cards in the same row.

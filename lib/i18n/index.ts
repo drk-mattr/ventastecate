@@ -306,7 +306,7 @@ const es: Translations = {
     keywords: 'Palabras clave...',
   },
   hero: {
-    tagline: 'Compra y Vende en',
+    tagline: 'Descubre, Conecta e Intercambia en',
     searchPlaceholder: '¿Qué estás buscando?',
     search: 'Buscar',
   },
@@ -550,7 +550,7 @@ const tl: Translations = {
     keywords: 'Mga keyword...',
   },
   hero: {
-    tagline: 'Bumili at Magbenta sa',
+    tagline: 'Tuklasin, Kumonekta at Makipagpalitan sa',
     searchPlaceholder: 'Ano ang hinahanap mo?',
     search: 'Maghanap',
   },
@@ -794,7 +794,7 @@ const en: Translations = {
     keywords: 'Keywords...',
   },
   hero: {
-    tagline: 'Buy & Sell in',
+    tagline: 'Discover, Connect & Exchange in',
     searchPlaceholder: 'What are you looking for?',
     search: 'Search',
   },
@@ -1038,7 +1038,7 @@ const id: Translations = {
     keywords: 'Kata kunci...',
   },
   hero: {
-    tagline: 'Beli & Jual di',
+    tagline: 'Temukan, Terhubung & Berbagi di',
     searchPlaceholder: 'Apa yang kamu cari?',
     search: 'Cari',
   },

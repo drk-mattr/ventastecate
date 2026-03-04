@@ -112,29 +112,29 @@ export function DynamicHero() {
         </h1>
 
         <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
-          {/* Search bar + location + filters button */}
+          {/* Search bar + location merged + filters button */}
           <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
+            {/* Merged search + location pill */}
+            <div className="flex-1 flex items-center bg-white border rounded-lg h-10 overflow-hidden focus-within:ring-2 focus-within:ring-gray-900 focus-within:border-gray-900">
+              <Search className="ml-3 h-4 w-4 text-gray-400 shrink-0 pointer-events-none" />
+              <input
                 type="search"
                 placeholder={t.hero.searchPlaceholder}
-                className="h-10 pl-10 text-sm bg-white"
+                className="flex-1 h-full pl-2.5 pr-2 text-sm outline-none bg-transparent"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
-            </div>
-
-            {/* Inline location text input */}
-            <div className="relative shrink-0 w-36">
-              <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none z-10" />
-              <Input
-                type="text"
-                placeholder="Ubicación"
-                className="h-10 pl-7 text-xs bg-white"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
+              <div className="hidden sm:flex items-center shrink-0">
+                <div className="w-px h-5 bg-gray-200 mx-1" />
+                <MapPin className="h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Ubicación"
+                  className="w-28 h-full pl-1.5 pr-3 text-xs outline-none bg-transparent"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+              </div>
             </div>
 
             {/* Filters popover */}

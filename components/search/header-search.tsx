@@ -12,17 +12,6 @@ import { Search, SlidersHorizontal, X, MapPin } from 'lucide-react'
 import { useGeolocation, getNearestLocation } from '@/lib/hooks/use-geolocation'
 import { useTranslations } from '@/lib/hooks/use-translations'
 
-const LOCATIONS = [
-  'Centro',
-  'Zona Centro',
-  'La Rumorosa',
-  'El Hongo',
-  'Valle de las Palmas',
-  'Colonia Libertad',
-  'Colonia Residencial',
-  'Otros',
-]
-
 export function HeaderSearch() {
   const t = useTranslations()
   const router = useRouter()
@@ -135,15 +124,26 @@ export function HeaderSearch() {
     <div className="flex-1 max-w-2xl mx-4">
       {/* Search + Filter Row */}
       <div className="flex items-center gap-2">
-        <form onSubmit={handleSearch} className="flex-1 relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-          <Input
+        <form onSubmit={handleSearch} className="flex-1 flex items-center bg-white border rounded-lg h-8 overflow-hidden focus-within:ring-2 focus-within:ring-gray-900 focus-within:border-gray-900">
+          <Search className="ml-2.5 h-3.5 w-3.5 text-gray-400 shrink-0 pointer-events-none" />
+          <input
             type="search"
             placeholder={t.search.placeholder}
-            className="h-8 pl-8 pr-3 text-sm"
+            className="flex-1 h-full pl-2 pr-2 text-sm outline-none bg-transparent"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
+          <div className="hidden sm:flex items-center shrink-0">
+            <div className="w-px h-4 bg-gray-200 mx-1" />
+            <MapPin className="h-3 w-3 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder={t.search.allLocations}
+              className="w-24 h-full pl-1 pr-2.5 text-xs outline-none bg-transparent"
+              value={location !== 'all' ? location : ''}
+              onChange={(e) => setLocation(e.target.value || 'all')}
+            />
+          </div>
         </form>
 
         <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
@@ -183,39 +183,6 @@ export function HeaderSearch() {
                     <SelectItem value="all">{t.search.allCategories}</SelectItem>
                     {t.categories.map((cat) => (
                       <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Location */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs">{t.search.location}</Label>
-                  {detectedLocation && (
-                    <button
-                      type="button"
-                      onClick={() => setLocation(detectedLocation)}
-                      className="text-[10px] text-blue-600 hover:text-blue-700 flex items-center gap-0.5"
-                    >
-                      <MapPin className="h-2.5 w-2.5" />
-                      {t.search.nearMe}
-                    </button>
-                  )}
-                </div>
-                <Select value={location} onValueChange={setLocation}>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder={t.search.allLocations} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t.search.allLocations}</SelectItem>
-                    {detectedLocation && (
-                      <SelectItem value={detectedLocation} className="font-semibold">
-                        📍 {detectedLocation} ({t.search.nearMe})
-                      </SelectItem>
-                    )}
-                    {LOCATIONS.map((loc) => (
-                      <SelectItem key={loc} value={loc}>{loc}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

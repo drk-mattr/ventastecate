@@ -58,7 +58,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/login`,
+        emailRedirectTo: `${window.location.origin}/login`,
         data: {
           username,
           display_name: displayName,

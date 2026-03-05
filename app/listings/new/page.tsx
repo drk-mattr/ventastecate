@@ -263,7 +263,9 @@ export default function NewListingPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {NEWS_CATEGORIES.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        <SelectItem key={cat} value={cat}>
+                          {t.categories.find(c => c.value === cat)?.label ?? cat}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -307,7 +309,9 @@ export default function NewListingPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {(listingType === 'service' ? SERVICE_CATEGORIES : listingType === 'event' ? EVENT_CATEGORIES : PRODUCT_CATEGORIES).map((cat) => (
-                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            <SelectItem key={cat} value={cat}>
+                              {t.categories.find(c => c.value === cat)?.label ?? cat}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>

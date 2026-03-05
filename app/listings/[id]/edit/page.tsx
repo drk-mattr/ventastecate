@@ -427,7 +427,7 @@ export default function EditListingPage() {
                     <SelectContent>
                       {getCategoriesForType(listingType).map((cat) => (
                         <SelectItem key={cat} value={cat}>
-                          {cat}
+                          {t.categories.find(c => c.value === cat)?.label ?? cat}
                         </SelectItem>
                       ))}
                     </SelectContent>

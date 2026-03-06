@@ -112,43 +112,43 @@ export function DynamicHero() {
         </h1>
 
         <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
-          {/* Search bar + location merged + filters button */}
-          <div className="flex gap-2">
-            {/* Merged search + location pill */}
-            <div className="flex-1 flex items-center bg-white border rounded-lg h-10 overflow-hidden focus-within:ring-2 focus-within:ring-gray-900 focus-within:border-gray-900">
-              <Search className="ml-3 h-4 w-4 text-gray-400 shrink-0 pointer-events-none" />
+          {/* Unified search pill */}
+          <div className="flex items-center bg-white border rounded-lg h-10 overflow-hidden focus-within:ring-2 focus-within:ring-gray-900 focus-within:border-gray-900">
+            <Search className="ml-3 h-4 w-4 text-gray-400 shrink-0 pointer-events-none" />
+            <input
+              type="search"
+              placeholder={t.hero.searchPlaceholder}
+              className="flex-1 h-full pl-2.5 pr-2 text-sm outline-none bg-transparent"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <div className="hidden sm:flex items-center shrink-0">
+              <div className="w-px h-5 bg-gray-200 mx-1" />
+              <MapPin className="h-3.5 w-3.5 text-gray-400 pointer-events-none" />
               <input
-                type="search"
-                placeholder={t.hero.searchPlaceholder}
-                className="flex-1 h-full pl-2.5 pr-2 text-sm outline-none bg-transparent"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                type="text"
+                placeholder="Ubicación"
+                className="w-28 h-full pl-1.5 pr-0 text-xs outline-none bg-transparent"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
               />
-              <div className="hidden sm:flex items-center shrink-0">
-                <div className="w-px h-5 bg-gray-200 mx-1" />
-                <MapPin className="h-3.5 w-3.5 text-gray-400 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Ubicación"
-                  className="w-28 h-full pl-1.5 pr-3 text-xs outline-none bg-transparent"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                />
-              </div>
             </div>
 
-            {/* Filters popover */}
+            {/* Filters inside pill */}
             <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
               <PopoverTrigger asChild>
-                <Button type="button" variant="outline" className="h-10 px-3 gap-1.5 bg-white shrink-0">
-                  <SlidersHorizontal className="h-4 w-4" />
-                  <span className="text-sm">{t.search.filters}</span>
+                <button
+                  type="button"
+                  className={`h-full px-3 flex items-center gap-1 shrink-0 transition-colors ${
+                    activeFilters.length > 0 ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  <div className="w-px h-5 bg-gray-200 mr-1" />
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
                   {activeFilters.length > 0 && (
-                    <Badge variant="default" className="h-4 w-4 p-0 flex items-center justify-center text-[10px] rounded-full">
-                      {activeFilters.length}
-                    </Badge>
+                    <span className="text-[10px] font-semibold">{activeFilters.length}</span>
                   )}
-                </Button>
+                </button>
               </PopoverTrigger>
               <PopoverContent className="w-72 p-4" align="end">
                 <div className="space-y-3">
@@ -194,12 +194,17 @@ export function DynamicHero() {
               </PopoverContent>
             </Popover>
 
-            <Button type="submit" className="h-10 px-6">{t.hero.search}</Button>
+            <button
+              type="submit"
+              className="h-full px-4 bg-gray-900 text-white text-xs font-medium shrink-0 hover:bg-gray-800 transition-colors"
+            >
+              {t.hero.search}
+            </button>
           </div>
         </form>
 
-        {/* Type quick-filter pills */}
-        <div className="max-w-2xl mx-auto flex flex-wrap gap-1.5 mt-3">
+        {/* Type quick-filter text links */}
+        <div className="max-w-2xl mx-auto flex flex-wrap gap-x-4 gap-y-1 mt-3 justify-center">
           {[
             { value: 'all',     label: 'General' },
             { value: 'product', label: 'Productos' },
@@ -211,10 +216,10 @@ export function DynamicHero() {
               key={value}
               type="button"
               onClick={() => handleTypeFilter(value)}
-              className={`h-7 px-3 rounded-md text-xs font-medium border transition-colors
+              className={`text-xs transition-colors
                 ${activeType === value
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'
+                  ? 'text-gray-900 font-semibold underline underline-offset-2'
+                  : 'text-gray-500 hover:text-gray-800'
                 }`}
             >
               {label}

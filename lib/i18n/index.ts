@@ -115,6 +115,11 @@ export type Translations = {
     password: string
     loading: string
   }
+  footer: {
+    allRightsReserved: string
+    termsOfService: string
+    privacyPolicy: string
+  }
   forms: {
     // Page titles
     createNewListing: string
@@ -390,6 +395,11 @@ const es: Translations = {
     password: 'Contraseña',
     loading: 'Cargando...',
   },
+  footer: {
+    allRightsReserved: 'Todos los derechos reservados.',
+    termsOfService: 'Términos de Servicio',
+    privacyPolicy: 'Política de Privacidad',
+  },
   forms: {
     createNewListing: 'Crear Nuevo Anuncio',
     editListing: 'Editar Anuncio',
@@ -645,6 +655,11 @@ const tl: Translations = {
     email: 'Email',
     password: 'Password',
     loading: 'Naglo-load...',
+  },
+  footer: {
+    allRightsReserved: 'Lahat ng karapatan ay nakalaan.',
+    termsOfService: 'Mga Tuntunin ng Serbisyo',
+    privacyPolicy: 'Patakaran sa Privacy',
   },
   forms: {
     createNewListing: 'Gumawa ng Bagong Listing',
@@ -902,6 +917,11 @@ const en: Translations = {
     password: 'Password',
     loading: 'Loading...',
   },
+  footer: {
+    allRightsReserved: 'All rights reserved.',
+    termsOfService: 'Terms of Service',
+    privacyPolicy: 'Privacy Policy',
+  },
   forms: {
     createNewListing: 'Create New Listing',
     editListing: 'Edit Listing',
@@ -1157,6 +1177,11 @@ const id: Translations = {
     email: 'Email',
     password: 'Kata Sandi',
     loading: 'Memuat...',
+  },
+  footer: {
+    allRightsReserved: 'Hak cipta dilindungi.',
+    termsOfService: 'Syarat Layanan',
+    privacyPolicy: 'Kebijakan Privasi',
   },
   forms: {
     createNewListing: 'Buat Iklan Baru',

@@ -9,7 +9,7 @@ import type { ListingMetadata, RealEstateMetadata, AutomotiveMetadata, ListingTy
 import { ListingImageGallery } from '@/components/listings/listing-image-gallery'
 import { CommentSection } from '@/components/listings/comment-section'
 import Image from 'next/image'
-import { MapPin, Calendar, Newspaper } from 'lucide-react'
+import { MapPin, Calendar, Newspaper, Store, Bed, Droplets, Ruler, Home, Car, Gauge, Settings, Fuel, Palette, DoorOpen } from 'lucide-react'
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -320,10 +320,10 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
                 {listing.store ? (
                   <div className="flex items-center gap-3 mb-4">
-                    <Link href={`/stores/${listing.store.slug}`} className="relative h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center text-lg overflow-hidden shrink-0">
+                    <Link href={`/stores/${listing.store.slug}`} className="relative h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden shrink-0">
                       {listing.store.avatar_url ? (
                         <Image src={listing.store.avatar_url} alt={listing.store.name} fill className="object-cover" />
-                      ) : '🏪'}
+                      ) : <Store className="h-5 w-5 text-gray-400" />}
                     </Link>
                     <div>
                       <Link href={`/stores/${listing.store.slug}`} className="text-sm font-semibold hover:underline">
@@ -413,31 +413,31 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                         {meta.bedrooms != null && (
                           <div className="text-center p-3 bg-gray-50 rounded-lg">
                             <p className="text-lg font-semibold">{meta.bedrooms}</p>
-                            <p className="text-xs text-gray-500">🛏 Recámaras</p>
+                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Bed className="h-3 w-3" /> Recámaras</div>
                           </div>
                         )}
                         {meta.bathrooms != null && (
                           <div className="text-center p-3 bg-gray-50 rounded-lg">
                             <p className="text-lg font-semibold">{meta.bathrooms}</p>
-                            <p className="text-xs text-gray-500">🚿 Baños</p>
+                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Droplets className="h-3 w-3" /> Baños</div>
                           </div>
                         )}
                         {meta.construction_m2 != null && (
                           <div className="text-center p-3 bg-gray-50 rounded-lg">
                             <p className="text-lg font-semibold">{meta.construction_m2}</p>
-                            <p className="text-xs text-gray-500">📐 m² Const.</p>
+                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Ruler className="h-3 w-3" /> m² Const.</div>
                           </div>
                         )}
                         {meta.lot_m2 != null && (
                           <div className="text-center p-3 bg-gray-50 rounded-lg">
                             <p className="text-lg font-semibold">{meta.lot_m2}</p>
-                            <p className="text-xs text-gray-500">🏡 m² Terreno</p>
+                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Home className="h-3 w-3" /> m² Terreno</div>
                           </div>
                         )}
                         {meta.parking_spots != null && (
                           <div className="text-center p-3 bg-gray-50 rounded-lg">
                             <p className="text-lg font-semibold">{meta.parking_spots}</p>
-                            <p className="text-xs text-gray-500">🚗 Estacion.</p>
+                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Car className="h-3 w-3" /> Estacion.</div>
                           </div>
                         )}
                       </div>
@@ -457,36 +457,36 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div className="text-center p-3 bg-gray-50 rounded-lg">
                           <p className="text-lg font-semibold">{meta.year}</p>
-                          <p className="text-xs text-gray-500">📅 Año</p>
+                          <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Calendar className="h-3 w-3" /> Año</div>
                         </div>
                         {meta.mileage_km != null && (
                           <div className="text-center p-3 bg-gray-50 rounded-lg">
                             <p className="text-lg font-semibold">{meta.mileage_km.toLocaleString()}</p>
-                            <p className="text-xs text-gray-500">🛣 km</p>
+                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Gauge className="h-3 w-3" /> km</div>
                           </div>
                         )}
                         {meta.transmission && (
                           <div className="text-center p-3 bg-gray-50 rounded-lg">
                             <p className="text-lg font-semibold">{transLabels[meta.transmission] || meta.transmission}</p>
-                            <p className="text-xs text-gray-500">⚙️ Trans.</p>
+                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Settings className="h-3 w-3" /> Trans.</div>
                           </div>
                         )}
                         {meta.fuel_type && (
                           <div className="text-center p-3 bg-gray-50 rounded-lg">
                             <p className="text-lg font-semibold">{fuelLabels[meta.fuel_type] || meta.fuel_type}</p>
-                            <p className="text-xs text-gray-500">⛽ Comb.</p>
+                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Fuel className="h-3 w-3" /> Comb.</div>
                           </div>
                         )}
                         {meta.color && (
                           <div className="text-center p-3 bg-gray-50 rounded-lg">
                             <p className="text-lg font-semibold">{meta.color}</p>
-                            <p className="text-xs text-gray-500">🎨 Color</p>
+                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Palette className="h-3 w-3" /> Color</div>
                           </div>
                         )}
                         {meta.doors != null && (
                           <div className="text-center p-3 bg-gray-50 rounded-lg">
                             <p className="text-lg font-semibold">{meta.doors}</p>
-                            <p className="text-xs text-gray-500">🚪 Puertas</p>
+                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><DoorOpen className="h-3 w-3" /> Puertas</div>
                           </div>
                         )}
                       </div>
@@ -510,10 +510,10 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
                   {listing.store ? (
                     <div className="flex items-center gap-3 mb-6">
-                      <Link href={`/stores/${listing.store.slug}`} className="relative h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center text-xl overflow-hidden shrink-0">
+                      <Link href={`/stores/${listing.store.slug}`} className="relative h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden shrink-0">
                         {listing.store.avatar_url ? (
                           <Image src={listing.store.avatar_url} alt={listing.store.name} fill className="object-cover" />
-                        ) : '🏪'}
+                        ) : <Store className="h-6 w-6 text-gray-400" />}
                       </Link>
                       <div>
                         <Link href={`/stores/${listing.store.slug}`} className="font-semibold hover:underline">

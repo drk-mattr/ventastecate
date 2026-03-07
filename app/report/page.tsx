@@ -7,17 +7,17 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, Bug, Lightbulb, FileText } from 'lucide-react'
 import { useTranslations } from '@/lib/hooks/use-translations'
 
 export default function ReportPage() {
   const t = useTranslations()
   const f = t.forms
 
-  const REPORT_TYPES = [
-    { value: 'bug', icon: '🐛', label: f.reportTypeBug },
-    { value: 'suggestion', icon: '💡', label: f.reportTypeSuggestion },
-    { value: 'other', icon: '📝', label: f.reportTypeOther },
+  const REPORT_TYPES: { value: string; Icon: React.ComponentType<{ className?: string }>; label: string }[] = [
+    { value: 'bug', Icon: Bug, label: f.reportTypeBug },
+    { value: 'suggestion', Icon: Lightbulb, label: f.reportTypeSuggestion },
+    { value: 'other', Icon: FileText, label: f.reportTypeOther },
   ]
 
   const [type, setType] = useState('bug')
@@ -93,7 +93,7 @@ export default function ReportPage() {
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
-                        <span className="text-xl block mb-1">{rt.icon}</span>
+                        <rt.Icon className="h-5 w-5 mx-auto mb-1 text-gray-600" />
                         <span className="text-[11px] font-medium leading-tight block">{rt.label}</span>
                       </button>
                     ))}

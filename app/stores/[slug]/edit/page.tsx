@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Store, StoreType } from '@/lib/types/database'
 import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
+import { Store as StoreIcon, Home, Car } from 'lucide-react'
 
 export default function EditStorePage() {
   const { user, refreshStores } = useAuth()
@@ -177,7 +178,7 @@ export default function EditStorePage() {
                         className="object-cover"
                       />
                     ) : (
-                      <span className="text-2xl text-gray-400">🏪</span>
+                      <StoreIcon className="h-8 w-8 text-gray-400" />
                     )}
                   </div>
                   <div>
@@ -204,8 +205,14 @@ export default function EditStorePage() {
               <div className="space-y-2">
                 <Label>Tipo de Tienda</Label>
                 <div>
-                  <Badge variant="outline" className="text-xs">
-                    {({ general: '🏪 General', real_estate: '🏠 Inmuebles', automotive: '🚗 Automotriz' } as Record<StoreType, string>)[store?.store_type || 'general']}
+                  <Badge variant="outline" className="flex items-center gap-1 w-fit text-xs">
+                    {store?.store_type === 'real_estate' ? (
+                      <><Home className="h-3 w-3" /> Inmuebles</>
+                    ) : store?.store_type === 'automotive' ? (
+                      <><Car className="h-3 w-3" /> Automotriz</>
+                    ) : (
+                      <><StoreIcon className="h-3 w-3" /> General</>
+                    )}
                   </Badge>
                   <p className="text-xs text-gray-500 mt-1">El tipo de tienda no se puede cambiar</p>
                 </div>

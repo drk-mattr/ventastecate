@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { Button } from '@/components/ui/button'
+import { Store, MapPin } from 'lucide-react'
 
 export default async function StoreProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -57,7 +58,7 @@ export default async function StoreProfilePage({ params }: { params: Promise<{ s
         {/* Store Header */}
         <div className="border-b pb-6 mb-6">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-            <div className="relative h-20 w-20 rounded-lg bg-gray-200 flex items-center justify-center text-3xl overflow-hidden">
+            <div className="relative h-20 w-20 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden">
               {store.avatar_url ? (
                 <Image
                   src={store.avatar_url}
@@ -66,7 +67,7 @@ export default async function StoreProfilePage({ params }: { params: Promise<{ s
                   className="object-cover"
                 />
               ) : (
-                '🏪'
+                <Store className="h-8 w-8 text-gray-400" />
               )}
             </div>
             <div className="flex-1">
@@ -77,7 +78,7 @@ export default async function StoreProfilePage({ params }: { params: Promise<{ s
               <div className="flex items-center gap-3 text-xs text-gray-500">
                 {store.location && (
                   <>
-                    <span>📍 {store.location}</span>
+                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{store.location}</span>
                     <span>•</span>
                   </>
                 )}

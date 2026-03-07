@@ -243,7 +243,7 @@ export function HeaderSearch() {
           )}
           {location !== 'all' && location && (
             <Badge variant="secondary" className="text-[10px] h-5 gap-1 pl-2 pr-1">
-              📍 {location}
+              <MapPin className="h-2.5 w-2.5" />{location}
               <button onClick={() => removeFilter('location')}><X className="h-2.5 w-2.5" /></button>
             </Badge>
           )}

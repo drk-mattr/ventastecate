@@ -15,7 +15,7 @@ import { Search, X, MapPin, SlidersHorizontal } from 'lucide-react'
 
 export function DynamicHero() {
   const t = useTranslations()
-  const [locationText, setLocationText] = useState('Tecate')
+  const [locationText, setLocationText] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
   const [location, setLocation] = useState('')
@@ -108,7 +108,7 @@ export function DynamicHero() {
     <div className="bg-gray-50 border-b">
       <div className="container mx-auto px-4 py-6">
         <h1 className="text-2xl font-semibold text-center mb-5">
-          {t.hero.tagline} {locationText}
+          {locationText ? `${t.hero.tagline} ${locationText}` : t.hero.taglineBase}
         </h1>
 
         <form onSubmit={handleSearch} className="max-w-2xl mx-auto">

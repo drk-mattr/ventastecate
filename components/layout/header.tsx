@@ -20,7 +20,7 @@ import {
 import { Check, Bug, Store, User } from 'lucide-react'
 
 export function Header() {
-  const { user, profile, stores, activeStore, setActiveStore, signOut } = useAuth()
+  const { user, profile, stores, activeStore, setActiveStore, signOut, loading } = useAuth()
   const pathname = usePathname()
   const brandName = useBrand()
   const t = useTranslations()
@@ -66,7 +66,7 @@ export function Header() {
         )}
 
         <div className="flex items-center gap-2 shrink-0">
-          {user ? (
+          {loading ? null : user ? (
             <>
               <Button asChild size="sm" className="h-8 px-3 text-xs">
                 <Link href="/listings/new">{t.nav.publish}</Link>

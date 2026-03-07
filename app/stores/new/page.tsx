@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { StoreType } from '@/lib/types/database'
 import Image from 'next/image'
+import { Store, Home, Car } from 'lucide-react'
 
 export default function NewStorePage() {
   const { user, refreshStores } = useAuth()
@@ -22,10 +23,10 @@ export default function NewStorePage() {
   const t = useTranslations()
   const f = t.forms
 
-  const STORE_TYPES: { value: StoreType; icon: string; label: string; description: string }[] = [
-    { value: 'general',     icon: '🏪', label: f.storeTypeGeneralLabel,     description: f.storeTypeGeneralDesc },
-    { value: 'real_estate', icon: '🏠', label: f.storeTypeRealEstateLabel,  description: f.storeTypeRealEstateDesc },
-    { value: 'automotive',  icon: '🚗', label: f.storeTypeAutomotiveLabel,  description: f.storeTypeAutomotiveDesc },
+  const STORE_TYPES: { value: StoreType; Icon: React.ComponentType<{ className?: string }>; label: string; description: string }[] = [
+    { value: 'general',     Icon: Store, label: f.storeTypeGeneralLabel,     description: f.storeTypeGeneralDesc },
+    { value: 'real_estate', Icon: Home,  label: f.storeTypeRealEstateLabel,  description: f.storeTypeRealEstateDesc },
+    { value: 'automotive',  Icon: Car,   label: f.storeTypeAutomotiveLabel,  description: f.storeTypeAutomotiveDesc },
   ]
 
   const [step, setStep] = useState(1)
@@ -159,7 +160,7 @@ export default function NewStorePage() {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">{st.icon}</span>
+                    <st.Icon className="h-5 w-5 text-gray-600 shrink-0" />
                     <div>
                       <p className="font-medium text-sm">{st.label}</p>
                       <p className="text-xs text-gray-500">{st.description}</p>
@@ -186,8 +187,10 @@ export default function NewStorePage() {
             <CardHeader>
               <CardTitle>{f.createStoreTitle}</CardTitle>
               <CardDescription>
-                {STORE_TYPES.find(st => st.value === storeType)?.icon}{' '}
-                {STORE_TYPES.find(st => st.value === storeType)?.label} — {f.storeDetails}
+                <span className="flex items-center gap-1">
+                  {storeType === 'real_estate' ? <Home className="h-3.5 w-3.5" /> : storeType === 'automotive' ? <Car className="h-3.5 w-3.5" /> : <Store className="h-3.5 w-3.5" />}
+                  {STORE_TYPES.find(st => st.value === storeType)?.label} — {f.storeDetails}
+                </span>
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -207,10 +210,12 @@ export default function NewStorePage() {
                           fill
                           className="object-cover"
                         />
+                      ) : storeType === 'real_estate' ? (
+                        <Home className="h-8 w-8 text-gray-400" />
+                      ) : storeType === 'automotive' ? (
+                        <Car className="h-8 w-8 text-gray-400" />
                       ) : (
-                        <span className="text-2xl text-gray-400">
-                          {STORE_TYPES.find(st => st.value === storeType)?.icon || '🏪'}
-                        </span>
+                        <Store className="h-8 w-8 text-gray-400" />
                       )}
                     </div>
                     <div>

@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { RealEstateMetadata, AutomotiveMetadata, ListingType } from '@/lib/types/database'
 import Image from 'next/image'
+import { Package, Wrench, Megaphone, Newspaper, Store, Info } from 'lucide-react'
 
 const PRODUCT_CATEGORIES = [
   'Electrónica', 'Muebles', 'Vehículos', 'Ropa', 'Deportes',
@@ -76,11 +77,11 @@ export default function NewListingPage() {
   const storeType = activeStore?.store_type || 'general'
   const supabase = createClient()
 
-  const LISTING_TYPE_OPTIONS: { value: ListingType; icon: string; label: string; description: string }[] = [
-    { value: 'product', icon: '📦', label: f.typeProductLabel, description: f.typeProductDesc },
-    { value: 'service', icon: '🔧', label: f.typeServiceLabel, description: f.typeServiceDesc },
-    { value: 'event',   icon: '📢', label: f.typeEventLabel,   description: f.typeEventDesc },
-    { value: 'news',    icon: '📰', label: f.typeNewsLabel,    description: f.typeNewsDesc },
+  const LISTING_TYPE_OPTIONS: { value: ListingType; Icon: React.ComponentType<{ className?: string }>; label: string; description: string }[] = [
+    { value: 'product', Icon: Package,   label: f.typeProductLabel, description: f.typeProductDesc },
+    { value: 'service', Icon: Wrench,    label: f.typeServiceLabel, description: f.typeServiceDesc },
+    { value: 'event',   Icon: Megaphone, label: f.typeEventLabel,   description: f.typeEventDesc },
+    { value: 'news',    Icon: Newspaper, label: f.typeNewsLabel,    description: f.typeNewsDesc },
   ]
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -187,7 +188,7 @@ export default function NewListingPage() {
             <CardTitle>{f.createNewListing}</CardTitle>
             <CardDescription>
               {activeStore
-                ? `${f.publishingAs} 🏪 ${activeStore.name}`
+                ? <span className="flex items-center gap-1"><Store className="h-3.5 w-3.5" />{f.publishingAs} {activeStore.name}</span>
                 : f.fillProductInfo}
             </CardDescription>
           </CardHeader>
@@ -209,7 +210,7 @@ export default function NewListingPage() {
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
-                        <span className="text-xl block mb-1">{opt.icon}</span>
+                        <opt.Icon className="h-5 w-5 mx-auto mb-1 text-gray-600" />
                         <span className="text-xs font-semibold">{opt.label}</span>
                         <span className="text-[10px] text-gray-400 block leading-tight mt-0.5">{opt.description}</span>
                       </button>
@@ -235,7 +236,7 @@ export default function NewListingPage() {
                   }
                 />
                 {listingType !== 'product' && listingType !== 'news' && (
-                  <p className="text-xs text-gray-500">{f.noImageTip}</p>
+                  <p className="text-xs text-gray-500 flex items-start gap-1"><Info className="h-3 w-3 mt-0.5 shrink-0" />{f.noImageTip}</p>
                 )}
               </div>
 

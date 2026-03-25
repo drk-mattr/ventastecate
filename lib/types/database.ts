@@ -64,6 +64,10 @@ export type Listing = {
   city?: string | null
   state_region?: string | null
   metadata?: ListingMetadata | null
+  video_url?: string | null
+  tagged_business_id?: string | null
+  conversation_count?: number
+  ranking_score?: number
   status: 'active' | 'sold' | 'inactive'
   created_at: string
   updated_at: string
@@ -81,6 +85,39 @@ export type ListingWithImages = Listing & {
   images: ListingImage[]
   profile: Profile
   store?: Store | null
+  likes_count?: number
+  saves_count?: number
+  comments_count?: number
+  user_has_liked?: boolean
+  user_has_saved?: boolean
+  tagged_business?: Business | null
+}
+
+export type Business = {
+  id: string
+  name: string
+  name_normalized: string
+  store_id?: string | null
+  store?: Store | null
+  location?: string | null
+  category?: string | null
+  mention_count: number
+  created_by?: string | null
+  created_at: string
+}
+
+export type ListingLike = {
+  id: string
+  listing_id: string
+  user_id: string
+  created_at: string
+}
+
+export type ListingSave = {
+  id: string
+  listing_id: string
+  user_id: string
+  created_at: string
 }
 
 export type Conversation = {

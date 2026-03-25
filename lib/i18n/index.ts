@@ -322,6 +322,10 @@ const es: Translations = {
     search: 'Buscar',
   },
   categories: [
+    { value: 'Comida y Restaurantes', label: 'Comida y Restaurantes' },
+    { value: 'Comida y Catering', label: 'Comida y Catering' },
+    { value: 'Comida y Bebida', label: 'Comida y Bebida' },
+    { value: 'Reseñas y Recomendaciones', label: 'Reseñas y Recomendaciones' },
     { value: 'Electrónica', label: 'Electrónica' },
     { value: 'Muebles', label: 'Muebles' },
     { value: 'Vehículos', label: 'Vehículos' },
@@ -588,6 +592,10 @@ const tl: Translations = {
     search: 'Search',
   },
   categories: [
+    { value: 'Comida y Restaurantes', label: 'Pagkain at Restawran' },
+    { value: 'Comida y Catering', label: 'Pagkain at Catering' },
+    { value: 'Comida y Bebida', label: 'Pagkain at Inumin' },
+    { value: 'Reseñas y Recomendaciones', label: 'Mga Review at Rekomendasyon' },
     { value: 'Electrónica', label: 'Electronics' },
     { value: 'Muebles', label: 'Furniture' },
     { value: 'Vehículos', label: 'Sasakyan' },
@@ -854,6 +862,10 @@ const en: Translations = {
     search: 'Search',
   },
   categories: [
+    { value: 'Comida y Restaurantes', label: 'Food & Restaurants' },
+    { value: 'Comida y Catering', label: 'Food & Catering' },
+    { value: 'Comida y Bebida', label: 'Food & Drinks' },
+    { value: 'Reseñas y Recomendaciones', label: 'Reviews & Recommendations' },
     { value: 'Electrónica', label: 'Electronics' },
     { value: 'Muebles', label: 'Furniture' },
     { value: 'Vehículos', label: 'Vehicles' },
@@ -1120,6 +1132,10 @@ const id: Translations = {
     search: 'Cari',
   },
   categories: [
+    { value: 'Comida y Restaurantes', label: 'Makanan & Restoran' },
+    { value: 'Comida y Catering', label: 'Makanan & Katering' },
+    { value: 'Comida y Bebida', label: 'Makanan & Minuman' },
+    { value: 'Reseñas y Recomendaciones', label: 'Ulasan & Rekomendasi' },
     { value: 'Electrónica', label: 'Elektronik' },
     { value: 'Muebles', label: 'Furnitur' },
     { value: 'Vehículos', label: 'Kendaraan' },

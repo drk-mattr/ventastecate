@@ -19,12 +19,13 @@ interface SearchPageProps {
     maxPrice?: string
     sort?: string
     country?: string
+    type?: string
   }>
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const supabase = await createClient()
-  const { q, category, location, city, stateRegion, minPrice, maxPrice, sort, country } = await searchParams
+  const { q, category, location, city, stateRegion, minPrice, maxPrice, sort, country, type } = await searchParams
 
   // Detect user country via Cloudflare header (null in local dev)
   const headersList = await headers()
@@ -48,12 +49,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       profile:profiles(
         id,
         username,
-        display_name
+        display_name,
+        avatar_url
       ),
       store:stores(
         id,
         slug,
-        name
+        name,
+        avatar_url
       )
     `)
     .eq('status', 'active')
@@ -84,13 +87,20 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   if (effectiveCountry) {
     query = query.eq('country_code', effectiveCountry)
   }
+  if (type && type !== 'all') {
+    query = query.eq('listing_type', type)
+  }
 
   // Apply sorting
   if (sort === 'price_asc') {
     query = query.order('price', { ascending: true })
   } else if (sort === 'price_desc') {
     query = query.order('price', { ascending: false })
+  } else if (sort === 'top') {
+    // Algorithm ranking
+    query = query.order('ranking_score', { ascending: false }).order('created_at', { ascending: false })
   } else {
+    // Default: newest first
     query = query.order('created_at', { ascending: false })
   }
 

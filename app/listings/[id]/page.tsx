@@ -10,6 +10,8 @@ import { ListingImageGallery } from '@/components/listings/listing-image-gallery
 import { CommentSection } from '@/components/listings/comment-section'
 import Image from 'next/image'
 import { MapPin, Calendar, Newspaper, Store, Bed, Droplets, Ruler, Home, Car, Gauge, Settings, Fuel, Palette, DoorOpen } from 'lucide-react'
+import { ListingEngagementBar } from '@/components/listings/listing-engagement-bar'
+import { VideoEmbed } from '@/components/listings/video-embed'
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -135,15 +137,23 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const isEvent = listingType === 'event'
   const isNews = listingType === 'news'
 
-  // Fetch comments for news posts
-  let comments: ListingComment[] = []
-  if (isNews) {
-    const { data: commentData } = await supabase
-      .from('listing_comments')
-      .select('*, profile:profiles(username, display_name, avatar_url)')
-      .eq('listing_id', id)
-      .order('created_at', { ascending: true })
-    comments = (commentData as ListingComment[]) || []
+  // Fetch comments for ALL listing types
+  const { data: commentData } = await supabase
+    .from('listing_comments')
+    .select('*, profile:profiles(username, display_name, avatar_url)')
+    .eq('listing_id', id)
+    .order('created_at', { ascending: true })
+  const comments: ListingComment[] = (commentData as ListingComment[]) || []
+
+  // Fetch tagged business if present
+  let taggedBusiness = null
+  if (listing.tagged_business_id) {
+    const { data: bizData } = await supabase
+      .from('businesses')
+      .select('*, store:stores(id, slug, name, avatar_url)')
+      .eq('id', listing.tagged_business_id)
+      .single()
+    taggedBusiness = bizData
   }
 
   const formattedPrice = listing.price > 0
@@ -188,6 +198,32 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       name: 'Ventas Tecate',
     },
   }
+
+  // Tagged business card (reused across layouts)
+  const taggedBusinessCard = taggedBusiness ? (
+    <div className="flex items-center gap-2.5 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2.5">
+      <Store className="h-4 w-4 text-orange-500 shrink-0" />
+      <div className="flex-1 min-w-0">
+        {taggedBusiness.store ? (
+          <Link href={`/stores/${taggedBusiness.store.slug}`} className="text-sm font-medium text-orange-700 hover:underline truncate block">
+            {taggedBusiness.name}
+          </Link>
+        ) : (
+          <span className="text-sm font-medium text-orange-700 truncate block">{taggedBusiness.name}</span>
+        )}
+        {(taggedBusiness.category || taggedBusiness.location) && (
+          <p className="text-[10px] text-orange-400 truncate">
+            {[taggedBusiness.category, taggedBusiness.location].filter(Boolean).join(' · ')}
+          </p>
+        )}
+      </div>
+      {taggedBusiness.mention_count > 0 && (
+        <span className="text-[10px] text-orange-400 bg-orange-100 px-1.5 py-0.5 rounded-full shrink-0">
+          {taggedBusiness.mention_count} {taggedBusiness.mention_count === 1 ? 'mención' : 'menciones'}
+        </span>
+      )}
+    </div>
+  ) : null
 
   return (
     <>
@@ -264,12 +300,29 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               </div>
             )}
 
+            {/* Video embed */}
+            {listing.video_url && (
+              <div className="mb-6">
+                <VideoEmbed url={listing.video_url} title={listing.title} />
+              </div>
+            )}
+
             {/* Article body */}
             <div className="prose prose-sm max-w-none">
               <p className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
                 {listing.description}
               </p>
             </div>
+
+            {/* Tagged business */}
+            {taggedBusinessCard}
+
+            {/* Engagement bar */}
+            <ListingEngagementBar
+              listingId={listing.id}
+              likesCount={listing.likes_count ?? 0}
+              savesCount={listing.saves_count ?? 0}
+            />
 
             {/* Comment section */}
             <CommentSection
@@ -309,10 +362,20 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 </div>
               </div>
 
+              {/* Video embed */}
+              {listing.video_url && (
+                <div>
+                  <VideoEmbed url={listing.video_url} title={listing.title} />
+                </div>
+              )}
+
               {/* Description */}
               <div>
                 <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">{listing.description}</p>
               </div>
+
+              {/* Tagged business */}
+              {taggedBusinessCard}
 
               {/* Organizer card */}
               <div className="border rounded-lg p-4 max-w-xs">
@@ -364,6 +427,13 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   </Button>
                 )}
               </div>
+
+              {/* Comments */}
+              <CommentSection
+                listingId={listing.id}
+                initialComments={comments}
+                currentUserId={user?.id ?? null}
+              />
             </div>
           </div>
         ) : (
@@ -375,6 +445,13 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               isSold={listing.status === 'sold'}
               listingType={listingType}
             />
+
+            {/* Video embed */}
+            {listing.video_url && (
+              <div className="my-4 max-w-2xl">
+                <VideoEmbed url={listing.video_url} title={listing.title} />
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left Column - Description */}
@@ -499,6 +576,23 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   <h2 className="text-base font-semibold mb-3">Descripción</h2>
                   <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{listing.description}</p>
                 </div>
+
+                {/* Tagged business */}
+                {taggedBusinessCard}
+
+                {/* Engagement bar */}
+                <ListingEngagementBar
+                  listingId={listing.id}
+                  likesCount={listing.likes_count ?? 0}
+                  savesCount={listing.saves_count ?? 0}
+                />
+
+                {/* Comments */}
+                <CommentSection
+                  listingId={listing.id}
+                  initialComments={comments}
+                  currentUserId={user?.id ?? null}
+                />
               </div>
 
               {/* Right Column - Seller Info */}

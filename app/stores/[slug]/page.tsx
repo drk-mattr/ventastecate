@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { Button } from '@/components/ui/button'
-import { Store, MapPin } from 'lucide-react'
+import { Store, MapPin, MessageSquare } from 'lucide-react'
 
 export default async function StoreProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -45,6 +45,30 @@ export default async function StoreProfilePage({ params }: { params: Promise<{ s
   // Check if current user is the owner
   const { data: { user } } = await supabase.auth.getUser()
   const isOwner = user?.id === store.owner_id
+
+  // Get business entity linked to this store (for mentions)
+  const { data: linkedBusiness } = await supabase
+    .from('businesses')
+    .select('id, mention_count')
+    .eq('store_id', store.id)
+    .single()
+
+  // Get listings that mention this business
+  let mentionedListings: typeof listings = null
+  if (linkedBusiness) {
+    const { data: mentionData } = await supabase
+      .from('listings')
+      .select(`
+        *,
+        images:listing_images(id, image_url, order_index),
+        profile:profiles(id, username, display_name)
+      `)
+      .eq('tagged_business_id', linkedBusiness.id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(12)
+    mentionedListings = mentionData
+  }
 
   const memberSince = new Date(store.created_at).toLocaleDateString('es-MX', {
     year: 'numeric',
@@ -130,6 +154,26 @@ export default async function StoreProfilePage({ params }: { params: Promise<{ s
             </div>
           )}
         </div>
+
+        {/* Mentions Section */}
+        {mentionedListings && mentionedListings.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-base font-medium mb-4 text-gray-700 flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-orange-500" />
+              Mencionado en
+              {linkedBusiness && linkedBusiness.mention_count > 0 && (
+                <span className="text-xs text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">
+                  {linkedBusiness.mention_count}
+                </span>
+              )}
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {mentionedListings.map((listing) => (
+                <ListingCard key={listing.id} listing={listing} />
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )

@@ -81,6 +81,7 @@ export default async function MyListingsPage() {
   const savedListings = (savedData || [])
     .map(s => s.listing)
     .filter(Boolean)
+    .flat()
     .map(l => ({ ...l, user_has_saved: true }))
 
   const activeListings = listings?.filter(l => l.status === 'active') || []

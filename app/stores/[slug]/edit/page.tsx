@@ -15,6 +15,8 @@ import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
 import { Store as StoreIcon, Home, Car } from 'lucide-react'
 
+export const runtime = 'edge'
+
 export default function EditStorePage() {
   const { user, refreshStores } = useAuth()
   const router = useRouter()

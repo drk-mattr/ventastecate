@@ -7,6 +7,8 @@ import { ListingCard } from '@/components/listings/listing-card'
 import { Button } from '@/components/ui/button'
 import { Store, MapPin, MessageSquare } from 'lucide-react'
 
+export const runtime = 'edge'
+
 export default async function StoreProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const supabase = await createClient()

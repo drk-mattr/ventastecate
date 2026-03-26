@@ -8,6 +8,8 @@ import { getTranslations } from '@/lib/i18n'
 import Link from 'next/link'
 import { MapPin } from 'lucide-react'
 
+export const runtime = 'edge'
+
 interface SearchPageProps {
   searchParams: Promise<{
     q?: string

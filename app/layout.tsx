@@ -8,8 +8,6 @@ import { BrandProvider } from "@/lib/brand-context";
 import { getBrand } from "@/lib/brand";
 import { RegionProvider } from "@/lib/region-context";
 
-import localFont from "next/font/local";
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

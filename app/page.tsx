@@ -35,7 +35,8 @@ export default async function Home({ searchParams }: HomeProps) {
   `
 
   // ── Trending strip: highest-scored from the last 7 days ──
-  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const now = new Date()
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
   let trendingQuery = supabase
     .from('listings')
     .select(listingSelect)

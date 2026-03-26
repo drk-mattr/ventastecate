@@ -163,7 +163,7 @@ export default async function MyListingsPage() {
           <TabsContent value="saved" className="space-y-6">
             {savedListings.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                {savedListings.map((listing: any) => (
+                {savedListings.map((listing) => (
                   <ListingCard key={listing.id} listing={listing} />
                 ))}
               </div>

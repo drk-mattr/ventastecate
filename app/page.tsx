@@ -11,7 +11,6 @@ import { ListingWithImages } from '@/lib/types/database'
 import { Button } from '@/components/ui/button'
 import { getTranslations } from '@/lib/i18n'
 
-export const runtime = 'edge'
 
 interface HomeProps {
   searchParams: Promise<{ global?: string; sort?: string }>

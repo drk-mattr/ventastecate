@@ -7,7 +7,6 @@ import { ListingCard } from '@/components/listings/listing-card'
 import { FollowButton } from '@/components/user/follow-button'
 import { Button } from '@/components/ui/button'
 
-export const runtime = 'edge'
 
 export default async function UserProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params

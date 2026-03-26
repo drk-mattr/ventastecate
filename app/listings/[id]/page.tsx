@@ -13,7 +13,6 @@ import { MapPin, Calendar, Newspaper, Store, Bed, Droplets, Ruler, Home, Car, Ga
 import { ListingEngagementBar } from '@/components/listings/listing-engagement-bar'
 import { VideoEmbed } from '@/components/listings/video-embed'
 
-export const runtime = 'edge'
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {

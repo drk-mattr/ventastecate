@@ -15,7 +15,6 @@ import { StoreType } from '@/lib/types/database'
 import Image from 'next/image'
 import { Store, Home, Car } from 'lucide-react'
 
-export const runtime = 'edge'
 
 export default function NewStorePage() {
   const { user, refreshStores } = useAuth()

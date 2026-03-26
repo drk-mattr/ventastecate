@@ -23,7 +23,6 @@ import {
   UtensilsCrossed, Star, AlertTriangle, Briefcase, Dog
 } from 'lucide-react'
 
-export const runtime = 'edge'
 
 const PRODUCT_CATEGORIES = [
   'Comida y Restaurantes', 'Electrónica', 'Muebles', 'Vehículos', 'Ropa', 'Deportes',

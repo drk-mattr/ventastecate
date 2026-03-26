@@ -17,7 +17,6 @@ import { RealEstateMetadata, AutomotiveMetadata, ListingMetadata, ListingType } 
 import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
 
-export const runtime = 'edge'
 
 const PRODUCT_CATEGORIES = [
   'Electrónica',

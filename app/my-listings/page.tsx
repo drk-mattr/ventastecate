@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getTranslations } from '@/lib/i18n'
 import { Bookmark } from 'lucide-react'
 
-export const runtime = 'edge'
 
 export default async function MyListingsPage() {
   const supabase = await createClient()

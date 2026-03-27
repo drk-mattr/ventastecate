@@ -3,6 +3,8 @@ import { Header } from '@/components/layout/header'
 import { getLang } from '@/lib/i18n'
 import { getBrand } from '@/lib/brand'
 
+export const runtime = 'edge'
+
 
 export default async function PrivacyPage() {
   const headersList = await headers()

@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+
+export const runtime = 'edge'
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { Button } from '@/components/ui/button'

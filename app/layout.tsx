@@ -8,7 +8,7 @@ import { BrandProvider } from "@/lib/brand-context";
 import { getBrand } from "@/lib/brand";
 import { RegionProvider } from "@/lib/region-context";
 
-import localFont from "next/font/local";
+export const runtime = 'edge';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

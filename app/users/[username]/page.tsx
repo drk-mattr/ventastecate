@@ -1,11 +1,15 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+
+export const runtime = 'edge'
 import Image from 'next/image'
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { FollowButton } from '@/components/user/follow-button'
 import { Button } from '@/components/ui/button'
+
+
 export default async function UserProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params
   const supabase = await createClient()

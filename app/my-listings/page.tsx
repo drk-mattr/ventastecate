@@ -2,12 +2,15 @@ import Link from 'next/link'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+
+export const runtime = 'edge'
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getTranslations } from '@/lib/i18n'
 import { Bookmark } from 'lucide-react'
+
 
 export default async function MyListingsPage() {
   const supabase = await createClient()
@@ -81,6 +84,7 @@ export default async function MyListingsPage() {
   const savedListings = (savedData || [])
     .map(s => s.listing)
     .filter(Boolean)
+    .flat()
     .map(l => ({ ...l, user_has_saved: true }))
 
   const activeListings = listings?.filter(l => l.status === 'active') || []
@@ -163,7 +167,7 @@ export default async function MyListingsPage() {
           <TabsContent value="saved" className="space-y-6">
             {savedListings.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                {savedListings.map((listing: any) => (
+                {savedListings.map((listing) => (
                   <ListingCard key={listing.id} listing={listing} />
                 ))}
               </div>

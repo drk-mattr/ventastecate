@@ -96,7 +96,48 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 
 ## Deployment
 
-This app is ready to deploy on Vercel:
+### Cloudflare Pages (Recommended)
+
+This app is optimized for deployment on Cloudflare Pages using OpenNext:
+
+#### Cloudflare Pages Settings
+
+In your Cloudflare Pages project settings, configure:
+
+- **Build command**: `npx opennextjs-cloudflare build`
+- **Build output directory**: `.open-next/assets`
+- **Framework preset**: Next.js
+
+#### Required Environment Variables
+
+Add these in the Cloudflare Pages dashboard:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+DISCORD_WEBHOOK_URL=your-discord-webhook (optional)
+DISCORD_NEW_USER_WEBHOOK_URL=your-new-user-webhook (optional)
+RESEND_API_KEY=your-resend-api-key (for email notifications)
+NEXT_PUBLIC_APP_URL=https://your-domain.com
+```
+
+#### Deployment Steps
+
+1. **Via Git Integration** (Recommended):
+   - Connect your GitHub repository to Cloudflare Pages
+   - Push changes to trigger automatic deployments
+   
+2. **Manual Deployment**:
+   ```bash
+   npm run deploy
+   ```
+
+For detailed Cloudflare Pages setup instructions, see `.cloudflare-pages-build.md`.
+
+### Alternative: Vercel
+
+This app can also be deployed on Vercel:
 
 1. Push your code to GitHub
 2. Import the project in Vercel

@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Image from 'next/image'
 
+
 export default function EditProfilePage() {
   const { user, profile, refreshProfile } = useAuth()
   const router = useRouter()

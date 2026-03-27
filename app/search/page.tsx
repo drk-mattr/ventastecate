@@ -1,5 +1,8 @@
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+
+export const runtime = 'edge'
+
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { SearchFilters } from '@/components/search/search-filters'
@@ -7,6 +10,7 @@ import { ListingWithImages } from '@/lib/types/database'
 import { getTranslations } from '@/lib/i18n'
 import Link from 'next/link'
 import { MapPin } from 'lucide-react'
+
 
 interface SearchPageProps {
   searchParams: Promise<{

@@ -1,3 +1,0 @@
-CREATE TABLE IF NOT EXISTS tags (tag TEXT NOT NULL, path TEXT NOT NULL, UNIQUE(tag, path) ON CONFLICT REPLACE);
-     CREATE TABLE IF NOT EXISTS revalidations (tag TEXT NOT NULL, revalidatedAt INTEGER NOT NULL, UNIQUE(tag) ON CONFLICT REPLACE);
-INSERT INTO tags (tag, path) VALUES ("aRs-limEYLCx2apk1Lyg2/_N_T_/layout", "aRs-limEYLCx2apk1Lyg2/icon.svg"), ("aRs-limEYLCx2apk1Lyg2/_N_T_/icon.svg/layout", "aRs-limEYLCx2apk1Lyg2/icon.svg"), ("aRs-limEYLCx2apk1Lyg2/_N_T_/icon.svg/route", "aRs-limEYLCx2apk1Lyg2/icon.svg"), ("aRs-limEYLCx2apk1Lyg2/_N_T_/icon.svg", "aRs-limEYLCx2apk1Lyg2/icon.svg");

@@ -17,6 +17,7 @@ import { RealEstateMetadata, AutomotiveMetadata, ListingMetadata, ListingType } 
 import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
 
+
 const PRODUCT_CATEGORIES = [
   'Electrónica',
   'Muebles',

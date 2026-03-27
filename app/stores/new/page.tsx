@@ -15,6 +15,7 @@ import { StoreType } from '@/lib/types/database'
 import Image from 'next/image'
 import { Store, Home, Car } from 'lucide-react'
 
+
 export default function NewStorePage() {
   const { user, refreshStores } = useAuth()
   const router = useRouter()

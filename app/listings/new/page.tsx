@@ -23,6 +23,7 @@ import {
   UtensilsCrossed, Star, AlertTriangle, Briefcase, Dog
 } from 'lucide-react'
 
+
 const PRODUCT_CATEGORIES = [
   'Comida y Restaurantes', 'Electrónica', 'Muebles', 'Vehículos', 'Ropa', 'Deportes',
   'Hogar', 'Juguetes', 'Libros', 'Mascotas', 'Otros',

@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { MapPin, Plus } from 'lucide-react'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+
+export const runtime = 'edge'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { DynamicHero } from '@/components/home/dynamic-hero'
@@ -10,6 +12,7 @@ import { CommunityFeed } from '@/components/home/community-feed'
 import { ListingWithImages } from '@/lib/types/database'
 import { Button } from '@/components/ui/button'
 import { getTranslations } from '@/lib/i18n'
+
 
 interface HomeProps {
   searchParams: Promise<{ global?: string; sort?: string }>
@@ -35,7 +38,8 @@ export default async function Home({ searchParams }: HomeProps) {
   `
 
   // ── Trending strip: highest-scored from the last 7 days ──
-  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const now = new Date()
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
   let trendingQuery = supabase
     .from('listings')
     .select(listingSelect)

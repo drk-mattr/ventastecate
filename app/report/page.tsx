@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CheckCircle2, Bug, Lightbulb, FileText } from 'lucide-react'
 import { useTranslations } from '@/lib/hooks/use-translations'
 
+
 export default function ReportPage() {
   const t = useTranslations()
   const f = t.forms

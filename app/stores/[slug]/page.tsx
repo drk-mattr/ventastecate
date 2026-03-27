@@ -2,10 +2,13 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
+
+export const runtime = 'edge'
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { Button } from '@/components/ui/button'
 import { Store, MapPin, MessageSquare } from 'lucide-react'
+
 
 export default async function StoreProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params

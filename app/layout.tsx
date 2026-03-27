@@ -8,6 +8,8 @@ import { BrandProvider } from "@/lib/brand-context";
 import { getBrand } from "@/lib/brand";
 import { RegionProvider } from "@/lib/region-context";
 
+export const runtime = 'edge';
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

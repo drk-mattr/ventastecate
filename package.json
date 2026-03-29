@@ -5,12 +5,17 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:cf": "npx opennextjs-cloudflare build && cp .open-next/worker.js .open-next/assets/_worker.js && cp -r .open-next/cloudflare .open-next/assets/ && cp -r .open-next/middleware .open-next/assets/ && cp -r .open-next/server-functions .open-next/assets/ && cp -r .open-next/.build .open-next/assets/ && node -e \"const fs=require('fs');const f='.open-next/assets/_routes.json';const r=fs.existsSync(f)?JSON.parse(fs.readFileSync(f,'utf8')):{version:1,include:['/*'],exclude:[]};if(!r.exclude.includes('/_next/static/*'))r.exclude.unshift('/_next/static/*');fs.writeFileSync(f,JSON.stringify(r,null,2));console.log('_routes.json updated:',JSON.stringify(r));\"",
     "start": "next start",
     "lint": "eslint",
     "deploy": "npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@radix-ui/react-avatar": "^1.1.11",
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-slot": "^1.2.4",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
     "class-variance-authority": "^0.7.1",

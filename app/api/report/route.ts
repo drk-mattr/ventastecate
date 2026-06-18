@@ -5,13 +5,23 @@ const TYPE_LABELS: Record<string, string> = {
   bug: '🐛 Bug',
   suggestion: '💡 Sugerencia',
   other: '📝 Otro',
+  // Listing report reasons
+  spam: '🚫 Spam o duplicado',
+  scam: '⚠️ Fraude o estafa',
+  prohibited: '🚷 Artículo prohibido',
+  offensive: '😡 Contenido ofensivo',
+  listing_other: '📝 Otro motivo',
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { type, description, email } = await request.json()
+    const { type, description, email, listingId, listingTitle } = await request.json()
 
-    if (!description || !type) {
+    // A listing report is identified by listingId; for those, a reason (type) is
+    // enough and the description is optional. For general feedback, both type and
+    // description are required (unchanged behavior).
+    const isListingReport = Boolean(listingId)
+    if (!type || (!isListingReport && !description)) {
       return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
     }
 
@@ -47,12 +57,23 @@ export async function POST(request: NextRequest) {
     const locationParts = [city, region, country].filter(v => v && v !== '—')
     const locationStr = locationParts.length ? locationParts.join(', ') : '—'
 
+    // Deep link to the reported listing (for one-click moderation triage)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ventastecate.com'
+    const listingUrl = isListingReport ? `${appUrl}/listings/${listingId}` : null
+
     // Send to Discord
     const embed = {
-      title: `${TYPE_LABELS[type] || type} — Ventas Tecate`,
-      description: description.slice(0, 2000),
-      color: type === 'bug' ? 0xff4444 : type === 'suggestion' ? 0x4488ff : 0x888888,
+      title: isListingReport
+        ? `🚩 Reporte de anuncio — Ventas Tecate`
+        : `${TYPE_LABELS[type] || type} — Ventas Tecate`,
+      description: (description && String(description).slice(0, 2000)) || '—',
+      color: isListingReport ? 0xff4444 : type === 'bug' ? 0xff4444 : type === 'suggestion' ? 0x4488ff : 0x888888,
       fields: [
+        ...(isListingReport ? [
+          { name: '🏷️ Anuncio',  value: (listingTitle ? String(listingTitle).slice(0, 200) : '—'), inline: false },
+          { name: '🔗 Enlace',   value: listingUrl as string,  inline: false },
+          { name: '🚩 Motivo',   value: TYPE_LABELS[type] || type, inline: true },
+        ] : []),
         { name: 'Usuario',       value: username,              inline: true },
         ...(email ? [{ name: 'Email', value: email,            inline: true }] : []),
         { name: '📍 Ubicación',  value: locationStr,           inline: false },

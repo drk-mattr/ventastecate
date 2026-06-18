@@ -1,8 +1,15 @@
+import { LOCK_TO_TECATE as MVP_LOCK_TO_TECATE, MVP_LANG as MVP_DEFAULT_LANG } from '@/lib/mvp-config'
+
 export type Lang = 'es' | 'tl' | 'en' | 'id'
 
 const NORTH_AMERICA = new Set(['US', 'CA'])
 
 export function getLang(countryCode: string | null): Lang {
+  // MVP: locked to a single market (Tecate, Mexico) → always Spanish, regardless
+  // of detected IP. Set LOCK_TO_TECATE=false in lib/mvp-config to restore the
+  // IP-based language detection below (Philippines/Indonesia expansion).
+  if (MVP_LOCK_TO_TECATE) return MVP_DEFAULT_LANG
+
   if (countryCode === 'PH') return 'tl'
   if (countryCode === 'ID') return 'id'
   if (countryCode && NORTH_AMERICA.has(countryCode)) return 'en'
@@ -309,7 +316,7 @@ const es: Translations = {
     priceLowHigh: 'Precio: menor a mayor',
     priceHighLow: 'Precio: mayor a menor',
     stateRegionPlaceholder: 'Ej: Baja California',
-    cityPlaceholder: 'Ej: Tecate, Jakarta, Manila',
+    cityPlaceholder: 'Ej: Tecate, Tijuana, Mexicali',
     locationPlaceholder: 'Ciudad, barrio, región...',
     minPrice: 'Mínimo',
     maxPrice: 'Máximo',
@@ -359,7 +366,7 @@ const es: Translations = {
     recent: 'Anuncios Recientes',
     worldwide: 'Anuncios en todo el mundo',
     noListings: 'No hay anuncios disponibles.',
-    noListingsInRegion: 'No hay anuncios en tu región aún.',
+    noListingsInRegion: 'Aún no hay anuncios en Tecate. ¡Sé el primero en publicar y empieza a vender en tu comunidad!',
     seeWorldwide: 'Ver anuncios de todo el mundo →',
     postListing: 'Publicar anuncio',
     results: 'resultados',

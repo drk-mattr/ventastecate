@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated build output — must be ignored or lint scans ~1,400 files and times out:
+    ".open-next/**",
+    ".wrangler/**",
+    "node_modules/**",
+    ".claude/**",
   ]),
 ]);
 

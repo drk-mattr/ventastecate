@@ -34,7 +34,7 @@ function Layout({ title, children, brand, updatedLabel, updatedDate, contactLabe
           {children}
         </div>
         <div className="mt-10 pt-6 border-t border-gray-100 flex flex-col gap-1">
-          <p className="text-xs text-gray-400">{contactLabel}: <a href="mailto:info@papryka.co" className="underline hover:text-gray-600">info@papryka.co</a></p>
+          <p className="text-xs text-gray-400">{contactLabel}: <a href="mailto:soporte@ventastecate.com" className="underline hover:text-gray-600">soporte@ventastecate.com</a></p>
           <p className="text-xs text-gray-400">© {new Date().getFullYear()} {brand}</p>
         </div>
       </main>

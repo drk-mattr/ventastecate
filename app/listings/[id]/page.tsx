@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import type { ListingMetadata, RealEstateMetadata, AutomotiveMetadata, ListingType, ListingComment } from '@/lib/types/database'
 import { ListingImageGallery } from '@/components/listings/listing-image-gallery'
 import { CommentSection } from '@/components/listings/comment-section'
+import { ReportListingButton } from '@/components/listings/report-listing-button'
 import Image from 'next/image'
 import { MapPin, Calendar, Newspaper, Store, Bed, Droplets, Ruler, Home, Car, Gauge, Settings, Fuel, Palette, DoorOpen } from 'lucide-react'
 import { ListingEngagementBar } from '@/components/listings/listing-engagement-bar'
@@ -657,6 +658,12 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               </div>
             </div>
           </>
+        )}
+
+        {!isOwner && (
+          <div className="max-w-4xl mx-auto mt-8 pt-4 border-t border-gray-100 flex justify-center">
+            <ReportListingButton listingId={listing.id} listingTitle={listing.title} />
+          </div>
         )}
       </main>
       </div>

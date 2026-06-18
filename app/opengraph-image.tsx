@@ -1,6 +1,6 @@
 import { ImageResponse } from 'next/og'
 
-export const alt = 'Papryka - Buy and sell in your community'
+export const alt = 'Ventas Tecate - Compra y vende en tu comunidad'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -34,13 +34,13 @@ export default function OgImage() {
         >
           <span
             style={{
-              fontSize: 56,
+              fontSize: 48,
               fontWeight: 800,
               color: '#0a0a0a',
               letterSpacing: '-2px',
             }}
           >
-            P
+            VT
           </span>
         </div>
 
@@ -54,7 +54,7 @@ export default function OgImage() {
             marginBottom: 16,
           }}
         >
-          Papryka
+          Ventas Tecate
         </div>
 
         {/* Tagline */}
@@ -66,7 +66,7 @@ export default function OgImage() {
             letterSpacing: '-0.5px',
           }}
         >
-          Buy and sell in your community
+          Compra y vende en tu comunidad
         </div>
       </div>
     ),

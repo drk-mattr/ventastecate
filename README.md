@@ -1,109 +1,93 @@
-# Ventas Tecate - Local Marketplace
+# Ventas Tecate
 
-A minimal, clean local marketplace web application built with Next.js and Supabase. Users can list products, browse listings, search, and communicate with sellers - all without payment processing or shopping cart functionality.
+A local-marketplace web app where people list and discover **products, services, events, and news** in their community, message sellers directly, and run their own **stores** — no payments or shopping cart (buyers and sellers connect and transact directly).
+
+> **MVP status:** The app is built as a multi-region, multi-language, multi-brand
+> platform, but for the initial launch it is **locked to a single market — Tecate,
+> Baja California, Mexico** — to build local density. See "MVP lock" below.
 
 ## Features
 
-✅ **User Authentication**
-- Email/password signup and login
-- User profiles with usernames and display names
-- Protected routes for authenticated users
-
-✅ **Product Listings**
-- Create listings with title, description, price, category, and location
-- Upload up to 5 images per listing
-- Edit and manage your own listings
-- Mark listings as sold or inactive
-- Image storage via Supabase Storage
-
-✅ **Search & Filtering**
-- Full-text search across titles and descriptions
-- Filter by category, location, and price range
-- Sort results
-
-✅ **Messaging System**
-- Messaging between buyers and sellers
-- Conversation management
-- Unread message indicators
-- Message history
-
-✅ **User Profiles**
-- Public profile pages showing user's active listings
-- Editable profiles with bio
-- Member since dates and listing counts
-
-✅ **Responsive Design**
-- Mobile-first design using Tailwind CSS
-- Clean, minimal UI with shadcn/ui components
-- Optimized for all screen sizes
+- **Authentication** — email/password signup, login, password reset; protected routes.
+- **Listings** — products, services, events, and news, each with type-specific fields
+  (real estate: bedrooms/bathrooms/m²; automotive: make/model/mileage). Up to 5 images
+  per listing via Supabase Storage. Create, edit, mark sold/inactive.
+- **Stores** — general, real-estate, and automotive stores with public pages and slugs.
+- **Search & filters** — full-text search, category, location (free-text + GPS), price, sort.
+- **Messaging** — buyer↔seller conversations with history and email notifications.
+- **Social** — follows, comments, and a report flow (routed to Discord).
+- **i18n** — Spanish, Tagalog, English, Indonesian (currently pinned to Spanish for MVP).
+- **Multi-brand / multi-region** — same engine serves Ventas Tecate (Mexico) and Papryka
+  (generic/global); regional listing filtering by country. (Dormant during MVP.)
+- **SEO** — localized metadata, OpenGraph/Twitter cards, sitemap.
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
-- **Backend**: Supabase (PostgreSQL, Auth, Storage)
-- **Deployment**: Vercel-ready
+- **Framework:** Next.js 15 (App Router), React 19, TypeScript
+- **Styling/UI:** Tailwind CSS v4, shadcn/ui
+- **Backend:** Supabase (PostgreSQL + Auth + Storage), with Row-Level Security
+- **Email:** Resend
+- **Deployment:** Cloudflare (via OpenNext / Wrangler) — `npm run deploy`
+
+## MVP lock (Tecate, Mexico)
+
+All MVP scoping lives behind a single switch in [`lib/mvp-config.ts`](lib/mvp-config.ts):
+
+```ts
+export const LOCK_TO_TECATE = true   // set to false to re-enable multi-region
+```
+
+While `true`, the app:
+- forces **Spanish (`es-MX`)** regardless of the visitor's detected country, and
+- pins the market to **Mexico (`MX`)** for listing filtering, and
+- hides the **worldwide / "see all regions"** toggles, and
+- shows the **Ventas Tecate** brand everywhere (no Papryka leak).
+
+This fixes the border-town case where Tecate locals on US IPs (`cf-ipcountry = US`)
+would otherwise see the site in English with no listings. To expand later (e.g. the
+Philippines), set `LOCK_TO_TECATE = false` — the multi-region code is intact, just bypassed.
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 18+ and npm
-- A Supabase account (free tier works great)
-
-### 1. Install Dependencies
-
 ```bash
 npm install
+npm run dev      # http://localhost:3000
 ```
 
-### 2. Set Up Supabase
-
-Follow the detailed instructions in `supabase/README.md`:
-
-1. Create a new Supabase project at https://supabase.com
-2. Run the SQL schema from `supabase/schema.sql` in the Supabase SQL Editor
-3. Get your API keys from Settings → API
-4. Update `.env.local` with your credentials
-
-### 3. Run the Development Server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Key Pages
-
-- `/` - Home page with recent listings
-- `/search` - Search and filter listings
-- `/listings/new` - Create a new listing
-- `/listings/[id]` - View listing details
-- `/my-listings` - Manage your listings
-- `/messages` - Chat with other users
-- `/users/[username]` - View user profiles
-- `/profile/edit` - Edit your profile
+### Supabase
+Follow `supabase/README.md`: create a project, run `supabase/schema.sql` then the
+files in `supabase/migrations/`, and add your keys to `.env.local`.
 
 ## Environment Variables
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+NEXT_PUBLIC_APP_URL=https://ventastecate.com
+NEXT_PUBLIC_GTM_ID=GTM-XXXXXXX        # Google Tag Manager container (required for analytics)
+RESEND_API_KEY=your-resend-key
+DISCORD_WEBHOOK_URL=...               # report form
+DISCORD_NEW_USER_WEBHOOK_URL=...      # new-registration notifications
 ```
+
+> ⚠️ `NEXT_PUBLIC_GTM_ID` must be set in the production environment (Cloudflare) or
+> analytics will not fire — it currently falls back to a placeholder.
+
+## Key Pages
+
+`/` home · `/search` · `/listings/new` · `/listings/[id]` · `/my-listings` ·
+`/stores/[slug]` · `/messages` · `/users/[username]` · `/profile/edit`
 
 ## Deployment
 
-This app is ready to deploy on Vercel:
+Deployed on Cloudflare via OpenNext:
 
-1. Push your code to GitHub
-2. Import the project in Vercel
-3. Add your environment variables
-4. Deploy!
+```bash
+npm run deploy        # opennextjs-cloudflare build && deploy
+```
+
+Set all environment variables in the Cloudflare dashboard before deploying.
 
 ---
 
-Built with ❤️ for the Tecate community
-# Updated Sun Mar 29 11:30:47 PDT 2026
+Built for the Tecate community.

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGeolocation, getNearestLocation, reverseGeocode } from '@/lib/hooks/use-geolocation'
 import { useTranslations } from '@/lib/hooks/use-translations'
+import { LOCK_TO_TECATE } from '@/lib/mvp-config'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -44,6 +45,11 @@ export function DynamicHero() {
       setLocation(nearest)
       return
     }
+
+    // MVP: while locked to Tecate, do NOT override the headline/search with a
+    // far-away city (e.g. a border visitor in San Diego). Keep "Tecate" so the
+    // homepage stays local. Known Tecate-area locations above still apply.
+    if (LOCK_TO_TECATE) return
 
     // Fallback: reverse geocode for accurate city name
     reverseGeocode(lat, lon).then((city) => {

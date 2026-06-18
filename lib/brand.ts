@@ -14,10 +14,12 @@ const BRANDS: Record<string, Brand> = {
   },
 }
 
-// Default brand shown on all other domains (papryka.co, subdomains, localhost, etc.)
+// MVP: locked to the Ventas Tecate brand on every domain (including localhost and
+// preview deploys) so the Papryka identity never leaks during the Tecate launch.
+// Restore the Papryka default below when re-enabling multi-brand for expansion.
 export const DEFAULT_BRAND: Brand = {
-  name: 'Papryka',
-  tagline: 'Buy and sell in your community',
+  name: 'Ventas Tecate',
+  tagline: 'Compra y vende en tu comunidad',
 }
 
 export function getBrand(hostname: string): Brand {

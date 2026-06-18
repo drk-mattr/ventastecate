@@ -7,6 +7,7 @@ import { GoogleTagManager, GoogleTagManagerNoScript } from "@/components/analyti
 import { BrandProvider } from "@/lib/brand-context";
 import { getBrand } from "@/lib/brand";
 import { RegionProvider } from "@/lib/region-context";
+import { MVP_HTML_LANG, resolveCountry } from "@/lib/mvp-config";
 
 import localFont from "next/font/local";
 
@@ -84,8 +85,10 @@ export default async function RootLayout({
   const headersList = await headers()
   const hostname = headersList.get('host') ?? ''
   const { name: brandName } = getBrand(hostname)
-  const countryCode = headersList.get('cf-ipcountry') ?? null
-  const htmlLang = countryCode === 'PH' ? 'fil' : 'es-MX'
+  // MVP: locked to Tecate, Mexico. resolveCountry() overrides the detected IP so
+  // border-town visitors on US IPs still get the Mexican market + Spanish.
+  const countryCode = resolveCountry(headersList.get('cf-ipcountry') ?? null)
+  const htmlLang = MVP_HTML_LANG
 
   return (
     <html lang={htmlLang}>

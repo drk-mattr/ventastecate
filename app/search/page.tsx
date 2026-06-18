@@ -5,6 +5,7 @@ import { ListingCard } from '@/components/listings/listing-card'
 import { SearchFilters } from '@/components/search/search-filters'
 import { ListingWithImages } from '@/lib/types/database'
 import { getTranslations } from '@/lib/i18n'
+import { LOCK_TO_TECATE, MVP_COUNTRY, resolveCountry } from '@/lib/mvp-config'
 import Link from 'next/link'
 import { MapPin } from 'lucide-react'
 
@@ -27,14 +28,18 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const supabase = await createClient()
   const { q, category, location, city, stateRegion, minPrice, maxPrice, sort, country, type } = await searchParams
 
-  // Detect user country via Cloudflare header (null in local dev)
+  // Detect user country via Cloudflare header; resolveCountry() forces the MVP
+  // market (MX) so border-town visitors on US IPs search Tecate listings.
   const headersList = await headers()
-  const userCountry = headersList.get('cf-ipcountry') ?? null
+  const userCountry = resolveCountry(headersList.get('cf-ipcountry') ?? null)
   const t = getTranslations(userCountry)
 
-  // 'all' = user opted into global search; absent = use detected country
-  const isGlobal = country === 'all'
-  const effectiveCountry = isGlobal ? null : (country ?? userCountry)
+  // 'all' = user opted into global search; absent = use detected country.
+  // MVP: worldwide search is disabled and the market is pinned to Tecate (MX).
+  const isGlobal = !LOCK_TO_TECATE && country === 'all'
+  const effectiveCountry = LOCK_TO_TECATE
+    ? MVP_COUNTRY
+    : (isGlobal ? null : (country ?? userCountry))
 
   // Build query
   let query = supabase
@@ -135,10 +140,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             <p className="text-sm text-gray-600">
               {resultCount} {resultLabel}
               {(location || city || stateRegion) && ` ${t.listings.in} ${location || city || stateRegion}`}
-              {effectiveCountry && !isGlobal && !location && !city && !stateRegion && ` ${t.listings.in} ${effectiveCountry}`}
+              {!LOCK_TO_TECATE && effectiveCountry && !isGlobal && !location && !city && !stateRegion && ` ${t.listings.in} ${effectiveCountry}`}
             </p>
           </div>
-          {userCountry && (
+          {!LOCK_TO_TECATE && userCountry && (
             <Link
               href={toggleHref}
               className="text-xs text-gray-500 hover:text-gray-700 transition-colors shrink-0 mt-1"
@@ -174,7 +179,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             ) : (
               <div className="text-center py-16 bg-gray-50 rounded-lg">
                 <p className="text-gray-500 mb-2">{t.listings.noResults}</p>
-                {effectiveCountry && !isGlobal && (
+                {!LOCK_TO_TECATE && effectiveCountry && !isGlobal && (
                   <Link href={toggleHref} className="text-sm text-blue-600 hover:underline">
                     {t.listings.searchWorldwide}
                   </Link>

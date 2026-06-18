@@ -10,6 +10,7 @@ import { CommunityFeed } from '@/components/home/community-feed'
 import { ListingWithImages } from '@/lib/types/database'
 import { Button } from '@/components/ui/button'
 import { getTranslations } from '@/lib/i18n'
+import { LOCK_TO_TECATE, resolveCountry } from '@/lib/mvp-config'
 
 interface HomeProps {
   searchParams: Promise<{ global?: string; sort?: string }>
@@ -18,13 +19,15 @@ interface HomeProps {
 export default async function Home({ searchParams }: HomeProps) {
   const supabase = await createClient()
   const { global: globalParam, sort: sortParam } = await searchParams
-  const isGlobal = globalParam === '1'
+  // MVP: the worldwide view is disabled while locked to Tecate.
+  const isGlobal = !LOCK_TO_TECATE && globalParam === '1'
   // Sort modes: 'top' (algorithm, default), 'new' (chronological)
   const sortMode = sortParam === 'new' ? 'new' : 'top'
 
-  // Detect user country via Cloudflare header (null in local dev)
+  // Detect user country via Cloudflare header; resolveCountry() forces the MVP
+  // market (MX) so border-town visitors on US IPs see Tecate listings.
   const headersList = await headers()
-  const userCountry = headersList.get('cf-ipcountry') ?? null
+  const userCountry = resolveCountry(headersList.get('cf-ipcountry') ?? null)
   const t = getTranslations(userCountry)
 
   const listingSelect = `
@@ -126,7 +129,7 @@ export default async function Home({ searchParams }: HomeProps) {
               </Link>
             </div>
             <div className="flex items-center gap-3">
-              {userCountry && (
+              {!LOCK_TO_TECATE && userCountry && (
                 <Link
                   href={isGlobal ? '/' : '/?global=1'}
                   className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
@@ -155,7 +158,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   ? t.listings.noListingsInRegion
                   : t.listings.noListings}
               </p>
-              {userCountry && !isGlobal && (
+              {!LOCK_TO_TECATE && userCountry && !isGlobal && (
                 <Link href="/?global=1" className="text-sm text-blue-600 hover:underline block mb-4">
                   {t.listings.seeWorldwide}
                 </Link>

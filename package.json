@@ -8,7 +8,7 @@
     "build:cf": "npx opennextjs-cloudflare build && cp .open-next/worker.js .open-next/assets/_worker.js && cp -r .open-next/cloudflare .open-next/assets/ && cp -r .open-next/middleware .open-next/assets/ && cp -r .open-next/server-functions .open-next/assets/ && cp -r .open-next/.build .open-next/assets/ && node -e \"const fs=require('fs');const f='.open-next/assets/_routes.json';const r=fs.existsSync(f)?JSON.parse(fs.readFileSync(f,'utf8')):{version:1,include:['/*'],exclude:[]};if(!r.exclude.includes('/_next/static/*'))r.exclude.unshift('/_next/static/*');fs.writeFileSync(f,JSON.stringify(r,null,2));console.log('_routes.json updated:',JSON.stringify(r));\"",
     "start": "next start",
     "lint": "eslint",
-    "deploy": "npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy"
+    "deploy": "NEXT_PUBLIC_APP_URL=https://ventastecate.com npx opennextjs-cloudflare build && npx opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

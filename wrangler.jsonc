@@ -8,6 +8,16 @@
 		"nodejs_compat",
 		"global_fetch_strictly_public"
 	],
+	// Custom domains attached to this Worker. Without these, `wrangler deploy`
+	// overrides the remote config and DETACHES the production domains (which is
+	// why ventastecate.com kept serving the old version after a deploy).
+	"routes": [
+		{ "pattern": "ventastecate.com", "zone_name": "ventastecate.com", "custom_domain": true },
+		{ "pattern": "papryka.co", "zone_name": "papryka.co", "custom_domain": true }
+	],
+	"vars": {
+		"NEXT_PUBLIC_APP_URL": "https://ventastecate.com"
+	},
 	"assets": {
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"

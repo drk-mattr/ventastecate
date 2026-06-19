@@ -3,7 +3,7 @@ import { Geist, Geist_Mono, Forum } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/auth-context";
-import { GoogleTagManager, GoogleTagManagerNoScript } from "@/components/analytics/google-tag-manager";
+import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { BrandProvider } from "@/lib/brand-context";
 import { getBrand } from "@/lib/brand";
 import { RegionProvider } from "@/lib/region-context";
@@ -93,12 +93,11 @@ export default async function RootLayout({
   return (
     <html lang={htmlLang}>
       <head>
-        <GoogleTagManager />
+        <GoogleAnalytics />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${forum.variable} antialiased`}
       >
-        <GoogleTagManagerNoScript />
         <AuthProvider>
           <BrandProvider brandName={brandName}>
             <RegionProvider countryCode={countryCode}>

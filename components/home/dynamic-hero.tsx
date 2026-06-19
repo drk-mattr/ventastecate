@@ -16,7 +16,9 @@ import { Search, X, MapPin, SlidersHorizontal } from 'lucide-react'
 
 export function DynamicHero() {
   const t = useTranslations()
-  const [locationText, setLocationText] = useState<string | null>(null)
+  // MVP: default the headline location to "Tecate" so the homepage reads as local
+  // ("...en Tecate") even before geolocation resolves. Unlocked, keep upstream behavior.
+  const [locationText, setLocationText] = useState<string | null>(LOCK_TO_TECATE ? 'Tecate' : null)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
   const [location, setLocation] = useState('')

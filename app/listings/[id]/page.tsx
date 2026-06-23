@@ -23,6 +23,20 @@ function safeJsonLd(data: unknown): string {
     .replace(/&/g, '\\u0026')
 }
 
+// Marketplace-style "posted" label: relative for recent items, full date later.
+function formatPostedDate(iso: string): string {
+  const date = new Date(iso)
+  const diffDays = Math.floor((Date.now() - date.getTime()) / 86_400_000)
+  if (diffDays <= 0) return 'Hoy'
+  if (diffDays === 1) return 'Ayer'
+  if (diffDays < 7) return `Hace ${diffDays} días`
+  if (diffDays < 30) {
+    const w = Math.floor(diffDays / 7)
+    return `Hace ${w} ${w === 1 ? 'semana' : 'semanas'}`
+  }
+  return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
 // Generate metadata for SEO
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params
@@ -363,12 +377,14 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 {listing.price > 0 && (
                   <p className="text-2xl font-bold text-gray-900 mb-3">{formattedPrice}</p>
                 )}
-                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 pb-3 border-b">
-                  <Badge variant="outline" className="text-xs">{listing.category}</Badge>
-                  <span>·</span>
-                  <span>{listing.location}</span>
-                  <span>·</span>
-                  <span>{new Date(listing.created_at).toLocaleDateString('es-MX')}</span>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 pb-3 border-b">
+                  {listing.location && (
+                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3 shrink-0" />{listing.location}</span>
+                  )}
+                  <span className="flex items-center gap-1"><Calendar className="h-3 w-3 shrink-0" />{formatPostedDate(listing.created_at)}</span>
+                  {listing.category && (
+                    <Badge variant="secondary" className="text-[10px] font-normal text-gray-600">{listing.category}</Badge>
+                  )}
                 </div>
               </div>
 
@@ -469,16 +485,20 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
                 {/* Title and Price */}
                 <div>
-                  <h1 className="text-2xl font-semibold mb-2">{listing.title}</h1>
-                  {listing.price > 0 && (
-                    <p className="text-3xl font-bold text-gray-900 mb-4">{formattedPrice}</p>
-                  )}
-                  <div className="flex items-center gap-3 text-sm text-gray-600 pb-4 border-b">
-                    <Badge variant="outline" className="text-xs">{listing.category}</Badge>
-                    <span>•</span>
-                    <span>{listing.location}</span>
-                    <span>•</span>
-                    <span>{new Date(listing.created_at).toLocaleDateString('es-MX')}</span>
+                  <h1 className="text-2xl font-semibold mb-2 leading-snug">{listing.title}</h1>
+                  <p className="text-3xl font-bold text-gray-900 mb-4">{formattedPrice}</p>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-gray-500 pb-4 border-b">
+                    {listing.location && (
+                      <span className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />{listing.location}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5 shrink-0" />{formatPostedDate(listing.created_at)}
+                    </span>
+                    {listing.category && (
+                      <Badge variant="secondary" className="text-[11px] font-normal text-gray-600">{listing.category}</Badge>
+                    )}
                   </div>
                 </div>
 
@@ -498,31 +518,31 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         {meta.bedrooms != null && (
-                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{meta.bedrooms}</p>
                             <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Bed className="h-3 w-3" /> Recámaras</div>
                           </div>
                         )}
                         {meta.bathrooms != null && (
-                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{meta.bathrooms}</p>
                             <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Droplets className="h-3 w-3" /> Baños</div>
                           </div>
                         )}
                         {meta.construction_m2 != null && (
-                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{meta.construction_m2}</p>
                             <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Ruler className="h-3 w-3" /> m² Const.</div>
                           </div>
                         )}
                         {meta.lot_m2 != null && (
-                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{meta.lot_m2}</p>
                             <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Home className="h-3 w-3" /> m² Terreno</div>
                           </div>
                         )}
                         {meta.parking_spots != null && (
-                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{meta.parking_spots}</p>
                             <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Car className="h-3 w-3" /> Estacion.</div>
                           </div>
@@ -542,36 +562,36 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                         {meta.make} {meta.model} {meta.year}
                       </p>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <div className="text-center p-3 bg-gray-50 rounded-xl">
                           <p className="text-lg font-semibold">{meta.year}</p>
                           <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Calendar className="h-3 w-3" /> Año</div>
                         </div>
                         {meta.mileage_km != null && (
-                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{meta.mileage_km.toLocaleString()}</p>
                             <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Gauge className="h-3 w-3" /> km</div>
                           </div>
                         )}
                         {meta.transmission && (
-                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{transLabels[meta.transmission] || meta.transmission}</p>
                             <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Settings className="h-3 w-3" /> Trans.</div>
                           </div>
                         )}
                         {meta.fuel_type && (
-                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{fuelLabels[meta.fuel_type] || meta.fuel_type}</p>
                             <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Fuel className="h-3 w-3" /> Comb.</div>
                           </div>
                         )}
                         {meta.color && (
-                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{meta.color}</p>
                             <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Palette className="h-3 w-3" /> Color</div>
                           </div>
                         )}
                         {meta.doors != null && (
-                          <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{meta.doors}</p>
                             <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><DoorOpen className="h-3 w-3" /> Puertas</div>
                           </div>
@@ -607,7 +627,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
               {/* Right Column - Seller Info */}
               <div>
-                <div className="border rounded-lg p-6 sticky top-4">
+                <div className="border rounded-xl p-6 sticky top-4">
                   <h3 className="text-base font-semibold mb-4">
                     {isService ? 'Proveedor' : 'Vendedor'}
                   </h3>

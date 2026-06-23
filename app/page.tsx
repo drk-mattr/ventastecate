@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { DynamicHero } from '@/components/home/dynamic-hero'
-import { TrendingStrip } from '@/components/home/trending-strip'
 import { CommunityFeed } from '@/components/home/community-feed'
 import { ListingWithImages } from '@/lib/types/database'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -13,16 +12,14 @@ import { getTranslations } from '@/lib/i18n'
 import { LOCK_TO_TECATE, resolveCountry } from '@/lib/mvp-config'
 
 interface HomeProps {
-  searchParams: Promise<{ global?: string; sort?: string }>
+  searchParams: Promise<{ global?: string }>
 }
 
 export default async function Home({ searchParams }: HomeProps) {
   const supabase = await createClient()
-  const { global: globalParam, sort: sortParam } = await searchParams
+  const { global: globalParam } = await searchParams
   // MVP: the worldwide view is disabled while locked to Tecate.
   const isGlobal = !LOCK_TO_TECATE && globalParam === '1'
-  // Sort modes: 'top' (algorithm, default), 'new' (chronological)
-  const sortMode = sortParam === 'new' ? 'new' : 'top'
 
   // Detect user country via Cloudflare header; resolveCountry() forces the MVP
   // market (MX) so border-town visitors on US IPs see Tecate listings.
@@ -37,30 +34,7 @@ export default async function Home({ searchParams }: HomeProps) {
     store:stores( id, slug, name, avatar_url )
   `
 
-  // ── Trending strip: highest-scored from the last 7 days ──
-  const oneWeekAgo = new Date(new Date().getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
-  let trendingQuery = supabase
-    .from('listings')
-    .select(listingSelect)
-    .eq('status', 'active')
-    .gte('created_at', oneWeekAgo)
-
-  if (userCountry && !isGlobal) {
-    trendingQuery = trendingQuery.eq('country_code', userCountry)
-  }
-
-  const { data: trendingRaw } = await trendingQuery
-    .order('ranking_score', { ascending: false })
-    .limit(10)
-
-  const trending: ListingWithImages[] = (trendingRaw || []).map(l => ({
-    ...l,
-    likes_count: l.likes_count ?? 0,
-    saves_count: l.saves_count ?? 0,
-    comments_count: l.comments_count ?? 0,
-  }))
-
-  // ── Main feed: ranked by algorithm or chronological ──
+  // ── Main feed: newest first ──
   let feedQuery = supabase
     .from('listings')
     .select(listingSelect)
@@ -70,16 +44,8 @@ export default async function Home({ searchParams }: HomeProps) {
     feedQuery = feedQuery.eq('country_code', userCountry)
   }
 
-  if (sortMode === 'top') {
-    // Algorithm: ranking_score descending, with created_at as tiebreaker
-    feedQuery = feedQuery
-      .order('ranking_score', { ascending: false })
-      .order('created_at', { ascending: false })
-  } else {
-    // Chronological: newest first
-    feedQuery = feedQuery
-      .order('created_at', { ascending: false })
-  }
+  // Newest first — simple, honest ordering for the local marketplace.
+  feedQuery = feedQuery.order('created_at', { ascending: false })
 
   const { data: feedRaw } = await feedQuery.limit(30)
 
@@ -90,11 +56,6 @@ export default async function Home({ searchParams }: HomeProps) {
     comments_count: l.comments_count ?? 0,
   }))
 
-  // Build sort toggle URL
-  const sortToggleUrl = sortMode === 'top'
-    ? (isGlobal ? '/?global=1&sort=new' : '/?sort=new')
-    : (isGlobal ? '/?global=1' : '/')
-
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
@@ -102,32 +63,11 @@ export default async function Home({ searchParams }: HomeProps) {
         {/* Search */}
         <DynamicHero />
 
-        {/* Trending strip — community ticker */}
-        <TrendingStrip items={trending} />
-
         {/* Main grid */}
         <div className="container mx-auto px-4 py-5">
           {/* Header row */}
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              {/* Sort toggle */}
-              <Link
-                href={sortMode === 'top' ? (isGlobal ? '/?global=1' : '/') : sortToggleUrl}
-                className={`text-sm font-medium transition-colors ${
-                  sortMode === 'top' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'
-                }`}
-              >
-                Destacados
-              </Link>
-              <Link
-                href={sortMode === 'new' ? (isGlobal ? '/?global=1&sort=new' : '/?sort=new') : sortToggleUrl}
-                className={`text-sm font-medium transition-colors ${
-                  sortMode === 'new' ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'
-                }`}
-              >
-                Recientes
-              </Link>
-            </div>
+            <h2 className="text-sm font-semibold text-gray-900">{t.listings.recent}</h2>
             <div className="flex items-center gap-3">
               {!LOCK_TO_TECATE && userCountry && (
                 <Link

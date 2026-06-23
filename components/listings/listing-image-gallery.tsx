@@ -41,7 +41,7 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
     const posterContent = (
       <>
         {/* Primary flyer — full display, no crop */}
-        <div className="relative rounded-lg overflow-hidden bg-gray-50 border cursor-pointer" onClick={() => openLightbox(0)}>
+        <div className="relative rounded-xl overflow-hidden bg-gray-50 border cursor-pointer" onClick={() => openLightbox(0)}>
           <Image
             src={images[0].image_url}
             alt={listingTitle}
@@ -94,7 +94,7 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
       <div className="relative mb-6">
         {/* 1 image: Single large image */}
         {images.length === 1 && (
-          <div className="h-[400px] rounded-lg overflow-hidden relative bg-gray-100 cursor-pointer" onClick={() => openLightbox(0)}>
+          <div className="h-[400px] rounded-xl overflow-hidden relative bg-gray-100 cursor-pointer" onClick={() => openLightbox(0)}>
             <Image
               src={images[0].image_url}
               alt={listingTitle}
@@ -114,7 +114,7 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
 
         {/* 2 images: Split evenly */}
         {images.length === 2 && (
-          <div className="grid grid-cols-2 gap-2 h-[400px] rounded-lg overflow-hidden">
+          <div className="grid grid-cols-2 gap-2 h-[400px] rounded-xl overflow-hidden">
             {images.map((image, idx) => (
               <div key={image.id} className="relative bg-gray-100 cursor-pointer" onClick={() => openLightbox(idx)}>
                 <Image
@@ -138,7 +138,7 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
 
         {/* 3 images: Main image left, 2 stacked right */}
         {images.length === 3 && (
-          <div className="grid grid-cols-2 gap-2 h-[400px] rounded-lg overflow-hidden">
+          <div className="grid grid-cols-2 gap-2 h-[400px] rounded-xl overflow-hidden">
             <div className="relative bg-gray-100 cursor-pointer" onClick={() => openLightbox(0)}>
               <Image
                 src={images[0].image_url}
@@ -172,7 +172,7 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
 
         {/* 4 images: 2x2 grid */}
         {images.length === 4 && (
-          <div className="grid grid-cols-2 gap-2 h-[400px] rounded-lg overflow-hidden">
+          <div className="grid grid-cols-2 gap-2 h-[400px] rounded-xl overflow-hidden">
             {images.map((image, idx) => (
               <div key={image.id} className="relative bg-gray-100 cursor-pointer" onClick={() => openLightbox(idx)}>
                 <Image
@@ -196,7 +196,7 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
 
         {/* 5+ images: Airbnb-style with main image and thumbnail grid */}
         {images.length >= 5 && (
-          <div className="grid grid-cols-4 gap-2 h-[280px] sm:h-[400px] rounded-lg overflow-hidden">
+          <div className="grid grid-cols-4 gap-2 h-[280px] sm:h-[400px] rounded-xl overflow-hidden">
             {/* Main Image - Takes 2 columns and full height */}
             <div className="col-span-2 row-span-2 relative bg-gray-100 cursor-pointer" onClick={() => openLightbox(0)}>
               <Image

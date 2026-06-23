@@ -17,6 +17,8 @@ const eslintConfig = defineConfig([
     ".wrangler/**",
     "node_modules/**",
     ".claude/**",
+    // Standalone Cloudflare email worker — separate project, deployed on its own.
+    "support-email-worker/**",
   ]),
 ]);
 

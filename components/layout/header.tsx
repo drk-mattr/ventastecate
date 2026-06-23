@@ -1,14 +1,15 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
-import { useBrand } from '@/lib/brand-context'
+import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
 import { Button } from '@/components/ui/button'
 import { HeaderSearch } from '@/components/search/header-search'
+import { MobileMenuDrawer } from '@/components/layout/mobile-menu-drawer'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,14 +18,35 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Check, Bug, Store, User } from 'lucide-react'
+import { Check, Store, User, Menu, UserCircle, Tag, MessageCircle } from 'lucide-react'
 
 export function Header() {
-  const { user, profile, stores, activeStore, setActiveStore, signOut, loading } = useAuth()
+  const { user, profile, stores, activeStore, setActiveStore, signOut, loading, recentStoreIds } = useAuth()
+  const { openAuth } = useAuthModal()
   const pathname = usePathname()
-  const brandName = useBrand()
   const t = useTranslations()
   const isHomePage = pathname === '/'
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  // Keep the avatar dropdown clean: surface the active store + the most recent
+  // few, and push the rest behind a link to the full "Mis Tiendas" page so the
+  // menu never grows unbounded for power users with many stores.
+  const VISIBLE_STORES = 4
+  // Rank: active store first, then most-recently-used, then the rest (newest
+  // creation order is already how `stores` arrives as a stable tiebreaker).
+  const recentRank = (id: string) => {
+    const i = recentStoreIds.indexOf(id)
+    return i === -1 ? Number.MAX_SAFE_INTEGER : i
+  }
+  const sortedStores = [...stores].sort((a, b) => {
+    if (activeStore) {
+      if (a.id === activeStore.id) return -1
+      if (b.id === activeStore.id) return 1
+    }
+    return recentRank(a.id) - recentRank(b.id)
+  })
+  const visibleStores = sortedStores.slice(0, VISIBLE_STORES)
+  const hiddenStoreCount = stores.length - visibleStores.length
 
   const getInitials = (name: string) => {
     return name
@@ -39,24 +61,9 @@ export function Header() {
     <header className="border-b bg-white sticky top-0 z-50">
       <div className="container mx-auto px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-4 shrink-0">
-          <Link href="/" className="text-xl font-forum font-bold tracking-wide lowercase">
-            {brandName}
+          <Link href="/" className="text-xl font-forum font-bold lowercase">
+            ventastecate.com
           </Link>
-          <nav className="hidden lg:flex items-center gap-6">
-            <Link href="/" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-              {t.nav.home}
-            </Link>
-            {user && (
-              <>
-                <Link href="/my-listings" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                  {t.nav.myListings}
-                </Link>
-                <Link href="/messages" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                  {t.nav.messages}
-                </Link>
-              </>
-            )}
-          </nav>
         </div>
 
         {!isHomePage && (
@@ -68,8 +75,15 @@ export function Header() {
         <div className="flex items-center gap-2 shrink-0">
           {loading ? null : user ? (
             <>
-              <Button asChild size="sm" className="h-8 px-3 text-xs">
+              <Button asChild variant="outline" size="sm" className="hidden md:inline-flex h-8 px-4 text-xs rounded-full">
                 <Link href="/listings/new">{t.nav.publish}</Link>
+              </Button>
+              {/* Quick-access icons (desktop; mobile uses the bottom action bar) */}
+              <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex h-8 w-8 text-gray-600 hover:text-gray-900" aria-label={t.nav.myListings} title={t.nav.myListings}>
+                <Link href="/my-listings"><Tag className="h-[18px] w-[18px]" /></Link>
+              </Button>
+              <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex h-8 w-8 text-gray-600 hover:text-gray-900" aria-label={t.nav.messages} title={t.nav.messages}>
+                <Link href="/messages"><MessageCircle className="h-[18px] w-[18px]" /></Link>
               </Button>
               {activeStore && (
                 <span className="text-[10px] text-gray-500 hidden sm:flex items-center gap-0.5 max-w-[100px] truncate" title={activeStore.name}>
@@ -118,44 +132,50 @@ export function Header() {
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem asChild className="text-xs">
-                    <Link href={`/users/${profile?.username}`}>{t.nav.myProfile}</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="text-xs">
-                    <Link href="/my-listings">{t.nav.myListings}</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="text-xs">
-                    <Link href="/messages">{t.nav.messages}</Link>
+                    <Link href={`/users/${profile?.username}`} className="flex items-center gap-2">
+                      <UserCircle className="h-3.5 w-3.5 text-gray-400" />{t.nav.myProfile}
+                    </Link>
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
-                  <DropdownMenuLabel className="text-[10px] uppercase text-gray-400 font-medium">
-                    Mis Tiendas
+                  {/* Personal identity — kept separate from the stores group. */}
+                  <DropdownMenuItem
+                    onClick={() => setActiveStore(null)}
+                    className="text-xs flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2"><User className="h-3.5 w-3.5 text-gray-400" />{t.nav.publishAs}</span>
+                    {!activeStore && <Check className="h-3.5 w-3.5" />}
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-[10px] uppercase text-gray-400 font-medium flex items-center gap-1.5">
+                    <Store className="h-3 w-3" />{t.nav.myStores}
                   </DropdownMenuLabel>
-                  {stores.length > 0 && (
-                    <>
-                      <DropdownMenuItem
-                        onClick={() => setActiveStore(null)}
-                        className="text-xs flex items-center justify-between"
-                      >
-                        <span className="flex items-center gap-1"><User className="h-3 w-3" />{t.nav.publishAs}</span>
-                        {!activeStore && <Check className="h-3 w-3" />}
-                      </DropdownMenuItem>
-                      {stores.map((store) => (
-                        <div key={store.id} className="flex items-center">
-                          <DropdownMenuItem
-                            onClick={() => setActiveStore(store)}
-                            className="text-xs flex-1 flex items-center justify-between"
-                          >
-                            <Link href={`/stores/${store.slug}`} onClick={(e) => e.stopPropagation()} className="truncate hover:underline">
-                              <span className="flex items-center gap-1"><Store className="h-3 w-3 shrink-0" /><span className="truncate">{store.name}</span></span>
-                            </Link>
-                            {activeStore?.id === store.id && <Check className="h-3 w-3 shrink-0" />}
-                          </DropdownMenuItem>
-                        </div>
-                      ))}
-                    </>
+                  {visibleStores.map((store) => (
+                    <DropdownMenuItem
+                      key={store.id}
+                      onClick={() => setActiveStore(store)}
+                      className="text-xs flex items-center justify-between"
+                    >
+                      <Link href={`/stores/${store.slug}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 min-w-0 hover:underline">
+                        <span className="h-5 w-5 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                          {store.avatar_url ? (
+                            <Image src={store.avatar_url} alt={store.name} width={20} height={20} className="h-5 w-5 object-cover" />
+                          ) : (
+                            <Store className="h-3 w-3 text-gray-400" />
+                          )}
+                        </span>
+                        <span className="truncate">{store.name}</span>
+                      </Link>
+                      {activeStore?.id === store.id && <Check className="h-3.5 w-3.5 shrink-0" />}
+                    </DropdownMenuItem>
+                  ))}
+                  {hiddenStoreCount > 0 && (
+                    <DropdownMenuItem asChild className="text-xs text-gray-500">
+                      <Link href="/my-stores">{t.nav.viewAllStores} ({stores.length})</Link>
+                    </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem asChild className="text-xs">
+                  <DropdownMenuItem asChild className="text-xs text-gray-500">
                     <Link href="/stores/new">{t.nav.createStore}</Link>
                   </DropdownMenuItem>
 
@@ -164,25 +184,66 @@ export function Header() {
                     <Link href="/profile/edit">{t.nav.settings}</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="text-xs">
-                    <Link href="/report" className="flex items-center gap-1.5">
-                      <Bug className="h-3 w-3" />
-                      {t.nav.reportProblem}
-                    </Link>
+                    <Link href="/report">{t.nav.reportProblem}</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => signOut()} className="text-xs">
                     {t.nav.logout}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="md:hidden" />
+                  <DropdownMenuItem asChild className="text-[11px] text-gray-400 md:hidden">
+                    <Link href="/terms">{t.footer.termsOfService}</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="text-[11px] text-gray-400 md:hidden">
+                    <Link href="/privacy">{t.footer.privacyPolicy}</Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
           ) : (
             <>
-              <Button variant="ghost" size="sm" asChild className="h-8 px-3 text-xs">
-                <Link href="/login">{t.nav.login}</Link>
+              {/* Desktop: inline auth buttons — open the popup over the current page */}
+              <div className="hidden md:flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={() => openAuth('login')} className="h-8 px-3 text-xs text-gray-600 hover:text-gray-900">
+                  {t.nav.login}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => openAuth('signup')} className="h-8 px-4 text-xs rounded-full">
+                  {t.nav.register}
+                </Button>
+              </div>
+
+              {/* Mobile: hamburger opens a slide-in drawer */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden h-9 w-9"
+                aria-label="Menú"
+                onClick={() => setMenuOpen(true)}
+              >
+                <Menu className="h-5 w-5" />
               </Button>
-              <Button size="sm" asChild className="h-8 px-3 text-xs">
-                <Link href="/signup">{t.nav.register}</Link>
-              </Button>
+              <MobileMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)}>
+                <button
+                  type="button"
+                  onClick={() => { setMenuOpen(false); openAuth('login') }}
+                  className="block w-full text-left px-3 py-2.5 text-sm rounded-md hover:bg-gray-50"
+                >
+                  {t.nav.login}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMenuOpen(false); openAuth('signup') }}
+                  className="block w-full text-left px-3 py-2.5 text-sm rounded-md hover:bg-gray-50"
+                >
+                  {t.nav.register}
+                </button>
+                <div className="my-2 border-t border-gray-100" />
+                <Link href="/terms" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-xs text-gray-500 rounded-md hover:bg-gray-50">
+                  {t.footer.termsOfService}
+                </Link>
+                <Link href="/privacy" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-xs text-gray-500 rounded-md hover:bg-gray-50">
+                  {t.footer.privacyPolicy}
+                </Link>
+              </MobileMenuDrawer>
             </>
           )}
         </div>

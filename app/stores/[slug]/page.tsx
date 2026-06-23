@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Store, MapPin, MessageSquare } from 'lucide-react'
 
 export default async function StoreProfilePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -140,18 +141,12 @@ export default async function StoreProfilePage({ params }: { params: Promise<{ s
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">
-                {isOwner
-                  ? 'Tu tienda no tiene anuncios activos'
-                  : 'Esta tienda no tiene anuncios activos'}
-              </p>
-              {isOwner && (
-                <Button asChild size="sm" className="mt-4">
-                  <Link href="/listings/new">Crear anuncio</Link>
-                </Button>
-              )}
-            </div>
+            <EmptyState
+              surface
+              message={isOwner ? 'Tu tienda no tiene anuncios activos' : 'Esta tienda no tiene anuncios activos'}
+              actionLabel={isOwner ? 'Crear anuncio' : undefined}
+              actionHref={isOwner ? '/listings/new' : undefined}
+            />
           )}
         </div>
 

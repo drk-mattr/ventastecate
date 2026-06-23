@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Forum } from "next/font/google";
+import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/auth-context";
@@ -8,6 +8,8 @@ import { BrandProvider } from "@/lib/brand-context";
 import { getBrand } from "@/lib/brand";
 import { RegionProvider } from "@/lib/region-context";
 import { MVP_HTML_LANG, resolveCountry } from "@/lib/mvp-config";
+import { MobileActionBar } from "@/components/layout/mobile-action-bar";
+import { AuthModalProvider } from "@/lib/auth/auth-modal-context";
 
 import localFont from "next/font/local";
 
@@ -21,10 +23,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const forum = Forum({
+const fraunces = Fraunces({
   variable: "--font-forum",
   subsets: ["latin"],
-  weight: "400",
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -96,12 +98,15 @@ export default async function RootLayout({
         <GoogleAnalytics />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${forum.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} antialiased pb-16 md:pb-0`}
       >
         <AuthProvider>
           <BrandProvider brandName={brandName}>
             <RegionProvider countryCode={countryCode}>
-              {children}
+              <AuthModalProvider>
+                {children}
+                <MobileActionBar />
+              </AuthModalProvider>
             </RegionProvider>
           </BrandProvider>
         </AuthProvider>

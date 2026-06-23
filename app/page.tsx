@@ -8,7 +8,7 @@ import { DynamicHero } from '@/components/home/dynamic-hero'
 import { TrendingStrip } from '@/components/home/trending-strip'
 import { CommunityFeed } from '@/components/home/community-feed'
 import { ListingWithImages } from '@/lib/types/database'
-import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
 import { getTranslations } from '@/lib/i18n'
 import { LOCK_TO_TECATE, resolveCountry } from '@/lib/mvp-config'
 
@@ -141,7 +141,7 @@ export default async function Home({ searchParams }: HomeProps) {
               )}
               <Link
                 href="/listings/new"
-                className="flex items-center gap-1.5 text-xs font-medium text-white bg-gray-900 hover:bg-gray-800 px-3 py-1.5 rounded-lg transition-colors"
+                className="hidden md:flex items-center gap-1.5 text-xs font-medium text-gray-700 border border-gray-200 hover:border-gray-400 hover:text-gray-900 px-3 py-1.5 rounded-lg transition-colors"
               >
                 <Plus className="h-3 w-3" />
                 Publicar
@@ -152,21 +152,17 @@ export default async function Home({ searchParams }: HomeProps) {
           {listings.length > 0 ? (
             <CommunityFeed initialListings={listings} />
           ) : (
-            <div className="text-center py-12">
-              <p className="text-sm text-gray-500 mb-4">
-                {userCountry && !isGlobal
-                  ? t.listings.noListingsInRegion
-                  : t.listings.noListings}
-              </p>
+            <EmptyState
+              message={userCountry && !isGlobal ? t.listings.noListingsInRegion : t.listings.noListings}
+              actionLabel={t.listings.postListing}
+              actionHref="/listings/new"
+            >
               {!LOCK_TO_TECATE && userCountry && !isGlobal && (
                 <Link href="/?global=1" className="text-sm text-blue-600 hover:underline block mb-4">
                   {t.listings.seeWorldwide}
                 </Link>
               )}
-              <Button asChild size="sm">
-                <Link href="/listings/new">{t.listings.postListing}</Link>
-              </Button>
-            </div>
+            </EmptyState>
           )}
         </div>
       </main>

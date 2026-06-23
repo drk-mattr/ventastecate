@@ -1,0 +1,8 @@
+name = "ventastecate-support-email"
+main = "src/index.js"
+compatibility_date = "2026-06-01"
+
+# FORWARD_TO is the inbox that receives a copy (must be a VERIFIED destination in
+# Cloudflare Email Routing). DISCORD_SUPPORT_WEBHOOK is set as a secret, not here.
+[vars]
+FORWARD_TO = "rovelo.ga@gmail.com"

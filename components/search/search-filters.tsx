@@ -19,6 +19,7 @@ interface SearchFiltersProps {
   initialMinPrice?: string
   initialMaxPrice?: string
   initialCountry?: string
+  onApply?: () => void
 }
 
 export function SearchFilters({
@@ -30,6 +31,7 @@ export function SearchFilters({
   initialMinPrice = '',
   initialMaxPrice = '',
   initialCountry,
+  onApply,
 }: SearchFiltersProps) {
   const t = useTranslations()
 
@@ -77,6 +79,7 @@ export function SearchFilters({
     if (initialCountry === 'all') params.set('country', 'all')
 
     router.push(`/search?${params.toString()}`)
+    onApply?.()
   }
 
   const handleReset = () => {
@@ -87,31 +90,46 @@ export function SearchFilters({
     setMaxPrice('')
     setGeoError(null)
     router.push('/search')
+    onApply?.()
   }
 
-  return (
-    <div className="border rounded-lg p-4 bg-white">
-      <h2 className="text-base font-semibold mb-4">{t.search.filters}</h2>
-      <div className="space-y-4">
+  const hasActiveFilters =
+    (category && category !== 'all') || !!location || !!minPrice || !!maxPrice || !!query
 
+  return (
+    <div className="rounded-xl border border-gray-100 bg-white p-5 lg:sticky lg:top-20">
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-sm font-semibold text-gray-900">{t.search.filters}</h2>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={handleReset}
+            className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+          >
+            {t.search.clear}
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-5">
         {/* Keyword */}
-        <div className="space-y-2">
-          <Label htmlFor="search-query" className="text-sm">{t.hero.search}</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="search-query" className="text-xs font-medium text-gray-500">{t.hero.search}</Label>
           <Input
             id="search-query"
             placeholder={t.search.keywords}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            className="h-9 text-sm"
+            className="h-10 text-sm"
           />
         </div>
 
         {/* Category */}
-        <div className="space-y-2">
-          <Label htmlFor="category" className="text-sm">{t.search.category}</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="category" className="text-xs font-medium text-gray-500">{t.search.category}</Label>
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="h-9 text-sm">
+            <SelectTrigger className="h-10 text-sm">
               <SelectValue placeholder={t.search.allCategories} />
             </SelectTrigger>
             <SelectContent>
@@ -126,8 +144,8 @@ export function SearchFilters({
         </div>
 
         {/* Location — free text + GPS detect button */}
-        <div className="space-y-2">
-          <Label htmlFor="location" className="text-sm">{t.search.location}</Label>
+        <div className="space-y-1.5">
+          <Label htmlFor="location" className="text-xs font-medium text-gray-500">{t.search.location}</Label>
           <div className="relative">
             <Input
               id="location"
@@ -135,14 +153,14 @@ export function SearchFilters({
               value={location}
               onChange={(e) => { setLocation(e.target.value); setGeoError(null) }}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="h-9 text-sm pr-9"
+              className="h-10 text-sm pr-9"
             />
             <button
               type="button"
               onClick={handleDetectLocation}
               disabled={geoLoading}
               title={t.search.useMyLocation}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 disabled:opacity-50 transition"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 disabled:opacity-50 transition"
             >
               {geoLoading
                 ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -156,37 +174,34 @@ export function SearchFilters({
         </div>
 
         {/* Price */}
-        <div className="space-y-2">
-          <Label className="text-sm">{t.search.price}</Label>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-gray-500">{t.search.price}</Label>
           <div className="grid grid-cols-2 gap-2">
             <Input
               type="number"
               placeholder={t.search.minPrice}
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value)}
-              className="h-9 text-sm"
+              className="h-10 text-sm"
             />
             <Input
               type="number"
               placeholder={t.search.maxPrice}
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
-              className="h-9 text-sm"
+              className="h-10 text-sm"
             />
           </div>
         </div>
-
-        {/* Actions */}
-        <div className="space-y-2 pt-2">
-          <Button onClick={handleSearch} className="w-full h-9 text-sm">
-            {t.search.applyFilters}
-          </Button>
-          <Button onClick={handleReset} variant="outline" className="w-full h-9 text-sm">
-            {t.search.clear}
-          </Button>
-        </div>
-
       </div>
+
+      <Button
+        onClick={handleSearch}
+        variant="outline"
+        className="w-full h-10 mt-6 rounded-lg text-sm font-medium"
+      >
+        {t.search.applyFilters}
+      </Button>
     </div>
   )
 }

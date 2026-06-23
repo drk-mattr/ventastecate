@@ -23,9 +23,14 @@ import {
   UtensilsCrossed, Star, AlertTriangle, Briefcase, Dog
 } from 'lucide-react'
 
+// Categories whose selection reveals structured real-estate fields. Values must
+// match the search/filter category values exactly (lib/i18n categories).
+const REAL_ESTATE_CATEGORIES = ['Casas en Renta', 'Casas en Venta', 'Terrenos']
+
 const PRODUCT_CATEGORIES = [
-  'Comida y Restaurantes', 'Electrónica', 'Muebles', 'Vehículos', 'Ropa', 'Deportes',
-  'Hogar', 'Juguetes', 'Libros', 'Mascotas', 'Otros',
+  'Comida', 'Electrónica', 'Muebles', 'Vehículos', 'Ropa', 'Deportes',
+  'Hogar', 'Juguetes', 'Libros', 'Mascotas',
+  'Casas en Renta', 'Casas en Venta', 'Terrenos', 'Otros',
 ]
 
 const SERVICE_CATEGORIES = [
@@ -49,7 +54,7 @@ const QUICK_SHORTCUTS: {
   accentBg: string
   accentBorder: string
 }[] = [
-  { label: 'Comida', Icon: UtensilsCrossed, type: 'product', category: 'Comida y Restaurantes', accent: 'text-red-600', accentBg: 'bg-red-50', accentBorder: 'border-red-200' },
+  { label: 'Comida', Icon: UtensilsCrossed, type: 'product', category: 'Comida', accent: 'text-red-600', accentBg: 'bg-red-50', accentBorder: 'border-red-200' },
   { label: 'Reseña', Icon: Star, type: 'news', category: 'Reseñas y Recomendaciones', accent: 'text-amber-600', accentBg: 'bg-amber-50', accentBorder: 'border-amber-200' },
   { label: 'Empleo', Icon: Briefcase, type: 'news', category: 'Empleos', accent: 'text-indigo-600', accentBg: 'bg-indigo-50', accentBorder: 'border-indigo-200' },
   { label: 'Perdido', Icon: Dog, type: 'news', category: 'Objetos Perdidos', accent: 'text-pink-600', accentBg: 'bg-pink-50', accentBorder: 'border-pink-200' },
@@ -159,6 +164,11 @@ export default function NewListingPage() {
   const config = TYPE_CONFIG[listingType]
   const showPrice = listingType !== 'news'
 
+  // Structured fields are driven by the selected CATEGORY (available to everyone),
+  // or by an active typed store — not gated on owning a store.
+  const isRealEstate = storeType === 'real_estate' || REAL_ESTATE_CATEGORIES.includes(category)
+  const isAutomotive = storeType === 'automotive' || category === 'Vehículos'
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     addImages(files)
@@ -203,22 +213,27 @@ export default function NewListingPage() {
 
     try {
       let metadata = null
-      if (storeType === 'real_estate') {
+      if (isRealEstate) {
+        // Derive transaction/property from the chosen category when present.
+        const txn = category === 'Casas en Renta' ? 'renta'
+          : category === 'Casas en Venta' ? 'venta'
+          : transactionType
+        const prop = category === 'Terrenos' ? 'terreno' : propertyType
         metadata = {
           type: 'real_estate',
-          property_type: propertyType,
-          transaction_type: transactionType,
+          property_type: prop,
+          transaction_type: txn,
           ...(bedrooms && { bedrooms: parseInt(bedrooms) }),
           ...(bathrooms && { bathrooms: parseInt(bathrooms) }),
           ...(constructionM2 && { construction_m2: parseInt(constructionM2) }),
           ...(lotM2 && { lot_m2: parseInt(lotM2) }),
           ...(parkingSpots && { parking_spots: parseInt(parkingSpots) }),
         } as RealEstateMetadata
-      } else if (storeType === 'automotive') {
+      } else if (isAutomotive) {
         metadata = {
           type: 'automotive',
           make, model,
-          year: parseInt(year),
+          ...(year && { year: parseInt(year) }),
           ...(mileageKm && { mileage_km: parseInt(mileageKm) }),
           transmission, fuel_type: fuelType,
           ...(color && { color }),
@@ -226,11 +241,19 @@ export default function NewListingPage() {
         } as AutomotiveMetadata
       }
 
+      // Final category must match the search/filter values. For store users whose
+      // category select is hidden, derive it from the store's property/transaction.
       let finalCategory = category
-      if (storeType === 'real_estate') finalCategory = 'Inmuebles'
-      else if (storeType === 'automotive') finalCategory = 'Vehículos'
+      if (storeType === 'real_estate') {
+        finalCategory = propertyType === 'terreno'
+          ? 'Terrenos'
+          : transactionType === 'renta' ? 'Casas en Renta' : 'Casas en Venta'
+      } else if (storeType === 'automotive') {
+        finalCategory = 'Vehículos'
+      }
 
-      const finalPrice = listingType === 'news' ? 0 : priceConsultar ? 0 : parseFloat(price)
+      const parsedPrice = parseFloat(price)
+      const finalPrice = listingType === 'news' ? 0 : priceConsultar ? 0 : (Number.isFinite(parsedPrice) ? parsedPrice : 0)
 
       const { data: listing, error: listingError } = await supabase
         .from('listings')
@@ -550,16 +573,11 @@ export default function NewListingPage() {
                     </SelectContent>
                   </Select>
                 </div>
-              ) : (
-                <div className="space-y-1.5">
-                  <Label htmlFor="year" className="text-sm">Año *</Label>
-                  <Input id="year" type="number" min="1950" max="2027" value={year} onChange={(e) => setYear(e.target.value)} required placeholder="2024" />
-                </div>
-              )}
+              ) : null}
             </div>
 
             {/* Real Estate Fields */}
-            {storeType === 'real_estate' && (
+            {isRealEstate && (
               <>
                 <div className="space-y-1.5">
                   <Label className="text-sm">Tipo de Propiedad *</Label>
@@ -587,8 +605,12 @@ export default function NewListingPage() {
             )}
 
             {/* Automotive Fields */}
-            {storeType === 'automotive' && (
+            {isAutomotive && (
               <>
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Año *</Label>
+                  <Input type="number" min="1950" max="2027" value={year} onChange={(e) => setYear(e.target.value)} required placeholder="2024" />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5"><Label className="text-sm">Marca *</Label><Input value={make} onChange={(e) => setMake(e.target.value)} required placeholder="Toyota" /></div>
                   <div className="space-y-1.5"><Label className="text-sm">Modelo *</Label><Input value={model} onChange={(e) => setModel(e.target.value)} required placeholder="Tacoma" /></div>

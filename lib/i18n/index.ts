@@ -35,6 +35,11 @@ export type Translations = {
     storeMode: string
     publishAs: string
     createStore: string
+    myStores: string
+    noStoresYet: string
+    active: string
+    use: string
+    viewAllStores: string
   }
   search: {
     placeholder: string
@@ -295,6 +300,11 @@ const es: Translations = {
     storeMode: 'Modo tienda',
     publishAs: 'Publicar como yo',
     createStore: '+ Crear Tienda',
+    myStores: 'Mis Tiendas',
+    noStoresYet: 'Aún no tienes tiendas',
+    active: 'Activa',
+    use: 'Usar',
+    viewAllStores: 'Ver todas mis tiendas',
   },
   search: {
     placeholder: 'Buscar productos, servicios...',
@@ -342,6 +352,10 @@ const es: Translations = {
     { value: 'Juguetes', label: 'Juguetes' },
     { value: 'Libros', label: 'Libros' },
     { value: 'Mascotas', label: 'Mascotas' },
+    { value: 'Comida', label: 'Comida' },
+    { value: 'Casas en Renta', label: 'Casas en Renta' },
+    { value: 'Casas en Venta', label: 'Casas en Venta' },
+    { value: 'Terrenos', label: 'Terrenos' },
     { value: 'Servicios', label: 'Servicios' },
     { value: 'Eventos', label: 'Eventos' },
     { value: 'Noticias Locales', label: 'Noticias Locales' },
@@ -565,6 +579,11 @@ const tl: Translations = {
     storeMode: 'Store mode',
     publishAs: 'Post as myself',
     createStore: '+ Gumawa ng Store',
+    myStores: 'Mga Store Ko',
+    noStoresYet: 'Wala ka pang store',
+    active: 'Aktibo',
+    use: 'Gamitin',
+    viewAllStores: 'Tingnan lahat ng store',
   },
   search: {
     placeholder: 'Maghanap ng produkto, serbisyo...',
@@ -612,6 +631,10 @@ const tl: Translations = {
     { value: 'Juguetes', label: 'Laruan' },
     { value: 'Libros', label: 'Books' },
     { value: 'Mascotas', label: 'Pets' },
+    { value: 'Comida', label: 'Pagkain' },
+    { value: 'Casas en Renta', label: 'Bahay na Paupahan' },
+    { value: 'Casas en Venta', label: 'Bahay na Ipinagbibili' },
+    { value: 'Terrenos', label: 'Lupa' },
     { value: 'Servicios', label: 'Services' },
     { value: 'Eventos', label: 'Events' },
     { value: 'Noticias Locales', label: 'Local News' },
@@ -835,6 +858,11 @@ const en: Translations = {
     storeMode: 'Store mode',
     publishAs: 'Post as myself',
     createStore: '+ Create Store',
+    myStores: 'My Stores',
+    noStoresYet: 'You don\'t have any stores yet',
+    active: 'Active',
+    use: 'Use',
+    viewAllStores: 'View all my stores',
   },
   search: {
     placeholder: 'Search products, services...',
@@ -882,6 +910,10 @@ const en: Translations = {
     { value: 'Juguetes', label: 'Toys' },
     { value: 'Libros', label: 'Books' },
     { value: 'Mascotas', label: 'Pets' },
+    { value: 'Comida', label: 'Food' },
+    { value: 'Casas en Renta', label: 'Houses for Rent' },
+    { value: 'Casas en Venta', label: 'Houses for Sale' },
+    { value: 'Terrenos', label: 'Land / Lots' },
     { value: 'Servicios', label: 'Services' },
     { value: 'Eventos', label: 'Events' },
     { value: 'Noticias Locales', label: 'Local News' },
@@ -1105,6 +1137,11 @@ const id: Translations = {
     storeMode: 'Mode toko',
     publishAs: 'Pasang sebagai saya',
     createStore: '+ Buat Toko',
+    myStores: 'Toko Saya',
+    noStoresYet: 'Belum ada toko',
+    active: 'Aktif',
+    use: 'Pakai',
+    viewAllStores: 'Lihat semua toko saya',
   },
   search: {
     placeholder: 'Cari produk, jasa...',
@@ -1152,6 +1189,10 @@ const id: Translations = {
     { value: 'Juguetes', label: 'Mainan' },
     { value: 'Libros', label: 'Buku' },
     { value: 'Mascotas', label: 'Hewan Peliharaan' },
+    { value: 'Comida', label: 'Makanan' },
+    { value: 'Casas en Renta', label: 'Rumah Disewakan' },
+    { value: 'Casas en Venta', label: 'Rumah Dijual' },
+    { value: 'Terrenos', label: 'Tanah' },
     { value: 'Servicios', label: 'Jasa' },
     { value: 'Eventos', label: 'Acara' },
     { value: 'Noticias Locales', label: 'Berita Lokal' },

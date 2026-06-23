@@ -9,7 +9,7 @@ export function Footer() {
   const t = useTranslations()
 
   return (
-    <footer className="border-t bg-gray-50 mt-auto">
+    <footer className="hidden md:block border-t bg-gray-50 mt-auto">
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-600">
           <p>© 2026 <span className="font-semibold">{brand}</span>. {t.footer.allRightsReserved}</p>

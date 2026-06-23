@@ -1,11 +1,12 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import Image from 'next/image'
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { FollowButton } from '@/components/user/follow-button'
 import { Button } from '@/components/ui/button'
+import { EmptyState } from '@/components/ui/empty-state'
+import { UserAvatar } from '@/components/ui/user-avatar'
 export default async function UserProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params
   const supabase = await createClient()
@@ -62,18 +63,7 @@ export default async function UserProfilePage({ params }: { params: Promise<{ us
         {/* Profile Header */}
         <div className="border-b pb-6 mb-6">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-            <div className="relative h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-semibold overflow-hidden">
-              {profile.avatar_url ? (
-                <Image
-                  src={profile.avatar_url}
-                  alt={profile.display_name}
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                profile.display_name[0].toUpperCase()
-              )}
-            </div>
+            <UserAvatar src={profile.avatar_url} name={profile.display_name} size="xl" />
             <div className="flex-1">
               <h1 className="text-2xl font-semibold mb-1">{profile.display_name}</h1>
               <p className="text-sm text-gray-600 mb-2">@{profile.username}</p>
@@ -114,18 +104,12 @@ export default async function UserProfilePage({ params }: { params: Promise<{ us
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-500">
-                {isOwnProfile
-                  ? 'No tienes anuncios activos'
-                  : 'Este usuario no tiene anuncios activos'}
-              </p>
-              {isOwnProfile && (
-                <Button asChild size="sm" className="mt-4">
-                  <Link href="/listings/new">Crear anuncio</Link>
-                </Button>
-              )}
-            </div>
+            <EmptyState
+              surface
+              message={isOwnProfile ? 'No tienes anuncios activos' : 'Este usuario no tiene anuncios activos'}
+              actionLabel={isOwnProfile ? 'Crear anuncio' : undefined}
+              actionHref={isOwnProfile ? '/listings/new' : undefined}
+            />
           )}
         </div>
       </main>

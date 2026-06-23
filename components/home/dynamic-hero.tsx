@@ -11,14 +11,12 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Label } from '@/components/ui/label'
-import { Search, X, MapPin, SlidersHorizontal } from 'lucide-react'
+import { Search, X, MapPin, SlidersHorizontal, ChevronDown } from 'lucide-react'
 
 
 export function DynamicHero() {
   const t = useTranslations()
-  // MVP: default the headline location to "Tecate" so the homepage reads as local
-  // ("...en Tecate") even before geolocation resolves. Unlocked, keep upstream behavior.
-  const [locationText, setLocationText] = useState<string | null>(LOCK_TO_TECATE ? 'Tecate' : null)
+  const [locationText, setLocationText] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
   const [location, setLocation] = useState('')
@@ -27,8 +25,20 @@ export function DynamicHero() {
   const [_detectedLocation, setDetectedLocation] = useState<string | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [activeType, setActiveType] = useState('all')
+  const [isMobile, setIsMobile] = useState(false)
+  const [casasOpen, setCasasOpen] = useState(false)
   const router = useRouter()
   const geoLocation = useGeolocation()
+
+  // On phones we hide the big headline and surface the tagline as the search
+  // placeholder instead, so the hero stays compact.
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const update = () => setIsMobile(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
 
   useEffect(() => {
     if (!geoLocation.latitude || !geoLocation.longitude || geoLocation.loading) return
@@ -87,7 +97,24 @@ export function DynamicHero() {
     router.push(`/search?${params.toString()}`)
   }
 
+  // Pills that filter by category (not by listing type). Key → DB category value.
+  const CATEGORY_SHORTCUTS: Record<string, string> = {
+    comida: 'Comida',
+    renta: 'Casas en Renta',
+    venta: 'Casas en Venta',
+    terrenos: 'Terrenos',
+  }
+
   const handleTypeFilter = (type: string) => {
+    // Category shortcuts navigate straight to a filtered search.
+    if (CATEGORY_SHORTCUTS[type]) {
+      const params = new URLSearchParams()
+      if (query) params.set('q', query)
+      if (location) params.set('location', location)
+      params.set('category', CATEGORY_SHORTCUTS[type])
+      router.push(`/search?${params.toString()}`)
+      return
+    }
     const next = activeType === type ? 'all' : type
     setActiveType(next)
     const params = new URLSearchParams()
@@ -113,10 +140,10 @@ export function DynamicHero() {
   }
 
   return (
-    <div className="bg-gray-50 border-b">
+    <div className="bg-gray-50">
       <div className="container mx-auto px-4 py-6">
-        <h1 className="text-2xl font-semibold text-center mb-5">
-          {locationText ? `${t.hero.tagline} ${locationText}` : t.hero.taglineBase}
+        <h1 className="hidden md:block text-2xl font-semibold text-center mb-5">
+          {!LOCK_TO_TECATE && locationText ? `${t.hero.tagline} ${locationText}` : t.hero.taglineBase}
         </h1>
 
         <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
@@ -125,7 +152,7 @@ export function DynamicHero() {
             <Search className="ml-3 h-4 w-4 text-gray-400 shrink-0 pointer-events-none" />
             <input
               type="search"
-              placeholder={t.hero.searchPlaceholder}
+              placeholder={isMobile ? t.hero.taglineBase : t.hero.searchPlaceholder}
               className="flex-1 h-full pl-2.5 pr-2 text-sm outline-none bg-transparent"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -204,7 +231,7 @@ export function DynamicHero() {
 
             <button
               type="submit"
-              className="h-full px-4 bg-gray-900 text-white text-xs font-medium shrink-0 hover:bg-gray-800 transition-colors"
+              className="h-full px-4 border-l border-gray-200 text-gray-900 text-xs font-semibold shrink-0 hover:text-gray-600 transition-colors"
             >
               {t.hero.search}
             </button>
@@ -219,12 +246,13 @@ export function DynamicHero() {
             { value: 'service', label: 'Servicios' },
             { value: 'event',   label: 'Eventos' },
             { value: 'news',    label: 'Noticias' },
+            { value: 'comida',  label: 'Comida' },
           ].map(({ value, label }) => (
             <button
               key={value}
               type="button"
               onClick={() => handleTypeFilter(value)}
-              className={`text-xs transition-colors
+              className={`text-xs py-1.5 px-1 transition-colors
                 ${activeType === value
                   ? 'text-gray-900 font-semibold underline underline-offset-2'
                   : 'text-gray-500 hover:text-gray-800'
@@ -233,6 +261,31 @@ export function DynamicHero() {
               {label}
             </button>
           ))}
+
+          {/* Casas — combined renta/venta dropdown */}
+          <Popover open={casasOpen} onOpenChange={setCasasOpen}>
+            <PopoverTrigger className="inline-flex items-center gap-0.5 text-xs py-1.5 px-1 text-gray-500 hover:text-gray-800 transition-colors">
+              Casas
+              <ChevronDown className="h-3 w-3 opacity-60" />
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-36 p-1">
+              <button type="button" className="block w-full text-left px-2.5 py-2 text-sm rounded-md hover:bg-gray-50" onClick={() => { setCasasOpen(false); handleTypeFilter('renta') }}>
+                En renta
+              </button>
+              <button type="button" className="block w-full text-left px-2.5 py-2 text-sm rounded-md hover:bg-gray-50" onClick={() => { setCasasOpen(false); handleTypeFilter('venta') }}>
+                En venta
+              </button>
+            </PopoverContent>
+          </Popover>
+
+          {/* Terrenos */}
+          <button
+            type="button"
+            onClick={() => handleTypeFilter('terrenos')}
+            className="text-xs py-1.5 px-1 text-gray-500 hover:text-gray-800 transition-colors"
+          >
+            Terrenos
+          </button>
         </div>
 
         {/* Active filter chips — location + category always visible when set */}

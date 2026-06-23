@@ -15,17 +15,21 @@ type AuthContextType = {
   refreshProfile: () => Promise<void>
   refreshStores: () => Promise<void>
   setActiveStore: (store: Store | null) => void
+  /** Store IDs ordered most-recently-used first (for ranking the dropdown). */
+  recentStoreIds: string[]
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const ACTIVE_STORE_KEY = 'ventastecate_active_store'
+const RECENT_STORES_KEY = 'ventastecate_recent_stores'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stores, setStores] = useState<Store[]>([])
   const [activeStore, setActiveStoreState] = useState<Store | null>(null)
+  const [recentStoreIds, setRecentStoreIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
@@ -48,6 +52,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const userStores = data || []
     setStores(userStores)
+
+    // Restore recently-used order, dropping any stores that no longer exist.
+    try {
+      const savedRecents = localStorage.getItem(RECENT_STORES_KEY)
+      if (savedRecents) {
+        const ids = (JSON.parse(savedRecents) as string[]).filter((id) =>
+          userStores.some((s) => s.id === id)
+        )
+        setRecentStoreIds(ids)
+      }
+    } catch {
+      // ignore localStorage errors
+    }
 
     // Restore active store from localStorage
     try {
@@ -82,6 +99,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setActiveStoreState(store)
     if (store) {
       localStorage.setItem(ACTIVE_STORE_KEY, JSON.stringify(store))
+      // Bump this store to the front of the most-recently-used list (cap 20).
+      setRecentStoreIds((prev) => {
+        const next = [store.id, ...prev.filter((id) => id !== store.id)].slice(0, 20)
+        try {
+          localStorage.setItem(RECENT_STORES_KEY, JSON.stringify(next))
+        } catch {
+          // ignore localStorage errors
+        }
+        return next
+      })
     } else {
       localStorage.removeItem(ACTIVE_STORE_KEY)
     }
@@ -131,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={{
       user, profile, stores, activeStore, loading,
-      signOut, refreshProfile, refreshStores, setActiveStore,
+      signOut, refreshProfile, refreshStores, setActiveStore, recentStoreIds,
     }}>
       {children}
     </AuthContext.Provider>

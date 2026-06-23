@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { sendMessageNotification } from '@/lib/email/resend'
 
 export async function POST(request: NextRequest) {
@@ -8,23 +9,14 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // Get the conversation details
-    const { data: conversation } = await supabase
-      .from('conversations')
-      .select(`
-        *,
-        listing:listings(id, title),
-        buyer:buyer_id(id, username, display_name, email),
-        seller:seller_id(id, username, display_name, email)
-      `)
-      .eq('id', conversationId)
-      .single()
-
-    if (!conversation) {
-      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+    // Auth: only the authenticated sender of this message may trigger its
+    // notification (prevents anyone from using this route to spam emails).
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get the message
+    // Get the message and verify the caller is its sender.
     const { data: message } = await supabase
       .from('messages')
       .select('*')
@@ -33,6 +25,25 @@ export async function POST(request: NextRequest) {
 
     if (!message) {
       return NextResponse.json({ error: 'Message not found' }, { status: 404 })
+    }
+    if (message.sender_id !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    // Get the conversation details (RLS ensures the user is a participant).
+    const { data: conversation } = await supabase
+      .from('conversations')
+      .select(`
+        *,
+        listing:listings(id, title),
+        buyer:buyer_id(id, username, display_name),
+        seller:seller_id(id, username, display_name)
+      `)
+      .eq('id', conversationId)
+      .single()
+
+    if (!conversation) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
     }
 
     // Get sender profile
@@ -43,12 +54,18 @@ export async function POST(request: NextRequest) {
       .single()
 
     // Determine recipient (opposite of sender)
-    const recipient = message.sender_id === conversation.buyer_id 
-      ? conversation.seller 
+    const recipient = message.sender_id === conversation.buyer_id
+      ? conversation.seller
       : conversation.buyer
 
-    // Get recipient's email from auth.users
-    const { data: { user: recipientUser } } = await supabase.auth.admin.getUserById(recipient.id)
+    // Recipient email lives in the private auth system — needs the service role.
+    const admin = createAdminClient()
+    if (!admin) {
+      console.warn('SUPABASE_SERVICE_ROLE_KEY not set; skipping email notification')
+      return NextResponse.json({ success: false, skipped: true })
+    }
+
+    const { data: { user: recipientUser } } = await admin.auth.admin.getUserById(recipient.id)
 
     if (!recipientUser?.email) {
       return NextResponse.json({ error: 'Recipient email not found' }, { status: 404 })

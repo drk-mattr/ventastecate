@@ -16,34 +16,63 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [sessionReady, setSessionReady] = useState(false)
+  // Link couldn't establish a recovery session (expired, already used, or opened
+  // on a different device than the one that requested the reset).
+  const [linkInvalid, setLinkInvalid] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
-    // Supabase will automatically exchange the token from the URL hash
-    // and establish a session. We listen for that event.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setSessionReady(true)
+    let resolved = false
+    let timeout: ReturnType<typeof setTimeout> | undefined
+    const markReady = () => {
+      resolved = true
+      setSessionReady(true)
+    }
+
+    // The browser client auto-exchanges the code/hash token from the recovery
+    // link (detectSessionInUrl) and fires this event once the session exists.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+        markReady()
       }
     })
 
-    // Also check if we already have a session (e.g. page refresh)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSessionReady(true)
+    const init = async () => {
+      // If Supabase bounced back with an error in the URL, surface it.
+      const params = new URLSearchParams(
+        window.location.search + window.location.hash.replace('#', '&')
+      )
+      if (params.get('error') || params.get('error_description')) {
+        resolved = true
+        setLinkInvalid(true)
+        return
       }
-    })
 
-    return () => subscription.unsubscribe()
+      // Catch the case where the exchange already happened before we subscribed.
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) markReady()
+
+      // Fallback: if no session materialises, the link is bad — stop spinning
+      // instead of leaving the user on "Verificando enlace..." forever.
+      timeout = setTimeout(() => {
+        if (!resolved) setLinkInvalid(true)
+      }, 7000)
+    }
+    init()
+
+    return () => {
+      subscription.unsubscribe()
+      if (timeout) clearTimeout(timeout)
+    }
   }, [supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
-    if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres')
+    if (password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres')
       return
     }
 
@@ -54,9 +83,7 @@ export default function ResetPasswordPage() {
 
     setLoading(true)
 
-    const { error } = await supabase.auth.updateUser({
-      password,
-    })
+    const { error } = await supabase.auth.updateUser({ password })
 
     if (error) {
       setError(error.message)
@@ -66,8 +93,38 @@ export default function ResetPasswordPage() {
       setLoading(false)
       setTimeout(() => {
         router.push('/')
+        router.refresh()
       }, 2000)
     }
+  }
+
+  // Invalid / expired link — give the user a way forward instead of a dead spinner.
+  if (linkInvalid) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Enlace no válido</CardTitle>
+            <CardDescription>
+              Este enlace para restablecer la contraseña expiró o ya fue utilizado.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Solicita un nuevo enlace para continuar.
+            </p>
+            <Button asChild className="w-full">
+              <Link href="/forgot-password">Solicitar nuevo enlace</Link>
+            </Button>
+            <div className="text-center text-sm">
+              <Link href="/login" className="text-blue-600 hover:underline">
+                Volver a Iniciar Sesión
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   if (!sessionReady) {
@@ -107,7 +164,8 @@ export default function ResetPasswordPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  placeholder="Mínimo 6 caracteres"
+                  minLength={8}
+                  placeholder="Mínimo 8 caracteres"
                 />
               </div>
               <div className="space-y-2">
@@ -118,6 +176,7 @@ export default function ResetPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
+                  minLength={8}
                   placeholder="Repite tu contraseña"
                 />
               </div>

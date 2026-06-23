@@ -196,7 +196,7 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
 
         {/* 5+ images: Airbnb-style with main image and thumbnail grid */}
         {images.length >= 5 && (
-          <div className="grid grid-cols-4 gap-2 h-[400px] rounded-lg overflow-hidden">
+          <div className="grid grid-cols-4 gap-2 h-[280px] sm:h-[400px] rounded-lg overflow-hidden">
             {/* Main Image - Takes 2 columns and full height */}
             <div className="col-span-2 row-span-2 relative bg-gray-100 cursor-pointer" onClick={() => openLightbox(0)}>
               <Image

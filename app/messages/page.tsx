@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { ChevronLeft } from 'lucide-react'
 
 function MessagesContent() {
   const { user } = useAuth()
@@ -29,6 +30,7 @@ function MessagesContent() {
 
   const listingId = searchParams.get('listing')
   const sellerId = searchParams.get('seller')
+  const conversationId = searchParams.get('conversation')
 
   useEffect(() => {
     if (!user) {
@@ -45,6 +47,15 @@ function MessagesContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listingId, sellerId, user])
+
+  // Deep link from email/notification: ?conversation=<id> opens that thread.
+  useEffect(() => {
+    if (conversationId && conversations.length > 0 && !selectedConversation) {
+      const match = conversations.find((c: any) => c.id === conversationId)
+      if (match) setSelectedConversation(match)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId, conversations])
 
   useEffect(() => {
     if (selectedConversation) {
@@ -187,9 +198,9 @@ function MessagesContent() {
       <main className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">{f.messagesTitle}</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[600px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[70vh] md:h-[600px]">
           {/* Conversations List */}
-          <Card className="md:col-span-1 overflow-hidden flex flex-col">
+          <Card className={`${selectedConversation ? 'hidden md:flex' : 'flex'} flex-col md:col-span-1 overflow-hidden`}>
             <div className="p-4 border-b">
               <h2 className="font-semibold">{f.conversationsTitle}</h2>
             </div>
@@ -246,12 +257,20 @@ function MessagesContent() {
           </Card>
 
           {/* Chat Area */}
-          <Card className="md:col-span-2 overflow-hidden flex flex-col">
+          <Card className={`${selectedConversation ? 'flex' : 'hidden md:flex'} flex-col md:col-span-2 overflow-hidden`}>
             {selectedConversation ? (
               <>
                 {/* Chat Header */}
                 <div className="p-4 border-b">
                   <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedConversation(null)}
+                      className="md:hidden -ml-1 p-1 text-gray-500 hover:text-gray-900"
+                      aria-label="Volver a conversaciones"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
                     <Avatar>
                       {(selectedConversation.buyer_id === user?.id
                         ? selectedConversation.seller?.avatar_url

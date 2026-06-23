@@ -2,12 +2,12 @@ import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
-import { SearchFilters } from '@/components/search/search-filters'
+import { SearchFilterBar } from '@/components/search/search-filter-bar'
 import { ListingWithImages } from '@/lib/types/database'
 import { getTranslations } from '@/lib/i18n'
+import { EmptyState } from '@/components/ui/empty-state'
 import { LOCK_TO_TECATE, MVP_COUNTRY, resolveCountry } from '@/lib/mvp-config'
 import Link from 'next/link'
-import { MapPin } from 'lucide-react'
 
 interface SearchPageProps {
   searchParams: Promise<{
@@ -21,12 +21,15 @@ interface SearchPageProps {
     sort?: string
     country?: string
     type?: string
+    bedrooms?: string
+    bathrooms?: string
+    m2?: string
   }>
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const supabase = await createClient()
-  const { q, category, location, city, stateRegion, minPrice, maxPrice, sort, country, type } = await searchParams
+  const { q, category, location, city, stateRegion, minPrice, maxPrice, sort, country, type, bedrooms, bathrooms, m2 } = await searchParams
 
   // Detect user country via Cloudflare header; resolveCountry() forces the MVP
   // market (MX) so border-town visitors on US IPs search Tecate listings.
@@ -110,7 +113,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   }
 
   const { data: listings } = await query.limit(50)
-  const listingsWithImages: ListingWithImages[] = listings || []
+
+  // Category-specific (metadata) facets — filtered in-memory. Real estate:
+  // recámaras / baños / m² minimums stored in the listing's jsonb metadata.
+  const listingsWithImages: ListingWithImages[] = (listings || []).filter((l) => {
+    const m = (l.metadata ?? {}) as Record<string, unknown>
+    if (bedrooms && Number(m.bedrooms ?? 0) < Number(bedrooms)) return false
+    if (bathrooms && Number(m.bathrooms ?? 0) < Number(bathrooms)) return false
+    if (m2 && Number(m.construction_m2 ?? 0) < Number(m2)) return false
+    return true
+  })
 
   // Build toggle URL (preserve other params, flip country)
   const toggleParams = new URLSearchParams()
@@ -132,62 +144,49 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     <div className="min-h-screen bg-white">
       <Header />
       <main className="container mx-auto px-4 py-4">
-        <div className="mb-6 flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold mb-1">
-              {q ? `"${q}"` : t.hero.search}
-            </h1>
-            <p className="text-sm text-gray-600">
-              {resultCount} {resultLabel}
-              {(location || city || stateRegion) && ` ${t.listings.in} ${location || city || stateRegion}`}
-              {!LOCK_TO_TECATE && effectiveCountry && !isGlobal && !location && !city && !stateRegion && ` ${t.listings.in} ${effectiveCountry}`}
-            </p>
-          </div>
-          {!LOCK_TO_TECATE && userCountry && (
-            <Link
-              href={toggleHref}
-              className="text-xs text-gray-500 hover:text-gray-700 transition-colors shrink-0 mt-1"
-            >
-              {isGlobal ? (
-                <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{t.listings.onlyIn} {userCountry}</span>
-              ) : t.listings.seeAll}
-            </Link>
-          )}
+        {/* Compact header */}
+        <div className="mb-3">
+          <h1 className="text-lg font-semibold leading-tight">
+            {q ? `"${q}"` : t.hero.search}
+          </h1>
+          <p className="text-xs text-gray-500">
+            {resultCount} {resultLabel}
+            {(location || city || stateRegion) && ` ${t.listings.in} ${location || city || stateRegion}`}
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <aside className="lg:col-span-1">
-            <SearchFilters
-              initialQuery={q}
-              initialCategory={category}
-              initialLocation={location}
-              initialCity={city}
-              initialStateRegion={stateRegion}
-              initialMinPrice={minPrice}
-              initialMaxPrice={maxPrice}
-              initialCountry={country}
-            />
-          </aside>
+        {/* Sticky horizontal filter bar */}
+        <div className="sticky top-14 z-30 bg-white -mx-4 px-4 py-2 mb-4 border-b border-gray-100">
+          <SearchFilterBar
+            query={q}
+            category={category}
+            location={location}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            sort={sort}
+            country={country}
+            bedrooms={bedrooms}
+            bathrooms={bathrooms}
+            m2={m2}
+          />
+        </div>
 
-          <div className="lg:col-span-3">
-            {listingsWithImages.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
-                {listingsWithImages.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-16 bg-gray-50 rounded-lg">
-                <p className="text-gray-500 mb-2">{t.listings.noResults}</p>
-                {!LOCK_TO_TECATE && effectiveCountry && !isGlobal && (
-                  <Link href={toggleHref} className="text-sm text-blue-600 hover:underline">
-                    {t.listings.searchWorldwide}
-                  </Link>
-                )}
-              </div>
+        {/* Full-width results grid */}
+        {listingsWithImages.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+            {listingsWithImages.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState message={t.listings.noResults}>
+            {!LOCK_TO_TECATE && effectiveCountry && !isGlobal && (
+              <Link href={toggleHref} className="text-sm text-blue-600 hover:underline">
+                {t.listings.searchWorldwide}
+              </Link>
             )}
-          </div>
-        </div>
+          </EmptyState>
+        )}
       </main>
     </div>
   )

@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
+import { UserAvatar } from '@/components/ui/user-avatar'
 import { Textarea } from '@/components/ui/textarea'
 import { ListingComment } from '@/lib/types/database'
 import { MessageCircle, Send } from 'lucide-react'
@@ -90,18 +90,12 @@ export function CommentSection({ listingId, initialComments, currentUserId }: Co
           {comments.map((comment) => (
             <div key={comment.id} className="flex gap-3">
               {/* Avatar */}
-              <div className="relative h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold overflow-hidden shrink-0 mt-0.5">
-                {comment.profile?.avatar_url ? (
-                  <Image
-                    src={comment.profile.avatar_url}
-                    alt={comment.profile.display_name || ''}
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <span>{(comment.profile?.display_name || '?')[0].toUpperCase()}</span>
-                )}
-              </div>
+              <UserAvatar
+                src={comment.profile?.avatar_url}
+                name={comment.profile?.display_name || '?'}
+                size="md"
+                className="mt-0.5"
+              />
 
               {/* Content */}
               <div className="flex-1 min-w-0">

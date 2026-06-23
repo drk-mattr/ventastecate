@@ -14,6 +14,15 @@ import { MapPin, Calendar, Newspaper, Store, Bed, Droplets, Ruler, Home, Car, Ga
 import { ListingEngagementBar } from '@/components/listings/listing-engagement-bar'
 import { VideoEmbed } from '@/components/listings/video-embed'
 
+// Serialize JSON-LD safely: escape characters that could break out of the
+// <script> tag (prevents stored XSS via user-controlled title/description).
+function safeJsonLd(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+}
+
 // Generate metadata for SEO
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params
@@ -231,7 +240,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       {/* JSON-LD Structured Data */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(structuredData) }}
       />
       <div className="min-h-screen bg-white">
         <Header />

@@ -93,16 +93,10 @@ export default async function Home({ searchParams }: HomeProps) {
             <CommunityFeed initialListings={listings} />
           ) : (
             <EmptyState
-              message={userCountry && !isGlobal ? t.listings.noListingsInRegion : t.listings.noListings}
-              actionLabel={t.listings.postListing}
-              actionHref="/listings/new"
-            >
-              {!LOCK_TO_TECATE && userCountry && !isGlobal && (
-                <Link href="/?global=1" className="text-sm text-blue-600 hover:underline block mb-4">
-                  {t.listings.seeWorldwide}
-                </Link>
-              )}
-            </EmptyState>
+              imageSrc="/box_empty.png"
+              imageAlt="Aún no hay anuncios"
+              message="Aún no se ha publicado nada en Tecate."
+            />
           )}
         </div>
       </main>

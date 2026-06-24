@@ -131,63 +131,67 @@ export function AuthForm({ initialMode = 'login', redirect = '/', onSuccess }: A
     }
   }
 
+  const inputClass = 'h-11 rounded-xl text-[15px]'
+  const labelClass = 'text-sm font-medium text-gray-700'
+  const accentLink = 'text-gray-900 font-medium underline-offset-2 hover:underline'
+
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-1">
+      <h2 className="text-2xl font-semibold tracking-tight mb-1">
         {mode === 'login' ? t.auth.loginTitle : t.auth.createAccount}
       </h2>
-      <p className="text-sm text-gray-500 mb-5">
+      <p className="text-sm text-gray-500 mb-6">
         {mode === 'login' ? t.auth.loginWelcome : t.auth.joinTagline}
       </p>
 
       {mode === 'login' ? (
         <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="auth-email">{t.auth.email}</Label>
-            <Input id="auth-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="tu@email.com" />
+          <div className="space-y-1.5">
+            <Label htmlFor="auth-email" className={labelClass}>{t.auth.email}</Label>
+            <Input id="auth-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="tu@email.com" className={inputClass} />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label htmlFor="auth-password">{t.auth.password}</Label>
-              <Link href="/forgot-password" className="text-xs text-blue-600 hover:underline">{t.auth.forgotPassword}</Link>
+              <Label htmlFor="auth-password" className={labelClass}>{t.auth.password}</Label>
+              <Link href="/forgot-password" className="text-xs text-gray-500 hover:text-gray-900 transition-colors">{t.auth.forgotPassword}</Link>
             </div>
-            <Input id="auth-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
+            <Input id="auth-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" className={inputClass} />
           </div>
-          {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded">{error}</div>}
-          <Button type="submit" className="w-full" disabled={loading}>
+          {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-xl">{error}</div>}
+          <Button type="submit" className="w-full h-11 rounded-xl text-sm font-medium" disabled={loading}>
             {loading ? t.auth.loggingIn : t.auth.loginTitle}
           </Button>
         </form>
       ) : (
         <form onSubmit={handleSignup} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="auth-email">{t.auth.email}</Label>
-            <Input id="auth-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="tu@email.com" />
+          <div className="space-y-1.5">
+            <Label htmlFor="auth-email" className={labelClass}>{t.auth.email}</Label>
+            <Input id="auth-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="tu@email.com" className={inputClass} />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="auth-name">{t.auth.displayName}</Label>
-            <Input id="auth-name" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required placeholder="Lady Tsunade" />
+          <div className="space-y-1.5">
+            <Label htmlFor="auth-name" className={labelClass}>{t.auth.displayName}</Label>
+            <Input id="auth-name" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required placeholder="Ej. Juan Pérez" className={inputClass} />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="auth-password">{t.auth.password}</Label>
-            <Input id="auth-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} placeholder="••••••••" />
-            <p className="text-xs text-gray-500">{t.auth.passwordHint}</p>
+          <div className="space-y-1.5">
+            <Label htmlFor="auth-password" className={labelClass}>{t.auth.password}</Label>
+            <Input id="auth-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} placeholder="••••••••" className={inputClass} />
+            <p className="text-xs text-gray-400">{t.auth.passwordHint}</p>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="auth-confirm">{t.auth.confirmPassword}</Label>
-            <Input id="auth-confirm" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} placeholder="••••••••" />
+          <div className="space-y-1.5">
+            <Label htmlFor="auth-confirm" className={labelClass}>{t.auth.confirmPassword}</Label>
+            <Input id="auth-confirm" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} placeholder="••••••••" className={inputClass} />
           </div>
-          <div className="flex items-start space-x-2">
-            <input type="checkbox" id="auth-terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="mt-1 h-4 w-4 rounded border-gray-300" required />
-            <label htmlFor="auth-terms" className="text-xs text-gray-600">
+          <div className="flex items-start gap-2.5 pt-1">
+            <input type="checkbox" id="auth-terms" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-gray-900" required />
+            <label htmlFor="auth-terms" className="text-xs text-gray-500 leading-relaxed">
               {t.auth.iAccept}{' '}
-              <Link href="/terms" target="_blank" className="text-blue-600 hover:underline">{t.auth.termsOfService}</Link>
+              <Link href="/terms" target="_blank" className="text-gray-900 hover:underline">{t.auth.termsOfService}</Link>
               {' '}{t.auth.and}{' '}
-              <Link href="/privacy" target="_blank" className="text-blue-600 hover:underline">{t.auth.privacyPolicy}</Link>
+              <Link href="/privacy" target="_blank" className="text-gray-900 hover:underline">{t.auth.privacyPolicy}</Link>
             </label>
           </div>
           {error && (
-            <div className="text-sm text-red-600 bg-red-50 p-3 rounded space-y-1">
+            <div className="text-sm text-red-600 bg-red-50 p-3 rounded-xl space-y-1">
               <p>{error}</p>
               {isDuplicateEmail && (
                 <p className="text-xs">
@@ -197,23 +201,23 @@ export function AuthForm({ initialMode = 'login', redirect = '/', onSuccess }: A
             </div>
           )}
           {success && (
-            <div className="text-sm text-green-600 bg-green-50 p-3 rounded space-y-2">
+            <div className="text-sm text-green-700 bg-green-50 p-3 rounded-xl space-y-2">
               <p className="font-semibold">{t.auth.accountCreated}</p>
               <p>{t.auth.checkEmailHint}</p>
               <p className="text-xs">{t.auth.spamHint}</p>
             </div>
           )}
-          <Button type="submit" className="w-full" disabled={loading || success}>
+          <Button type="submit" className="w-full h-11 rounded-xl text-sm font-medium" disabled={loading || success}>
             {loading ? t.auth.creating : success ? t.auth.checkEmail : t.auth.createAccount}
           </Button>
         </form>
       )}
 
-      <div className="mt-4 text-center text-sm">
+      <div className="mt-5 text-center text-sm text-gray-500">
         {mode === 'login' ? (
-          <>{t.auth.noAccount}{' '}<button type="button" onClick={() => switchMode('signup')} className="text-blue-600 hover:underline">{t.auth.signUpLink}</button></>
+          <>{t.auth.noAccount}{' '}<button type="button" onClick={() => switchMode('signup')} className={accentLink}>{t.auth.signUpLink}</button></>
         ) : (
-          <>{t.auth.alreadyHaveAccount}{' '}<button type="button" onClick={() => switchMode('login')} className="text-blue-600 hover:underline">{t.auth.signInLink}</button></>
+          <>{t.auth.alreadyHaveAccount}{' '}<button type="button" onClick={() => switchMode('login')} className={accentLink}>{t.auth.signInLink}</button></>
         )}
       </div>
     </div>

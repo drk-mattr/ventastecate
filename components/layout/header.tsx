@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useAuthModal } from '@/lib/auth/auth-modal-context'
+import { useReportModal } from '@/lib/report/report-modal-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
 import { Button } from '@/components/ui/button'
 import { HeaderSearch } from '@/components/search/header-search'
@@ -23,6 +24,7 @@ import { Check, Store, User, Menu, UserCircle, Tag, MessageCircle } from 'lucide
 export function Header() {
   const { user, profile, stores, activeStore, setActiveStore, signOut, loading, recentStoreIds } = useAuth()
   const { openAuth } = useAuthModal()
+  const { openReport } = useReportModal()
   const pathname = usePathname()
   const t = useTranslations()
   const isHomePage = pathname === '/'
@@ -183,8 +185,8 @@ export function Header() {
                   <DropdownMenuItem asChild className="text-xs">
                     <Link href="/profile/edit">{t.nav.settings}</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="text-xs">
-                    <Link href="/report">{t.nav.reportProblem}</Link>
+                  <DropdownMenuItem onClick={() => openReport()} className="text-xs">
+                    {t.nav.reportProblem}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => signOut()} className="text-xs">
                     {t.nav.logout}

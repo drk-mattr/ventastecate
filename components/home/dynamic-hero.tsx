@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Label } from '@/components/ui/label'
-import { Search, X, MapPin, SlidersHorizontal, ChevronDown } from 'lucide-react'
+import { Search, X, MapPin, SlidersHorizontal } from 'lucide-react'
 
 
 export function DynamicHero() {
@@ -26,7 +26,6 @@ export function DynamicHero() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [activeType, setActiveType] = useState('all')
   const [isMobile, setIsMobile] = useState(false)
-  const [casasOpen, setCasasOpen] = useState(false)
   const router = useRouter()
   const geoLocation = useGeolocation()
 
@@ -241,7 +240,7 @@ export function DynamicHero() {
         {/* Type quick-filter text links */}
         <div className="max-w-2xl mx-auto flex flex-wrap gap-x-4 gap-y-1 mt-3 justify-center">
           {[
-            { value: 'all',     label: 'General' },
+            { value: 'all',     label: 'Todo' },
             { value: 'product', label: 'Productos' },
             { value: 'service', label: 'Servicios' },
             { value: 'event',   label: 'Eventos' },
@@ -262,21 +261,25 @@ export function DynamicHero() {
             </button>
           ))}
 
-          {/* Casas — combined renta/venta dropdown */}
-          <Popover open={casasOpen} onOpenChange={setCasasOpen}>
-            <PopoverTrigger className="inline-flex items-center gap-0.5 text-xs py-1.5 px-1 text-gray-500 hover:text-gray-800 transition-colors">
-              Casas
-              <ChevronDown className="h-3 w-3 opacity-60" />
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-36 p-1">
-              <button type="button" className="block w-full text-left px-2.5 py-2 text-sm rounded-md hover:bg-gray-50" onClick={() => { setCasasOpen(false); handleTypeFilter('renta') }}>
-                En renta
-              </button>
-              <button type="button" className="block w-full text-left px-2.5 py-2 text-sm rounded-md hover:bg-gray-50" onClick={() => { setCasasOpen(false); handleTypeFilter('venta') }}>
-                En venta
-              </button>
-            </PopoverContent>
-          </Popover>
+          {/* Casas — flat, non-nested links (no dropdown) */}
+          <span className="inline-flex items-center gap-1.5 text-xs py-1.5">
+            <span className="text-gray-400">Casas:</span>
+            <button
+              type="button"
+              onClick={() => handleTypeFilter('renta')}
+              className={`transition-colors ${activeType === 'renta' ? 'text-gray-900 font-semibold underline underline-offset-2' : 'text-gray-500 hover:text-gray-800'}`}
+            >
+              Renta
+            </button>
+            <span className="text-gray-300">/</span>
+            <button
+              type="button"
+              onClick={() => handleTypeFilter('venta')}
+              className={`transition-colors ${activeType === 'venta' ? 'text-gray-900 font-semibold underline underline-offset-2' : 'text-gray-500 hover:text-gray-800'}`}
+            >
+              Venta
+            </button>
+          </span>
 
           {/* Terrenos */}
           <button

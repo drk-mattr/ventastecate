@@ -106,7 +106,7 @@ export function ReportListingButton({
             <p className="text-sm text-gray-500 mb-6">
               Recibimos tu reporte y lo revisaremos lo antes posible.
             </p>
-            <Button onClick={() => setOpen(false)} variant="outline" size="sm">
+            <Button onClick={() => setOpen(false)} variant="outline" size="sm" className="rounded-full px-5">
               Cerrar
             </Button>
           </div>
@@ -119,10 +119,10 @@ export function ReportListingButton({
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="report-reason">Motivo</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="report-reason" className="text-sm font-medium text-gray-700">Motivo</Label>
                 <Select value={reason} onValueChange={setReason}>
-                  <SelectTrigger id="report-reason">
+                  <SelectTrigger id="report-reason" className="h-11 rounded-xl">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -135,33 +135,35 @@ export function ReportListingButton({
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="report-details">Detalles (opcional)</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="report-details" className="text-sm font-medium text-gray-700">Detalles (opcional)</Label>
                 <Textarea
                   id="report-details"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe el problema con este anuncio..."
                   rows={3}
+                  className="rounded-xl"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="report-email">Email para seguimiento (opcional)</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="report-email" className="text-sm font-medium text-gray-700">Email para seguimiento (opcional)</Label>
                 <Input
                   id="report-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu@email.com"
+                  className="h-11 rounded-xl text-[15px]"
                 />
               </div>
 
               {error && (
-                <div className="text-sm text-red-600 bg-red-50 p-3 rounded">{error}</div>
+                <div className="text-sm text-red-600 bg-red-50 p-3 rounded-xl">{error}</div>
               )}
 
-              <Button type="submit" disabled={loading} className="w-full">
+              <Button type="submit" disabled={loading} className="w-full h-11 rounded-xl text-sm font-medium">
                 {loading ? 'Enviando...' : 'Enviar reporte'}
               </Button>
             </form>

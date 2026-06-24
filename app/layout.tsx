@@ -10,6 +10,7 @@ import { RegionProvider } from "@/lib/region-context";
 import { MVP_HTML_LANG, resolveCountry } from "@/lib/mvp-config";
 import { MobileActionBar } from "@/components/layout/mobile-action-bar";
 import { AuthModalProvider } from "@/lib/auth/auth-modal-context";
+import { ReportModalProvider } from "@/lib/report/report-modal-context";
 
 import localFont from "next/font/local";
 
@@ -104,8 +105,10 @@ export default async function RootLayout({
           <BrandProvider brandName={brandName}>
             <RegionProvider countryCode={countryCode}>
               <AuthModalProvider>
-                {children}
-                <MobileActionBar />
+                <ReportModalProvider>
+                  {children}
+                  <MobileActionBar />
+                </ReportModalProvider>
               </AuthModalProvider>
             </RegionProvider>
           </BrandProvider>

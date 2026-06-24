@@ -463,44 +463,46 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
         ) : (
-          /* ── Default layout: gallery above, 3-col grid below ── */
-          <>
-            <ListingImageGallery
-              images={sortedImages}
-              listingTitle={listing.title}
-              isSold={listing.status === 'sold'}
-              listingType={listingType}
-            />
+          /* ── Default layout: gallery left, sticky buy-box right ── */
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 lg:gap-8 items-start max-w-6xl mx-auto">
+            {/* Left Column — gallery + details */}
+            <div className="min-w-0 space-y-5">
+              <ListingImageGallery
+                images={sortedImages}
+                listingTitle={listing.title}
+                isSold={listing.status === 'sold'}
+                listingType={listingType}
+                actions={
+                  <ListingEngagementBar
+                    listingId={listing.id}
+                    likesCount={listing.likes_count ?? 0}
+                    savesCount={listing.saves_count ?? 0}
+                    variant="overlay"
+                  />
+                }
+              />
 
-            {/* Video embed */}
-            {listing.video_url && (
-              <div className="my-4 max-w-2xl">
-                <VideoEmbed url={listing.video_url} title={listing.title} />
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left Column - Description */}
-              <div className="lg:col-span-2 space-y-4">
-
-                {/* Title and Price */}
-                <div>
-                  <h1 className="text-2xl font-semibold mb-2 leading-snug">{listing.title}</h1>
-                  <p className="text-3xl font-bold text-gray-900 mb-4">{formattedPrice}</p>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-gray-500 pb-4 border-b">
-                    {listing.location && (
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 shrink-0" />{listing.location}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="h-3.5 w-3.5 shrink-0" />{formatPostedDate(listing.created_at)}
-                    </span>
-                    {listing.category && (
-                      <Badge variant="secondary" className="text-[11px] font-normal text-gray-600">{listing.category}</Badge>
-                    )}
-                  </div>
+              {/* Video embed */}
+              {listing.video_url && (
+                <div className="max-w-2xl">
+                  <VideoEmbed url={listing.video_url} title={listing.title} />
                 </div>
+              )}
+
+              {/* Mobile: title + price under the gallery (desktop shows these in the right buy-box) */}
+              <div className="lg:hidden">
+                <h1 className="text-xl font-semibold leading-snug mb-1">{listing.title}</h1>
+                <p className="text-2xl font-bold text-gray-900 mb-2">{formattedPrice}</p>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-gray-500">
+                  {listing.location && (
+                    <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 shrink-0" />{listing.location}</span>
+                  )}
+                  <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 shrink-0" />{formatPostedDate(listing.created_at)}</span>
+                  {listing.category && (
+                    <Badge variant="secondary" className="text-[11px] font-normal text-gray-600">{listing.category}</Badge>
+                  )}
+                </div>
+              </div>
 
                 {/* Specs Grid for specialized listings */}
                 {listing.metadata && (listing.metadata as ListingMetadata).type === 'real_estate' && (() => {
@@ -602,7 +604,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 })()}
 
                 {/* Description */}
-                <div className="pt-4">
+                <div className="pt-1">
                   <h2 className="text-base font-semibold mb-3">Descripción</h2>
                   <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{listing.description}</p>
                 </div>
@@ -610,83 +612,90 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 {/* Tagged business */}
                 {taggedBusinessCard}
 
-                {/* Engagement bar */}
-                <ListingEngagementBar
-                  listingId={listing.id}
-                  likesCount={listing.likes_count ?? 0}
-                  savesCount={listing.saves_count ?? 0}
-                />
-
                 {/* Comments */}
                 <CommentSection
                   listingId={listing.id}
                   initialComments={comments}
                   currentUserId={user?.id ?? null}
                 />
-              </div>
-
-              {/* Right Column - Seller Info */}
-              <div>
-                <div className="border rounded-xl p-6 sticky top-4">
-                  <h3 className="text-base font-semibold mb-4">
-                    {isService ? 'Proveedor' : 'Vendedor'}
-                  </h3>
-
-                  {listing.store ? (
-                    <div className="flex items-center gap-3 mb-6">
-                      <Link href={`/stores/${listing.store.slug}`} className="relative h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden shrink-0">
-                        {listing.store.avatar_url ? (
-                          <Image src={listing.store.avatar_url} alt={listing.store.name} fill className="object-cover" />
-                        ) : <Store className="h-6 w-6 text-gray-400" />}
-                      </Link>
-                      <div>
-                        <Link href={`/stores/${listing.store.slug}`} className="font-semibold hover:underline">
-                          {listing.store.name}
-                        </Link>
-                        <p className="text-xs text-gray-500">{listing.store.location || 'Tienda'}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="relative h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center text-lg font-semibold overflow-hidden">
-                        {listing.profile.avatar_url ? (
-                          <Image src={listing.profile.avatar_url} alt={listing.profile.display_name} fill className="object-cover" />
-                        ) : listing.profile.display_name[0].toUpperCase()}
-                      </div>
-                      <div>
-                        <Link href={`/users/${listing.profile.username}`} className="font-semibold hover:underline">
-                          {listing.profile.display_name}
-                        </Link>
-                        <p className="text-sm text-gray-500">@{listing.profile.username}</p>
-                        <p className="text-xs text-gray-400">Desde {memberSince}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {!isOwner && listing.status === 'active' && user && (
-                    <Button asChild className="w-full">
-                      <Link href={`/messages?listing=${listing.id}&seller=${listing.user_id}`}>
-                        {isService ? 'Contactar' : 'Contactar Vendedor'}
-                      </Link>
-                    </Button>
-                  )}
-                  {!isOwner && listing.status === 'active' && !user && (
-                    <Button asChild className="w-full">
-                      <Link href="/login">Iniciar sesión para contactar</Link>
-                    </Button>
-                  )}
-                  {isOwner && (
-                    <div className="space-y-2">
-                      <Button asChild className="w-full" variant="outline">
-                        <Link href={`/listings/${listing.id}/edit`}>Editar Anuncio</Link>
-                      </Button>
-                      <p className="text-sm text-center text-gray-500 mt-4">Este es tu anuncio</p>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
-          </>
+
+            {/* Right Column — sticky buy-box: title, price, meta, seller, contact */}
+            <aside className="lg:sticky lg:top-4">
+              <div className="border rounded-xl p-5">
+                {/* Title/price/meta — desktop only; mobile shows them under the gallery */}
+                <div className="hidden lg:block">
+                  <h1 className="text-xl font-semibold leading-snug mb-1.5">{listing.title}</h1>
+                  <p className="text-2xl font-bold text-gray-900 mb-3">{formattedPrice}</p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-gray-500 pb-4 border-b">
+                    {listing.location && (
+                      <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 shrink-0" />{listing.location}</span>
+                    )}
+                    <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 shrink-0" />{formatPostedDate(listing.created_at)}</span>
+                    {listing.category && (
+                      <Badge variant="secondary" className="text-[11px] font-normal text-gray-600">{listing.category}</Badge>
+                    )}
+                  </div>
+                </div>
+
+                <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide lg:mt-4 mb-3">
+                  {isService ? 'Proveedor' : 'Vendedor'}
+                </p>
+
+                {listing.store ? (
+                  <div className="flex items-center gap-3 mb-4">
+                    <Link href={`/stores/${listing.store.slug}`} className="relative h-11 w-11 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden shrink-0">
+                      {listing.store.avatar_url ? (
+                        <Image src={listing.store.avatar_url} alt={listing.store.name} fill className="object-cover" />
+                      ) : <Store className="h-5 w-5 text-gray-400" />}
+                    </Link>
+                    <div className="min-w-0">
+                      <Link href={`/stores/${listing.store.slug}`} className="text-sm font-semibold hover:underline block truncate">
+                        {listing.store.name}
+                      </Link>
+                      <p className="text-xs text-gray-500 truncate">{listing.store.location || 'Tienda'}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="relative h-11 w-11 rounded-full bg-gray-200 flex items-center justify-center text-base font-semibold overflow-hidden shrink-0">
+                      {listing.profile.avatar_url ? (
+                        <Image src={listing.profile.avatar_url} alt={listing.profile.display_name} fill className="object-cover" />
+                      ) : listing.profile.display_name[0].toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <Link href={`/users/${listing.profile.username}`} className="text-sm font-semibold hover:underline block truncate">
+                        {listing.profile.display_name}
+                      </Link>
+                      <p className="text-xs text-gray-500 truncate">@{listing.profile.username}</p>
+                      <p className="text-xs text-gray-400">Desde {memberSince}</p>
+                    </div>
+                  </div>
+                )}
+
+                {!isOwner && listing.status === 'active' && user && (
+                  <Button asChild className="w-full">
+                    <Link href={`/messages?listing=${listing.id}&seller=${listing.user_id}`}>
+                      {isService ? 'Contactar' : 'Contactar Vendedor'}
+                    </Link>
+                  </Button>
+                )}
+                {!isOwner && listing.status === 'active' && !user && (
+                  <Button asChild className="w-full">
+                    <Link href="/login">Iniciar sesión para contactar</Link>
+                  </Button>
+                )}
+                {isOwner && (
+                  <div className="space-y-2">
+                    <Button asChild className="w-full" variant="outline">
+                      <Link href={`/listings/${listing.id}/edit`}>Editar Anuncio</Link>
+                    </Button>
+                    <p className="text-sm text-center text-gray-500">Este es tu anuncio</p>
+                  </div>
+                )}
+              </div>
+            </aside>
+          </div>
         )}
 
         {!isOwner && (

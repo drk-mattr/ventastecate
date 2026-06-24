@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { ImageLightbox } from './image-lightbox'
 import { ListingType } from '@/lib/types/database'
 
@@ -13,20 +12,16 @@ interface ListingImageGalleryProps {
   isSold: boolean
   listingType?: ListingType
   variant?: 'default' | 'side'
+  /** Floating actions (like/save/share) rendered over the hero's top-right. */
+  actions?: React.ReactNode
 }
 
-const HERO_GRADIENTS: Record<string, string> = {
-  service: 'from-blue-600 to-blue-800',
-  event: 'from-amber-500 to-orange-600',
-  product: 'from-gray-500 to-gray-700',
-}
-
-export function ListingImageGallery({ images, listingTitle, isSold, listingType = 'product', variant = 'default' }: ListingImageGalleryProps) {
+export function ListingImageGallery({ images, listingTitle, isSold, listingType = 'product', variant = 'default', actions }: ListingImageGalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
-  const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [selected, setSelected] = useState(0)
 
   const openLightbox = (index: number) => {
-    setLightboxIndex(index)
+    setSelected(index)
     setLightboxOpen(true)
   }
 
@@ -36,11 +31,16 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
     return <div className="mb-6" />
   }
 
-  // Event/poster layout: show flyer in full
+  const soldOverlay = isSold ? (
+    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+      <Badge variant="secondary" className="text-sm">Vendido</Badge>
+    </div>
+  ) : null
+
+  // ── Event / poster layout: show the flyer in full, thumbs below ──
   if (isEvent) {
     const posterContent = (
       <>
-        {/* Primary flyer — full display, no crop */}
         <div className="relative rounded-xl overflow-hidden bg-gray-50 border cursor-pointer" onClick={() => openLightbox(0)}>
           <Image
             src={images[0].image_url}
@@ -50,13 +50,8 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
             className="w-full h-auto hover:opacity-95 transition-opacity"
             priority
           />
-          {isSold && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <Badge variant="secondary" className="text-sm">Vendido</Badge>
-            </div>
-          )}
+          {soldOverlay}
         </div>
-        {/* Additional images as thumbnails below */}
         {images.length > 1 && (
           <div className="flex gap-2 mt-2 overflow-x-auto">
             {images.slice(1).map((image, idx) => (
@@ -83,172 +78,77 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
           </div>
         )}
         {lightboxOpen && (
-          <ImageLightbox images={images} initialIndex={lightboxIndex} onClose={() => setLightboxOpen(false)} />
+          <ImageLightbox images={images} initialIndex={selected} onClose={() => setLightboxOpen(false)} />
         )}
       </>
     )
   }
 
+  // ── Hero image + thumbnail strip (FB Marketplace / OfferUp style) ──
+  const heroIdx = images[selected] ? selected : 0
+  const hero = images[heroIdx]
+
   return (
     <>
-      <div className="relative mb-6">
-        {/* 1 image: Single large image */}
-        {images.length === 1 && (
-          <div className="h-[400px] rounded-xl overflow-hidden relative bg-gray-100 cursor-pointer" onClick={() => openLightbox(0)}>
-            <Image
-              src={images[0].image_url}
-              alt={listingTitle}
-              fill
-              className="object-cover hover:opacity-95 transition-opacity"
-              priority
-            />
-            {isSold && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <Badge variant="secondary" className="text-sm">
-                  Vendido
-                </Badge>
-              </div>
-            )}
-          </div>
-        )}
+      <div className="mb-6">
+        {/* Hero — full image at natural ratio, letterboxed on a soft blurred fill */}
+        <div
+          className="relative aspect-square sm:aspect-auto sm:h-[460px] rounded-xl overflow-hidden bg-gray-100 cursor-pointer"
+          onClick={() => openLightbox(heroIdx)}
+        >
+          {/* Blurred backdrop fills the letterbox area */}
+          <Image
+            src={hero.image_url}
+            alt=""
+            aria-hidden
+            fill
+            className="object-cover scale-110 blur-2xl opacity-30"
+            sizes="(max-width: 1024px) 100vw, 55vw"
+          />
+          {/* The actual image — never cropped or stretched */}
+          <Image
+            src={hero.image_url}
+            alt={listingTitle}
+            fill
+            className="object-contain transition-opacity hover:opacity-[0.98]"
+            sizes="(max-width: 1024px) 100vw, 55vw"
+            priority
+          />
+          {soldOverlay}
+          {actions && (
+            <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
+              {actions}
+            </div>
+          )}
+          {images.length > 1 && (
+            <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[11px] px-2 py-0.5 rounded-full">
+              {heroIdx + 1} / {images.length}
+            </div>
+          )}
+        </div>
 
-        {/* 2 images: Split evenly */}
-        {images.length === 2 && (
-          <div className="grid grid-cols-2 gap-2 h-[400px] rounded-xl overflow-hidden">
+        {/* Thumbnail strip */}
+        {images.length > 1 && (
+          <div className="flex gap-2 mt-2 overflow-x-auto pb-1 -mx-1 px-1">
             {images.map((image, idx) => (
-              <div key={image.id} className="relative bg-gray-100 cursor-pointer" onClick={() => openLightbox(idx)}>
-                <Image
-                  src={image.image_url}
-                  alt={listingTitle}
-                  fill
-                  className="object-cover hover:opacity-95 transition-opacity"
-                  priority={idx === 0}
-                />
-                {idx === 0 && isSold && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <Badge variant="secondary" className="text-sm">
-                      Vendido
-                    </Badge>
-                  </div>
-                )}
-              </div>
+              <button
+                key={image.id}
+                type="button"
+                onClick={() => setSelected(idx)}
+                aria-label={`Ver imagen ${idx + 1}`}
+                className={`relative h-16 w-16 sm:h-[72px] sm:w-[72px] shrink-0 rounded-lg overflow-hidden transition-all ${
+                  idx === heroIdx ? 'ring-2 ring-gray-900' : 'opacity-70 hover:opacity-100'
+                }`}
+              >
+                <Image src={image.image_url} alt="" fill className="object-cover" sizes="72px" />
+              </button>
             ))}
-          </div>
-        )}
-
-        {/* 3 images: Main image left, 2 stacked right */}
-        {images.length === 3 && (
-          <div className="grid grid-cols-2 gap-2 h-[400px] rounded-xl overflow-hidden">
-            <div className="relative bg-gray-100 cursor-pointer" onClick={() => openLightbox(0)}>
-              <Image
-                src={images[0].image_url}
-                alt={listingTitle}
-                fill
-                className="object-cover hover:opacity-95 transition-opacity"
-                priority
-              />
-              {isSold && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                  <Badge variant="secondary" className="text-sm">
-                    Vendido
-                  </Badge>
-                </div>
-              )}
-            </div>
-            <div className="grid grid-rows-2 gap-2">
-              {images.slice(1, 3).map((image, idx) => (
-                <div key={image.id} className="relative bg-gray-100 cursor-pointer" onClick={() => openLightbox(idx + 1)}>
-                  <Image
-                    src={image.image_url}
-                    alt={listingTitle}
-                    fill
-                    className="object-cover hover:opacity-95 transition-opacity"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 4 images: 2x2 grid */}
-        {images.length === 4 && (
-          <div className="grid grid-cols-2 gap-2 h-[400px] rounded-xl overflow-hidden">
-            {images.map((image, idx) => (
-              <div key={image.id} className="relative bg-gray-100 cursor-pointer" onClick={() => openLightbox(idx)}>
-                <Image
-                  src={image.image_url}
-                  alt={listingTitle}
-                  fill
-                  className="object-cover hover:opacity-95 transition-opacity"
-                  priority={idx === 0}
-                />
-                {idx === 0 && isSold && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <Badge variant="secondary" className="text-sm">
-                      Vendido
-                    </Badge>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 5+ images: Airbnb-style with main image and thumbnail grid */}
-        {images.length >= 5 && (
-          <div className="grid grid-cols-4 gap-2 h-[280px] sm:h-[400px] rounded-xl overflow-hidden">
-            {/* Main Image - Takes 2 columns and full height */}
-            <div className="col-span-2 row-span-2 relative bg-gray-100 cursor-pointer" onClick={() => openLightbox(0)}>
-              <Image
-                src={images[0].image_url}
-                alt={listingTitle}
-                fill
-                className="object-cover hover:opacity-95 transition-opacity"
-                priority
-              />
-              {isSold && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                  <Badge variant="secondary" className="text-sm">
-                    Vendido
-                  </Badge>
-                </div>
-              )}
-            </div>
-            {/* Thumbnail grid - 2 columns, 2 rows */}
-            {images.slice(1, 5).map((image, idx) => (
-              <div key={image.id} className="relative bg-gray-100 cursor-pointer" onClick={() => openLightbox(idx + 1)}>
-                <Image
-                  src={image.image_url}
-                  alt={listingTitle}
-                  fill
-                  className="object-cover hover:opacity-95 transition-opacity"
-                />
-              </div>
-            ))}
-            {/* Show more button if there are more than 5 images */}
-            {images.length > 5 && (
-              <div className="absolute bottom-4 right-4">
-                <Button 
-                  size="sm" 
-                  variant="secondary" 
-                  className="bg-white/90 hover:bg-white"
-                  onClick={() => openLightbox(0)}
-                >
-                  Ver todas las fotos ({images.length})
-                </Button>
-              </div>
-            )}
           </div>
         )}
       </div>
 
-      {/* Lightbox Modal */}
       {lightboxOpen && (
-        <ImageLightbox
-          images={images}
-          initialIndex={lightboxIndex}
-          onClose={() => setLightboxOpen(false)}
-        />
+        <ImageLightbox images={images} initialIndex={selected} onClose={() => setLightboxOpen(false)} />
       )}
     </>
   )

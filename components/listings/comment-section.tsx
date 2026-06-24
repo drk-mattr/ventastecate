@@ -130,8 +130,8 @@ export function CommentSection({ listingId, initialComments, currentUserId }: Co
         </div>
       )}
 
-      {/* Comment form */}
-      {currentUserId ? (
+      {/* Comment form — only shown to signed-in users */}
+      {currentUserId && (
         <form onSubmit={handleSubmit} className="space-y-2">
           <Textarea
             value={content}
@@ -155,13 +155,6 @@ export function CommentSection({ listingId, initialComments, currentUserId }: Co
           </div>
           {error && <p className="text-xs text-red-600">{error}</p>}
         </form>
-      ) : (
-        <div className="bg-gray-50 rounded-lg p-4 text-center">
-          <p className="text-sm text-gray-600 mb-3">Inicia sesión para comentar</p>
-          <Button asChild size="sm" variant="outline">
-            <Link href="/login">Iniciar Sesión</Link>
-          </Button>
-        </div>
       )}
     </section>
   )

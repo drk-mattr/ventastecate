@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { RealEstateMetadata, AutomotiveMetadata, ListingMetadata, ListingType } from '@/lib/types/database'
+import { firstListingError } from '@/lib/validation'
 import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
 
@@ -231,6 +232,16 @@ export default function EditListingPage() {
     setError('')
 
     try {
+      const finalPrice = priceConsultar ? 0 : parseFloat(price)
+
+      // Validate user input before touching the DB.
+      const validationError = firstListingError({ title, description, price: finalPrice })
+      if (validationError) {
+        setError(validationError)
+        setLoading(false)
+        return
+      }
+
       // Build metadata
       let metadata: ListingMetadata | null = null
       if (metadataType === 'real_estate') {
@@ -264,7 +275,7 @@ export default function EditListingPage() {
         .update({
           title,
           description,
-          price: priceConsultar ? 0 : parseFloat(price),
+          price: finalPrice,
           category,
           location,
           city: city || null,
@@ -278,12 +289,46 @@ export default function EditListingPage() {
 
       if (updateError) throw updateError
 
-      // Remove deleted images
+      // Upload new images FIRST — only delete the removed ones once the new
+      // uploads have succeeded, so a failed upload can't destroy existing images.
+      if (newImages.length > 0) {
+        const keptImages = existingImages.filter(img => !removedImageIds.includes(img.id))
+        const orderStart = keptImages.length
+        const uploadedPaths: string[] = []
+
+        try {
+          await Promise.all(newImages.map(async (file, index) => {
+            const fileExt = file.name.split('.').pop()
+            const fileName = `${user.id}/${id}/${Date.now()}-${index}.${fileExt}`
+
+            const { error: uploadError } = await supabase.storage
+              .from('listing-images')
+              .upload(fileName, file)
+            if (uploadError) throw uploadError
+            uploadedPaths.push(fileName)
+
+            const { data: { publicUrl } } = supabase.storage
+              .from('listing-images')
+              .getPublicUrl(fileName)
+
+            const { error: imgInsertError } = await supabase
+              .from('listing_images')
+              .insert({ listing_id: id, image_url: publicUrl, order_index: orderStart + index })
+            if (imgInsertError) throw imgInsertError
+          }))
+        } catch (imgErr) {
+          // Roll back the partial upload and leave existing images untouched.
+          if (uploadedPaths.length > 0) {
+            await supabase.storage.from('listing-images').remove(uploadedPaths).catch(() => {})
+          }
+          throw imgErr
+        }
+      }
+
+      // Now that new images are safely stored, remove the deleted ones.
       if (removedImageIds.length > 0) {
-        // Get URLs for storage deletion
         const toRemove = existingImages.filter(img => removedImageIds.includes(img.id))
 
-        // Delete from storage
         for (const img of toRemove) {
           const path = img.image_url.split('/listing-images/')[1]
           if (path) {
@@ -291,42 +336,10 @@ export default function EditListingPage() {
           }
         }
 
-        // Delete from database
         await supabase
           .from('listing_images')
           .delete()
           .in('id', removedImageIds)
-      }
-
-      // Upload new images
-      if (newImages.length > 0) {
-        const keptImages = existingImages.filter(img => !removedImageIds.includes(img.id))
-        const orderStart = keptImages.length
-
-        const imageUploads = newImages.map(async (file, index) => {
-          const fileExt = file.name.split('.').pop()
-          const fileName = `${user.id}/${id}/${Date.now()}-${index}.${fileExt}`
-
-          const { error: uploadError } = await supabase.storage
-            .from('listing-images')
-            .upload(fileName, file)
-
-          if (uploadError) throw uploadError
-
-          const { data: { publicUrl } } = supabase.storage
-            .from('listing-images')
-            .getPublicUrl(fileName)
-
-          await supabase
-            .from('listing_images')
-            .insert({
-              listing_id: id,
-              image_url: publicUrl,
-              order_index: orderStart + index,
-            })
-        })
-
-        await Promise.all(imageUploads)
       }
 
       router.push(`/listings/${id}`)
@@ -582,6 +595,7 @@ export default function EditListingPage() {
                   <SelectContent>
                     <SelectItem value="active">{f.statusActive}</SelectItem>
                     <SelectItem value="sold">{f.statusSold}</SelectItem>
+                    <SelectItem value="inactive">{f.statusInactive}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

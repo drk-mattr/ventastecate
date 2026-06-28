@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RealEstateMetadata, AutomotiveMetadata, ListingType } from '@/lib/types/database'
+import { firstListingError } from '@/lib/validation'
 import Image from 'next/image'
 import { BusinessTagPicker } from '@/components/listings/business-tag-picker'
 import { Business } from '@/lib/types/database'
@@ -255,6 +256,19 @@ export default function NewListingPage() {
       const parsedPrice = parseFloat(price)
       const finalPrice = listingType === 'news' ? 0 : priceConsultar ? 0 : (Number.isFinite(parsedPrice) ? parsedPrice : 0)
 
+      // Validate user input before touching the DB.
+      const validationError = firstListingError({
+        title,
+        description,
+        price: finalPrice,
+        videoUrl: videoUrl || undefined,
+      })
+      if (validationError) {
+        setError(validationError)
+        setLoading(false)
+        return
+      }
+
       const { data: listing, error: listingError } = await supabase
         .from('listings')
         .insert({
@@ -287,15 +301,32 @@ export default function NewListingPage() {
       }
 
       if (images.length > 0) {
-        const imageUploads = images.map(async (file, index) => {
-          const fileExt = file.name.split('.').pop()
-          const fileName = `${user.id}/${listing.id}/${Date.now()}-${index}.${fileExt}`
-          const { error: uploadError } = await supabase.storage.from('listing-images').upload(fileName, file)
-          if (uploadError) throw uploadError
-          const { data: { publicUrl } } = supabase.storage.from('listing-images').getPublicUrl(fileName)
-          await supabase.from('listing_images').insert({ listing_id: listing.id, image_url: publicUrl, order_index: index })
-        })
-        await Promise.all(imageUploads)
+        // Track uploaded files so we can roll back if any upload/insert fails —
+        // otherwise a partial failure leaves an orphaned listing behind and the
+        // user retries, creating a duplicate.
+        const uploadedPaths: string[] = []
+        try {
+          await Promise.all(images.map(async (file, index) => {
+            const fileExt = file.name.split('.').pop()
+            const fileName = `${user.id}/${listing.id}/${Date.now()}-${index}.${fileExt}`
+            const { error: uploadError } = await supabase.storage.from('listing-images').upload(fileName, file)
+            if (uploadError) throw uploadError
+            uploadedPaths.push(fileName)
+            const { data: { publicUrl } } = supabase.storage.from('listing-images').getPublicUrl(fileName)
+            const { error: imgInsertError } = await supabase
+              .from('listing_images')
+              .insert({ listing_id: listing.id, image_url: publicUrl, order_index: index })
+            if (imgInsertError) throw imgInsertError
+          }))
+        } catch (imgErr) {
+          // Roll back uploaded files + the orphaned listing (cascade removes any
+          // image rows and the business tag) before surfacing the error.
+          if (uploadedPaths.length > 0) {
+            await supabase.storage.from('listing-images').remove(uploadedPaths).catch(() => {})
+          }
+          await supabase.from('listings').delete().eq('id', listing.id).eq('user_id', user.id)
+          throw imgErr
+        }
       }
 
       router.push(`/listings/${listing.id}`)

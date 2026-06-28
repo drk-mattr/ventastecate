@@ -70,13 +70,10 @@ function CardEngagement({ listing, inline = false }: { listing: ListingWithImage
     setLiked(!was)
     setLikesCount(prev => was ? Math.max(prev - 1, 0) : prev + 1)
     startTransition(async () => {
-      try {
-        if (was) {
-          await supabase.from('listing_likes').delete().eq('listing_id', listing.id).eq('user_id', user.id)
-        } else {
-          await supabase.from('listing_likes').insert({ listing_id: listing.id, user_id: user.id })
-        }
-      } catch { setLiked(was); setLikesCount(prev => was ? prev + 1 : Math.max(prev - 1, 0)) }
+      const { error } = was
+        ? await supabase.from('listing_likes').delete().eq('listing_id', listing.id).eq('user_id', user.id)
+        : await supabase.from('listing_likes').insert({ listing_id: listing.id, user_id: user.id })
+      if (error) { setLiked(was); setLikesCount(prev => was ? prev + 1 : Math.max(prev - 1, 0)) }
     })
   }
 
@@ -87,13 +84,10 @@ function CardEngagement({ listing, inline = false }: { listing: ListingWithImage
     const was = saved
     setSaved(!was)
     startTransition(async () => {
-      try {
-        if (was) {
-          await supabase.from('listing_saves').delete().eq('listing_id', listing.id).eq('user_id', user.id)
-        } else {
-          await supabase.from('listing_saves').insert({ listing_id: listing.id, user_id: user.id })
-        }
-      } catch { setSaved(was) }
+      const { error } = was
+        ? await supabase.from('listing_saves').delete().eq('listing_id', listing.id).eq('user_id', user.id)
+        : await supabase.from('listing_saves').insert({ listing_id: listing.id, user_id: user.id })
+      if (error) { setSaved(was) }
     })
   }
 

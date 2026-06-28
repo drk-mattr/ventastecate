@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { reportSchema } from '@/lib/validation'
+import { sanitizeDiscordText, sanitizeEmailForDisplay } from '@/lib/discord'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 const TYPE_LABELS: Record<string, string> = {
   bug: '🐛 Bug',
@@ -15,7 +18,21 @@ const TYPE_LABELS: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   try {
-    const { type, description, email, listingId, listingTitle } = await request.json()
+    // Rate-limit to curb webhook flooding of the moderation channel.
+    const ip = clientIp(request.headers)
+    const limit = rateLimit(`report:${ip}`, 10, 10 * 60 * 1000)
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: 'Demasiados envíos, intenta más tarde' },
+        { status: 429, headers: { 'Retry-After': String(limit.retryAfterSec) } }
+      )
+    }
+
+    const parsed = reportSchema.safeParse(await request.json())
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
+    }
+    const { type, description, email, listingId, listingTitle } = parsed.data
 
     // A listing report is identified by listingId; for those, a reason (type) is
     // enough and the description is optional. For general feedback, both type and
@@ -46,8 +63,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Error de configuración' }, { status: 500 })
     }
 
-    // Cloudflare geo headers
-    const ip       = request.headers.get('cf-connecting-ip') ?? request.headers.get('x-forwarded-for') ?? '—'
+    // Cloudflare geo headers (ip already resolved above)
     const country  = request.headers.get('cf-ipcountry') ?? '—'
     const city     = request.headers.get('cf-ipcity') ?? '—'
     const region   = request.headers.get('cf-region') ?? '—'
@@ -66,16 +82,16 @@ export async function POST(request: NextRequest) {
       title: isListingReport
         ? `🚩 Reporte de anuncio — Ventas Tecate`
         : `${TYPE_LABELS[type] || type} — Ventas Tecate`,
-      description: (description && String(description).slice(0, 2000)) || '—',
+      description: description ? sanitizeDiscordText(description, 2000) : '—',
       color: isListingReport ? 0xff4444 : type === 'bug' ? 0xff4444 : type === 'suggestion' ? 0x4488ff : 0x888888,
       fields: [
         ...(isListingReport ? [
-          { name: '🏷️ Anuncio',  value: (listingTitle ? String(listingTitle).slice(0, 200) : '—'), inline: false },
+          { name: '🏷️ Anuncio',  value: sanitizeDiscordText(listingTitle, 200), inline: false },
           { name: '🔗 Enlace',   value: listingUrl as string,  inline: false },
           { name: '🚩 Motivo',   value: TYPE_LABELS[type] || type, inline: true },
         ] : []),
-        { name: 'Usuario',       value: username,              inline: true },
-        ...(email ? [{ name: 'Email', value: email,            inline: true }] : []),
+        { name: 'Usuario',       value: sanitizeDiscordText(username, 100), inline: true },
+        ...(sanitizeEmailForDisplay(email) ? [{ name: 'Email', value: sanitizeEmailForDisplay(email)!, inline: true }] : []),
         { name: '📍 Ubicación',  value: locationStr,           inline: false },
         { name: '🌐 Zona Horaria', value: timezone,            inline: true },
         { name: '🖥️ IP',         value: `\`${ip}\``,           inline: true },

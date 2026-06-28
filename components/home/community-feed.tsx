@@ -8,13 +8,18 @@ import type { ListingWithImages } from '@/lib/types/database'
 
 interface CommunityFeedProps {
   initialListings: ListingWithImages[]
+  /** Override the grid classes (e.g. the search page uses a denser grid). */
+  className?: string
 }
+
+const DEFAULT_GRID =
+  'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5'
 
 /**
  * Client wrapper that hydrates listings with the current user's
  * like/save state, then renders the grid of ListingCards.
  */
-export function CommunityFeed({ initialListings }: CommunityFeedProps) {
+export function CommunityFeed({ initialListings, className }: CommunityFeedProps) {
   const { user } = useAuth()
   const [listings, setListings] = useState<ListingWithImages[]>(initialListings)
 
@@ -53,7 +58,7 @@ export function CommunityFeed({ initialListings }: CommunityFeedProps) {
   }, [user, initialListings])
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5">
+    <div className={className ?? DEFAULT_GRID}>
       {listings.map((listing) => (
         <ListingCard key={listing.id} listing={listing} />
       ))}

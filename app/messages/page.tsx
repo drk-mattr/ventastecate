@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
+import { messageContentSchema } from '@/lib/validation'
 import { Header } from '@/components/layout/header'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,6 +28,7 @@ function MessagesContent() {
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
+  const [sendError, setSendError] = useState('')
 
   const listingId = searchParams.get('listing')
   const sellerId = searchParams.get('seller')
@@ -68,7 +70,7 @@ function MessagesContent() {
   const fetchConversations = async () => {
     if (!user) return
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('conversations')
       .select(`
         *,
@@ -80,6 +82,7 @@ function MessagesContent() {
       .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
       .order('updated_at', { ascending: false })
 
+    if (error) console.error('Failed to load conversations:', error.message)
     setConversations(data || [])
     setLoading(false)
   }
@@ -87,6 +90,7 @@ function MessagesContent() {
   const createOrGetConversation = async (listingId: string, sellerId: string) => {
     if (!user || user.id === sellerId) return
 
+    // maybeSingle(): the "no existing conversation" case is normal, not an error.
     const { data: existing } = await supabase
       .from('conversations')
       .select(`
@@ -98,14 +102,14 @@ function MessagesContent() {
       .eq('listing_id', listingId)
       .eq('buyer_id', user.id)
       .eq('seller_id', sellerId)
-      .single()
+      .maybeSingle()
 
     if (existing) {
       setSelectedConversation(existing)
       return
     }
 
-    const { data: newConv } = await supabase
+    const { data: newConv, error: insertError } = await supabase
       .from('conversations')
       .insert({
         listing_id: listingId,
@@ -118,7 +122,15 @@ function MessagesContent() {
         buyer:buyer_id(id, username, display_name, avatar_url),
         seller:seller_id(id, username, display_name, avatar_url)
       `)
-      .single()
+      .maybeSingle()
+
+    if (insertError) {
+      // A unique-constraint hit means a concurrent run already created it —
+      // recover by re-fetching rather than dropping the user into a dead end.
+      console.error('Failed to start conversation:', insertError.message)
+      await fetchConversations()
+      return
+    }
 
     if (newConv) {
       setSelectedConversation(newConv)
@@ -139,46 +151,60 @@ function MessagesContent() {
   const markMessagesAsRead = async (conversationId: string) => {
     if (!user) return
 
-    await supabase
+    const { error } = await supabase
       .from('messages')
       .update({ read: true })
       .eq('conversation_id', conversationId)
       .neq('sender_id', user.id)
       .eq('read', false)
+
+    if (error) console.error('Failed to mark messages read:', error.message)
   }
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim() || !selectedConversation || !user) return
+    if (!selectedConversation || !user) return
+    setSendError('')
 
-    const { data } = await supabase
+    const parsed = messageContentSchema.safeParse(newMessage)
+    if (!parsed.success) {
+      setSendError(parsed.error.issues[0]?.message ?? 'Mensaje inválido')
+      return
+    }
+
+    const { data, error } = await supabase
       .from('messages')
       .insert({
         conversation_id: selectedConversation.id,
         sender_id: user.id,
-        content: newMessage,
+        content: parsed.data,
       })
       .select()
       .single()
 
-    if (data) {
-      setMessages([...messages, data])
-      setNewMessage('')
-
-      await supabase
-        .from('conversations')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('id', selectedConversation.id)
-
-      fetch('/api/send-message-notification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: selectedConversation.id,
-          messageId: data.id,
-        }),
-      }).catch(err => console.error('Failed to send email notification:', err))
+    if (error || !data) {
+      // Keep the text in the box so the user can retry.
+      setSendError('No se pudo enviar el mensaje. Inténtalo de nuevo.')
+      if (error) console.error('Failed to send message:', error.message)
+      return
     }
+
+    setMessages([...messages, data])
+    setNewMessage('')
+
+    await supabase
+      .from('conversations')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', selectedConversation.id)
+
+    fetch('/api/send-message-notification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversationId: selectedConversation.id,
+        messageId: data.id,
+      }),
+    }).catch(err => console.error('Failed to send email notification:', err))
   }
 
   if (loading) {
@@ -333,10 +359,13 @@ function MessagesContent() {
 
                 {/* Message Input */}
                 <form onSubmit={sendMessage} className="p-4 border-t">
+                  {sendError && (
+                    <p className="text-xs text-red-600 mb-2">{sendError}</p>
+                  )}
                   <div className="flex gap-2">
                     <Input
                       value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
+                      onChange={(e) => { setNewMessage(e.target.value); if (sendError) setSendError('') }}
                       placeholder={f.messagePlaceholder}
                       className="flex-1"
                     />

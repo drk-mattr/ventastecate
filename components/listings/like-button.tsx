@@ -46,20 +46,20 @@ export function LikeButton({ listingId, initialLiked, initialCount, size = 'sm' 
     }
 
     startTransition(async () => {
-      try {
-        if (wasLiked) {
-          await supabase
+      // Supabase resolves (doesn't throw) on DB/RLS errors — the failure is in
+      // the returned `error`, so we must check it explicitly to revert.
+      const { error } = wasLiked
+        ? await supabase
             .from('listing_likes')
             .delete()
             .eq('listing_id', listingId)
             .eq('user_id', user.id)
-        } else {
-          await supabase
+        : await supabase
             .from('listing_likes')
             .insert({ listing_id: listingId, user_id: user.id })
-        }
-      } catch {
-        // Revert on error
+
+      if (error) {
+        // Revert optimistic update
         setLiked(wasLiked)
         setCount(prev => wasLiked ? prev + 1 : Math.max(prev - 1, 0))
       }

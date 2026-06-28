@@ -174,9 +174,18 @@ create policy "Users can view their own conversations"
   on public.conversations for select
   using (auth.uid() = buyer_id or auth.uid() = seller_id);
 
+-- INSERT requires the seller to actually own the referenced listing, so a
+-- client can't attach an arbitrary user to a thread (and trigger emails to them).
 create policy "Authenticated users can create conversations"
   on public.conversations for insert
-  with check (auth.uid() = buyer_id);
+  with check (
+    auth.uid() = buyer_id
+    and buyer_id <> seller_id
+    and exists (
+      select 1 from public.listings l
+      where l.id = listing_id and l.user_id = seller_id
+    )
+  );
 
 -- Messages RLS Policies
 create policy "Users can view messages in their conversations"
@@ -200,15 +209,31 @@ create policy "Users can send messages in their conversations"
     and sender_id = auth.uid()
   );
 
+-- The only legitimate UPDATE is the recipient marking messages read. Restrict
+-- to the non-sender participant, and (via column privileges below) to the
+-- `read` column only — so message content/sender_id can never be tampered with.
 create policy "Users can update their own messages"
   on public.messages for update
   using (
-    exists (
+    sender_id <> auth.uid()
+    and exists (
+      select 1 from public.conversations
+      where id = conversation_id
+      and (buyer_id = auth.uid() or seller_id = auth.uid())
+    )
+  )
+  with check (
+    sender_id <> auth.uid()
+    and exists (
       select 1 from public.conversations
       where id = conversation_id
       and (buyer_id = auth.uid() or seller_id = auth.uid())
     )
   );
+
+-- Clients may only ever update the `read` flag.
+revoke update on public.messages from authenticated;
+grant update (read) on public.messages to authenticated;
 
 -- Create a function to automatically create a profile on user signup
 create or replace function public.handle_new_user()

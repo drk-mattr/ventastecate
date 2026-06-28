@@ -196,6 +196,7 @@ export type Translations = {
     statusLabel: string
     statusActive: string
     statusSold: string
+    statusInactive: string
     currentImages: string
     noImages: string
     addImages: string
@@ -483,6 +484,7 @@ const es: Translations = {
     statusLabel: 'Estado',
     statusActive: 'Activo',
     statusSold: 'Vendido',
+    statusInactive: 'Inactivo',
     currentImages: 'Imágenes actuales',
     noImages: 'Sin imágenes',
     addImages: 'Agregar imágenes',
@@ -762,6 +764,7 @@ const tl: Translations = {
     statusLabel: 'Status',
     statusActive: 'Active',
     statusSold: 'Nabenta',
+    statusInactive: 'Hindi aktibo',
     currentImages: 'Mga current na larawan',
     noImages: 'Walang larawan',
     addImages: 'Magdagdag ng larawan',
@@ -1041,6 +1044,7 @@ const en: Translations = {
     statusLabel: 'Status',
     statusActive: 'Active',
     statusSold: 'Sold',
+    statusInactive: 'Inactive',
     currentImages: 'Current images',
     noImages: 'No images',
     addImages: 'Add images',
@@ -1320,6 +1324,7 @@ const id: Translations = {
     statusLabel: 'Status',
     statusActive: 'Aktif',
     statusSold: 'Terjual',
+    statusInactive: 'Tidak aktif',
     currentImages: 'Gambar saat ini',
     noImages: 'Tidak ada gambar',
     addImages: 'Tambah gambar',

@@ -1,7 +1,7 @@
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
-import { ListingCard } from '@/components/listings/listing-card'
+import { CommunityFeed } from '@/components/home/community-feed'
 import { SearchFilterBar } from '@/components/search/search-filter-bar'
 import { ListingWithImages } from '@/lib/types/database'
 import { getTranslations } from '@/lib/i18n'
@@ -112,17 +112,25 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     query = query.order('created_at', { ascending: false })
   }
 
-  const { data: listings } = await query.limit(50)
+  // Category-specific (metadata) facets (recámaras / baños / m²) live in the
+  // listing's jsonb metadata and must be filtered in JS. To avoid the filter
+  // only inspecting the first page, fetch a larger candidate set when such a
+  // facet is active, then trim back to the display limit after filtering.
+  // (At MVP scale active-listing counts are small; move this to a SQL/RPC jsonb
+  // filter when inventory grows large enough that 500 isn't a safe bound.)
+  const hasMetadataFilter = Boolean(bedrooms || bathrooms || m2)
+  const DISPLAY_LIMIT = 50
+  const { data: listings } = await query.limit(hasMetadataFilter ? 500 : DISPLAY_LIMIT)
 
-  // Category-specific (metadata) facets — filtered in-memory. Real estate:
-  // recámaras / baños / m² minimums stored in the listing's jsonb metadata.
-  const listingsWithImages: ListingWithImages[] = (listings || []).filter((l) => {
-    const m = (l.metadata ?? {}) as Record<string, unknown>
-    if (bedrooms && Number(m.bedrooms ?? 0) < Number(bedrooms)) return false
-    if (bathrooms && Number(m.bathrooms ?? 0) < Number(bathrooms)) return false
-    if (m2 && Number(m.construction_m2 ?? 0) < Number(m2)) return false
-    return true
-  })
+  const listingsWithImages: ListingWithImages[] = (listings || [])
+    .filter((l) => {
+      const m = (l.metadata ?? {}) as Record<string, unknown>
+      if (bedrooms && Number(m.bedrooms ?? 0) < Number(bedrooms)) return false
+      if (bathrooms && Number(m.bathrooms ?? 0) < Number(bathrooms)) return false
+      if (m2 && Number(m.construction_m2 ?? 0) < Number(m2)) return false
+      return true
+    })
+    .slice(0, DISPLAY_LIMIT)
 
   // Build toggle URL (preserve other params, flip country)
   const toggleParams = new URLSearchParams()
@@ -173,11 +181,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
         {/* Full-width results grid */}
         {listingsWithImages.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-            {listingsWithImages.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
+          <CommunityFeed
+            initialListings={listingsWithImages}
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3"
+          />
         ) : (
           <EmptyState message={t.listings.noResults}>
             {!LOCK_TO_TECATE && effectiveCountry && !isGlobal && (

@@ -45,19 +45,18 @@ export function SaveButton({ listingId, initialSaved, initialCount, size = 'sm' 
     }
 
     startTransition(async () => {
-      try {
-        if (wasSaved) {
-          await supabase
+      // Supabase returns errors in `error` rather than throwing — check it.
+      const { error } = wasSaved
+        ? await supabase
             .from('listing_saves')
             .delete()
             .eq('listing_id', listingId)
             .eq('user_id', user.id)
-        } else {
-          await supabase
+        : await supabase
             .from('listing_saves')
             .insert({ listing_id: listingId, user_id: user.id })
-        }
-      } catch {
+
+      if (error) {
         setSaved(wasSaved)
         setCount(prev => wasSaved ? prev + 1 : Math.max(prev - 1, 0))
       }

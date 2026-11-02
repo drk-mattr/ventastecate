@@ -13,18 +13,18 @@ interface FeedCardProps {
 }
 
 const TYPE_CONFIG = {
-  product: { label: 'En Venta', color: 'bg-green-50 text-green-700 border-green-200', icon: Tag },
-  service: { label: 'Servicio', color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Wrench },
-  event:   { label: 'Evento', color: 'bg-amber-50 text-amber-700 border-amber-200', icon: Megaphone },
+  product: { label: 'En Venta', color: 'bg-gray-100 text-gray-900 border-gray-200', icon: Tag },
+  service: { label: 'Servicio', color: 'bg-gray-100 text-gray-900 border-gray-200', icon: Wrench },
+  event:   { label: 'Evento', color: 'bg-gray-100 text-gray-900 border-gray-200', icon: Megaphone },
   news:    { label: 'Noticia', color: 'bg-slate-50 text-slate-700 border-slate-200', icon: Newspaper },
 } as const
 
 const NEWS_CATEGORY_COLORS: Record<string, string> = {
-  'Noticias Locales':      'bg-blue-50 text-blue-700',
-  'Objetos Perdidos':      'bg-amber-50 text-amber-700',
+  'Noticias Locales':      'bg-gray-100 text-gray-900',
+  'Objetos Perdidos':      'bg-gray-100 text-gray-900',
   'Seguridad Pública':     'bg-red-50 text-red-700',
-  'Anuncios Comunitarios': 'bg-green-50 text-green-700',
-  'Empleos':               'bg-purple-50 text-purple-700',
+  'Anuncios Comunitarios': 'bg-gray-100 text-gray-900',
+  'Empleos':               'bg-gray-100 text-gray-900',
 }
 
 function timeAgo(dateStr: string): string {

@@ -75,8 +75,8 @@ export function LikeButton({ listingId, initialLiked, initialCount, size = 'sm' 
       disabled={isPending}
       className={`flex items-center gap-1 transition-all duration-150 ${
         liked
-          ? 'text-red-500'
-          : 'text-gray-400 hover:text-red-400'
+          ? 'text-gray-900'
+          : 'text-gray-400 hover:text-gray-900'
       } ${textSize}`}
       aria-label={liked ? 'Quitar me gusta' : 'Me gusta'}
     >

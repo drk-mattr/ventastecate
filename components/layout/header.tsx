@@ -77,7 +77,9 @@ export function Header() {
         <div className="flex items-center gap-2 shrink-0">
           {loading ? null : user ? (
             <>
-              <Button asChild variant="outline" size="sm" className="hidden md:inline-flex h-8 px-4 text-xs rounded-full">
+              {/* Publish CTA — same orange pill as the homepage, not an outline button,
+                  so the primary action reads the same everywhere. */}
+              <Button asChild size="sm" className="hidden md:inline-flex h-8 px-4 text-xs font-semibold rounded-full bg-orange-600 hover:bg-orange-700 text-white">
                 <Link href="/listings/new">{t.nav.publish}</Link>
               </Button>
               {/* Quick-access icons (desktop; mobile uses the bottom action bar) */}

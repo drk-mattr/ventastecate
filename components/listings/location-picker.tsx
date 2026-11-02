@@ -72,7 +72,7 @@ export function LocationPicker({
           size="sm"
           onClick={handleGetLocation}
           disabled={detecting}
-          className="h-7 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+          className="h-7 px-2 text-xs text-gray-900 hover:text-gray-600 hover:bg-gray-100"
         >
           {detecting ? (
             <>

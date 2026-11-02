@@ -189,7 +189,7 @@ export function DynamicHero() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-semibold">{t.search.filters}</h3>
                     {activeFilters.length > 0 && (
-                      <button onClick={clearAll} className="text-xs text-blue-600 hover:text-blue-700">
+                      <button onClick={clearAll} className="text-xs text-gray-900 hover:text-gray-600">
                         {t.search.clear}
                       </button>
                     )}

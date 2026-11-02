@@ -29,11 +29,11 @@ const TYPE_BADGE: Record<string, { icon: React.ElementType; label: string } | nu
 }
 
 const NEWS_CATEGORY_COLORS: Record<string, string> = {
-  'Noticias Locales':      'text-blue-600',
-  'Objetos Perdidos':      'text-amber-600',
-  'Seguridad Pública':     'text-red-600',
-  'Anuncios Comunitarios': 'text-green-600',
-  'Empleos':               'text-purple-600',
+  'Noticias Locales':      'text-gray-500',
+  'Objetos Perdidos':      'text-gray-500',
+  'Seguridad Pública':     'text-gray-500',
+  'Anuncios Comunitarios': 'text-gray-500',
+  'Empleos':               'text-gray-500',
 }
 
 function timeAgo(dateStr: string): string {

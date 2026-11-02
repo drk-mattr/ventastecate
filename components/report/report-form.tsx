@@ -54,7 +54,7 @@ export function ReportForm() {
   if (sent) {
     return (
       <div className="py-6 text-center">
-        <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
+        <CheckCircle2 className="h-12 w-12 text-gray-900 mx-auto mb-4" />
         <h2 className="text-lg font-semibold mb-2">{f.reportThankYou}</h2>
         <p className="text-sm text-gray-500 mb-6">{f.reportReceived}</p>
         <Button onClick={() => { setSent(false); setDescription(''); setEmail('') }} variant="outline" size="sm" className="rounded-full">

@@ -94,16 +94,16 @@ function CardEngagement({ listing, inline = false }: { listing: ListingWithImage
   return (
     <div className={inline ? 'flex items-center gap-2' : 'flex items-center gap-2 mt-auto pt-1'}>
       <button onClick={toggleLike} disabled={isPending}
-        className={`flex items-center gap-0.5 text-[10px] transition-colors ${liked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}>
-        <Heart className={`h-3.5 w-3.5 ${liked ? 'fill-current' : ''}`} />
+        className={`flex items-center gap-1 text-xs transition-colors ${liked ? 'text-red-500' : 'text-gray-500 hover:text-red-400'}`}>
+        <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} />
         {likesCount > 0 && <span>{likesCount}</span>}
       </button>
       <button onClick={toggleSave} disabled={isPending}
-        className={`flex items-center gap-0.5 text-[10px] transition-colors ${saved ? 'text-blue-500' : 'text-gray-400 hover:text-blue-400'}`}>
-        <Bookmark className={`h-3.5 w-3.5 ${saved ? 'fill-current' : ''}`} />
+        className={`flex items-center gap-1 text-xs transition-colors ${saved ? 'text-blue-500' : 'text-gray-500 hover:text-blue-400'}`}>
+        <Bookmark className={`h-4 w-4 ${saved ? 'fill-current' : ''}`} />
       </button>
       {!inline && (listing.comments_count ?? 0) > 0 && (
-        <span className="flex items-center gap-0.5 text-[10px] text-gray-400 ml-auto">
+        <span className="flex items-center gap-1 text-xs text-gray-500 ml-auto">
           <MessageCircle className="h-3 w-3" />{listing.comments_count}
         </span>
       )}
@@ -244,21 +244,21 @@ export function ListingCard({ listing }: ListingCardProps) {
       {/* Content */}
       <div className="px-2 py-1.5 flex flex-col flex-1">
         {/* Price — the dominant element */}
-        <p className="text-[13px] font-bold text-gray-900 leading-tight">
+        <p className="text-[15px] font-bold text-gray-900 leading-tight">
           {formattedPrice || 'Consultar precio'}
         </p>
         {/* Title — secondary, single line */}
         {primaryImage && (
-          <h3 className="text-[11px] text-gray-600 line-clamp-1 leading-snug group-hover:text-blue-600 transition-colors">
+          <h3 className="text-[13px] text-gray-700 line-clamp-1 leading-snug group-hover:text-blue-600 transition-colors">
             {listing.title}
           </h3>
         )}
         {/* Meta + engagement on one compact row */}
         <div className="flex items-center justify-between gap-1.5 mt-auto pt-1">
-          <span className="text-[10px] text-gray-400 truncate flex items-center gap-1 min-w-0">
+          <span className="text-xs text-gray-500 truncate flex items-center gap-1 min-w-0">
             {listing.store && <Store className="h-2.5 w-2.5 shrink-0" />}
             <span className="truncate">
-              {[listing.store?.name || listing.location, timeAgo(listing.created_at)].filter(Boolean).join(' · ')}
+              {[listing.store?.name || listing.profile?.display_name || listing.location, timeAgo(listing.created_at)].filter(Boolean).join(' · ')}
             </span>
           </span>
           <div className="shrink-0">

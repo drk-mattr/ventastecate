@@ -10,10 +10,10 @@ interface TrendingStripProps {
 }
 
 const TYPE_ICON = {
-  news:    { icon: Newspaper, color: 'bg-red-500' },
-  product: { icon: Tag, color: 'bg-green-500' },
-  service: { icon: Heart, color: 'bg-blue-500' },
-  event:   { icon: AlertTriangle, color: 'bg-amber-500' },
+  news:    { icon: Newspaper, color: 'bg-gray-900' },
+  product: { icon: Tag, color: 'bg-gray-900' },
+  service: { icon: Heart, color: 'bg-gray-900' },
+  event:   { icon: AlertTriangle, color: 'bg-gray-900' },
 } as const
 
 function timeAgo(dateStr: string): string {
@@ -35,7 +35,7 @@ export function TrendingStrip({ items }: TrendingStripProps) {
       <div className="container mx-auto px-4 py-3">
         {/* Header */}
         <div className="flex items-center gap-1.5 mb-2.5">
-          <Flame className="h-3.5 w-3.5 text-orange-500" />
+          <Flame className="h-3.5 w-3.5 text-gray-900" />
           <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
             En Tecate ahora
           </span>

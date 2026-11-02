@@ -45,12 +45,12 @@ export default function ForgotPasswordPage() {
         <CardContent>
           {sent ? (
             <div className="space-y-4">
-              <div className="text-sm text-green-600 bg-green-50 p-4 rounded">
+              <div className="text-sm text-gray-900 bg-gray-100 p-4 rounded">
                 <p className="font-medium mb-1">{t.auth.emailSent}</p>
                 <p>{t.auth.emailSentDescription.replace('{email}', email)}</p>
               </div>
               <div className="text-center text-sm">
-                <Link href="/login" className="text-blue-600 hover:underline">
+                <Link href="/login" className="text-gray-900 hover:underline">
                   {t.auth.backToLogin}
                 </Link>
               </div>
@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
                 </Button>
               </form>
               <div className="mt-4 text-center text-sm">
-                <Link href="/login" className="text-blue-600 hover:underline">
+                <Link href="/login" className="text-gray-900 hover:underline">
                   {t.auth.backToLogin}
                 </Link>
               </div>

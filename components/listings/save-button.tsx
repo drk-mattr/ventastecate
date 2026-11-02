@@ -72,8 +72,8 @@ export function SaveButton({ listingId, initialSaved, initialCount, size = 'sm' 
       disabled={isPending}
       className={`flex items-center gap-1 transition-all duration-150 ${
         saved
-          ? 'text-blue-500'
-          : 'text-gray-400 hover:text-blue-400'
+          ? 'text-gray-900'
+          : 'text-gray-400 hover:text-gray-900'
       } ${textSize}`}
       aria-label={saved ? 'Quitar guardado' : 'Guardar'}
     >

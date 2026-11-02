@@ -9,7 +9,7 @@ const CATEGORIES = [
   { label: 'Casas en Venta', href: '/search?category=Casas%20en%20Venta', icon: KeyRound, bg: 'bg-gray-100 text-gray-900' },
   { label: 'Terrenos', href: '/search?category=Terrenos', icon: LandPlot, bg: 'bg-gray-100 text-gray-900' },
   { label: 'Eventos', href: '/search?type=event', icon: CalendarDays, bg: 'bg-gray-100 text-gray-900' },
-  { label: 'Noticias', href: '/search?type=news', icon: Newspaper, bg: 'bg-slate-200 text-slate-700' },
+  { label: 'Noticias', href: '/search?type=news', icon: Newspaper, bg: 'bg-gray-100 text-gray-900' },
 ]
 
 const STEPS = [
@@ -26,29 +26,25 @@ export function FirstVisit() {
           <MapPin className="h-3.5 w-3.5" /> Tecate, Baja California
         </p>
         <h2 className="text-2xl sm:text-3xl font-bold leading-tight">
-          Tecate, esto empieza contigo.
+          Anuncios en Tecate.
         </h2>
         <p className="mt-3 text-sm sm:text-base text-gray-300 max-w-xl mx-auto">
-          Compra y vende en tu comunidad, encuentra comida, casas, terrenos y eventos,
-          y entérate de lo que pasa en Tecate — todo en un solo lugar, hecho por y para vecinos.
+          Productos, servicios, comida, casas, terrenos, eventos y noticias locales de Tecate.
         </p>
         <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href="/listings/new"
             className="inline-flex items-center gap-2 rounded-full bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 text-sm font-semibold transition-colors"
           >
-            <Plus className="h-4 w-4" /> Publica tu primer anuncio — gratis
+            <Plus className="h-4 w-4" /> Publica un anuncio — gratis
           </Link>
           <Link
             href="/search"
             className="inline-flex items-center gap-2 rounded-full border border-white/30 hover:border-white text-white px-6 py-3 text-sm font-medium transition-colors"
           >
-            <Search className="h-4 w-4" /> Explorar Tecate
+            <Search className="h-4 w-4" /> Buscar anuncios
           </Link>
         </div>
-        <p className="mt-4 text-xs text-gray-400">
-          Sé de los primeros en publicar. Los primeros anuncios son los que la comunidad ve primero.
-        </p>
       </section>
 
       <section>

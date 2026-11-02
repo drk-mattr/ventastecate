@@ -117,7 +117,7 @@ export default function ResetPasswordPage() {
               <Link href="/forgot-password">Solicitar nuevo enlace</Link>
             </Button>
             <div className="text-center text-sm">
-              <Link href="/login" className="text-blue-600 hover:underline">
+              <Link href="/login" className="text-gray-900 hover:underline">
                 Volver a Iniciar Sesión
               </Link>
             </div>
@@ -149,7 +149,7 @@ export default function ResetPasswordPage() {
         <CardContent>
           {success ? (
             <div className="space-y-4">
-              <div className="text-sm text-green-600 bg-green-50 p-4 rounded">
+              <div className="text-sm text-gray-900 bg-gray-100 p-4 rounded">
                 <p className="font-medium">¡Contraseña actualizada!</p>
                 <p>Redirigiendo...</p>
               </div>
@@ -189,7 +189,7 @@ export default function ResetPasswordPage() {
                 {loading ? 'Guardando...' : 'Guardar Contraseña'}
               </Button>
               <div className="text-center text-sm">
-                <Link href="/login" className="text-blue-600 hover:underline">
+                <Link href="/login" className="text-gray-900 hover:underline">
                   Volver a Iniciar Sesión
                 </Link>
               </div>

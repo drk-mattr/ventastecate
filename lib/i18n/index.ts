@@ -334,8 +334,8 @@ const es: Translations = {
     keywords: 'Palabras clave...',
   },
   hero: {
-    tagline: 'Descubre, Conecta e Intercambia en',
-    taglineBase: 'Descubre, Conecta e Intercambia',
+    tagline: 'Compra y vende en',
+    taglineBase: 'Compra y vende en Tecate',
     searchPlaceholder: '¿Qué estás buscando?',
     search: 'Buscar',
   },

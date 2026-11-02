@@ -41,10 +41,10 @@ export function MobileActionBar() {
         className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
         aria-label="Publicar anuncio"
       >
-        <span className="-mt-5 flex items-center justify-center h-12 w-12 rounded-full bg-white border border-gray-300 text-gray-900 shadow-sm">
+        <span className="-mt-5 flex items-center justify-center h-12 w-12 rounded-full bg-orange-600 border border-orange-600 text-white shadow-md">
           <Plus className="h-6 w-6" />
         </span>
-        <span className="text-[10px] font-medium text-gray-700">Publicar</span>
+        <span className="text-[10px] font-semibold text-orange-700">Publicar</span>
       </Link>
 
       {user ? (

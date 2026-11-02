@@ -2,14 +2,14 @@ import Link from 'next/link'
 import { Plus, Search, MessageCircle, MapPin, Tag, Wrench, UtensilsCrossed, Home, KeyRound, LandPlot, CalendarDays, Newspaper } from 'lucide-react'
 
 const CATEGORIES = [
-  { label: 'Productos', href: '/search?type=product', icon: Tag, bg: 'bg-orange-100 text-orange-700' },
-  { label: 'Servicios', href: '/search?type=service', icon: Wrench, bg: 'bg-blue-100 text-blue-700' },
-  { label: 'Comida', href: '/search?category=Comida', icon: UtensilsCrossed, bg: 'bg-amber-100 text-amber-700' },
-  { label: 'Casas en Renta', href: '/search?category=Casas%20en%20Renta', icon: Home, bg: 'bg-emerald-100 text-emerald-700' },
-  { label: 'Casas en Venta', href: '/search?category=Casas%20en%20Venta', icon: KeyRound, bg: 'bg-teal-100 text-teal-700' },
-  { label: 'Terrenos', href: '/search?category=Terrenos', icon: LandPlot, bg: 'bg-lime-100 text-lime-700' },
-  { label: 'Eventos', href: '/search?type=event', icon: CalendarDays, bg: 'bg-violet-100 text-violet-700' },
-  { label: 'Noticias', href: '/search?type=news', icon: Newspaper, bg: 'bg-slate-200 text-slate-700' },
+  { label: 'Productos', href: '/search?type=product', icon: Tag, bg: 'bg-gray-100 text-gray-900' },
+  { label: 'Servicios', href: '/search?type=service', icon: Wrench, bg: 'bg-gray-100 text-gray-900' },
+  { label: 'Comida', href: '/search?category=Comida', icon: UtensilsCrossed, bg: 'bg-gray-100 text-gray-900' },
+  { label: 'Casas en Renta', href: '/search?category=Casas%20en%20Renta', icon: Home, bg: 'bg-gray-100 text-gray-900' },
+  { label: 'Casas en Venta', href: '/search?category=Casas%20en%20Venta', icon: KeyRound, bg: 'bg-gray-100 text-gray-900' },
+  { label: 'Terrenos', href: '/search?category=Terrenos', icon: LandPlot, bg: 'bg-gray-100 text-gray-900' },
+  { label: 'Eventos', href: '/search?type=event', icon: CalendarDays, bg: 'bg-gray-100 text-gray-900' },
+  { label: 'Noticias', href: '/search?type=news', icon: Newspaper, bg: 'bg-gray-100 text-gray-900' },
 ]
 
 const STEPS = [
@@ -22,33 +22,29 @@ export function FirstVisit() {
   return (
     <div className="space-y-8 py-2">
       <section className="rounded-2xl bg-gray-900 text-white px-6 py-8 sm:px-10 sm:py-10 text-center">
-        <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 flex items-center justify-center gap-1.5 mb-3">
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 flex items-center justify-center gap-1.5 mb-3">
           <MapPin className="h-3.5 w-3.5" /> Tecate, Baja California
         </p>
         <h2 className="text-2xl sm:text-3xl font-bold leading-tight">
-          Tecate, esto empieza contigo.
+          Anuncios en Tecate.
         </h2>
         <p className="mt-3 text-sm sm:text-base text-gray-300 max-w-xl mx-auto">
-          Compra y vende en tu comunidad, encuentra comida, casas, terrenos y eventos,
-          y entérate de lo que pasa en Tecate — todo en un solo lugar, hecho por y para vecinos.
+          Productos, servicios, comida, casas, terrenos, eventos y noticias locales de Tecate.
         </p>
         <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href="/listings/new"
             className="inline-flex items-center gap-2 rounded-full bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 text-sm font-semibold transition-colors"
           >
-            <Plus className="h-4 w-4" /> Publica tu primer anuncio — gratis
+            <Plus className="h-4 w-4" /> Publica un anuncio — gratis
           </Link>
           <Link
             href="/search"
             className="inline-flex items-center gap-2 rounded-full border border-white/30 hover:border-white text-white px-6 py-3 text-sm font-medium transition-colors"
           >
-            <Search className="h-4 w-4" /> Explorar Tecate
+            <Search className="h-4 w-4" /> Buscar anuncios
           </Link>
         </div>
-        <p className="mt-4 text-xs text-gray-400">
-          Sé de los primeros en publicar. Los primeros anuncios son los que la comunidad ve primero.
-        </p>
       </section>
 
       <section>
@@ -58,7 +54,7 @@ export function FirstVisit() {
             <Link
               key={label}
               href={href}
-              className="flex items-center gap-3 rounded-xl border bg-white px-3 py-3 hover:shadow-sm transition-shadow"
+              className="flex items-center gap-3 rounded-xl border bg-white px-3 py-3 hover:shadow-md transition-shadow"
             >
               <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${bg}`}>
                 <Icon className="h-4 w-4" />
@@ -69,12 +65,12 @@ export function FirstVisit() {
         </div>
       </section>
 
-      <section className="rounded-2xl border bg-white px-6 py-6">
+      <section className="rounded-xl border bg-white px-6 py-6">
         <h3 className="text-base font-semibold text-gray-900 mb-4">Cómo funciona</h3>
         <div className="grid gap-4 sm:grid-cols-3">
           {STEPS.map((s) => (
             <div key={s.n} className="flex gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-600 text-white text-sm font-bold">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-900 text-white text-sm font-bold">
                 {s.n}
               </span>
               <div>

@@ -274,7 +274,7 @@ export default function EditStorePage() {
               )}
 
               {success && (
-                <div className="text-sm text-green-600 bg-green-50 p-3 rounded">
+                <div className="text-sm text-gray-900 bg-gray-100 p-3 rounded">
                   ¡Tienda actualizada exitosamente! Redirigiendo...
                 </div>
               )}

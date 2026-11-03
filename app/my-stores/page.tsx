@@ -35,7 +35,7 @@ export default function MyStoresPage() {
     return (
       <>
         <Header />
-        <div className="container mx-auto px-4 py-10">
+        <div className="container mx-auto px-4 py-6">
           <p className="text-sm text-gray-500">{t.auth.loading}</p>
         </div>
       </>
@@ -54,7 +54,7 @@ export default function MyStoresPage() {
         </div>
 
         {stores.length === 0 ? (
-          <div className="text-center py-12 border rounded-lg bg-gray-50">
+          <div className="rounded-xl border bg-white px-6 py-10 text-center">
             <Store className="h-8 w-8 text-gray-300 mx-auto mb-2" />
             <p className="text-sm text-gray-500 mb-4">{t.nav.noStoresYet}</p>
             <Button asChild variant="outline" size="sm" className="rounded-full">
@@ -64,7 +64,7 @@ export default function MyStoresPage() {
         ) : (
           <ul className="space-y-2">
             {sortedStores.map((store) => (
-              <li key={store.id} className="flex items-center gap-3 p-3 rounded-lg border bg-white">
+              <li key={store.id} className="flex items-center gap-3 p-3 rounded-xl border bg-white">
                 <span className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
                   {store.avatar_url ? (
                     <Image src={store.avatar_url} alt={store.name} width={40} height={40} className="h-10 w-10 object-cover" />

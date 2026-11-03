@@ -83,7 +83,7 @@ export default async function StoreProfilePage({ params }: { params: Promise<{ s
         {/* Store Header */}
         <div className="border-b pb-6 mb-6">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-            <div className="relative h-20 w-20 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden">
+            <div className="relative h-20 w-20 rounded-xl bg-gray-200 flex items-center justify-center overflow-hidden">
               {store.avatar_url ? (
                 <Image
                   src={store.avatar_url}

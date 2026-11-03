@@ -212,7 +212,7 @@ function MessagesContent() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-6">
           <p>{f.loadingMessages}</p>
         </div>
       </div>
@@ -222,8 +222,8 @@ function MessagesContent() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <main className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6">{f.messagesTitle}</h1>
+      <main className="container mx-auto px-4 py-6">
+        <h1 className="text-2xl font-semibold mb-6">{f.messagesTitle}</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[70vh] md:h-[600px]">
           {/* Conversations List */}
@@ -339,7 +339,7 @@ function MessagesContent() {
                         className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
                       >
                         <div
-                          className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                          className={`max-w-[70%] rounded-xl px-4 py-2 ${
                             isMine
                               ? 'bg-gray-900 text-white'
                               : 'bg-gray-200 text-gray-900'
@@ -395,7 +395,7 @@ export default function MessagesPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-6">
           <p>{f.loadingMessages}</p>
         </div>
       </div>

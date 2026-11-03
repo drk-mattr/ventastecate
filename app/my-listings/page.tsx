@@ -91,9 +91,9 @@ export default async function MyListingsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">{f.myListings}</h1>
+          <h1 className="text-2xl font-semibold">{f.myListings}</h1>
           <Button asChild>
             <Link href="/listings/new">{f.createNewListingBtn}</Link>
           </Button>
@@ -124,7 +124,7 @@ export default async function MyListingsPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12">
+              <div className="rounded-xl border bg-white px-6 py-10 text-center">
                 <p className="text-gray-500 mb-4">{f.noActiveListings}</p>
                 <Button asChild>
                   <Link href="/listings/new">{f.createFirstListingBtn}</Link>
@@ -141,7 +141,7 @@ export default async function MyListingsPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12">
+              <div className="rounded-xl border bg-white px-6 py-10 text-center">
                 <p className="text-gray-500">{f.noSoldListings}</p>
               </div>
             )}
@@ -155,7 +155,7 @@ export default async function MyListingsPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12">
+              <div className="rounded-xl border bg-white px-6 py-10 text-center">
                 <p className="text-gray-500">{f.noInactiveListings}</p>
               </div>
             )}
@@ -169,7 +169,7 @@ export default async function MyListingsPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12">
+              <div className="rounded-xl border bg-white px-6 py-10 text-center">
                 <Bookmark className="h-8 w-8 text-gray-300 mx-auto mb-3" />
                 <p className="text-gray-500 mb-1">No tienes publicaciones guardadas</p>
                 <p className="text-xs text-gray-400">

@@ -16,7 +16,7 @@ import Image from 'next/image'
 import { Store, Home, Car } from 'lucide-react'
 
 export default function NewStorePage() {
-  const { user, refreshStores } = useAuth()
+  const { user, refreshStores, loading: authLoading } = useAuth()
   const router = useRouter()
   const supabase = createClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -123,6 +123,10 @@ export default function NewStorePage() {
       setError(error.message || 'Error al crear la tienda')
       setLoading(false)
     }
+  }
+
+  if (authLoading) {
+    return null
   }
 
   if (!user) {

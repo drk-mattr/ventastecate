@@ -123,7 +123,7 @@ export default function EditProfilePage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-6">
           <p>{f.loadingListing}</p>
         </div>
       </div>
@@ -133,7 +133,7 @@ export default function EditProfilePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
+      <main className="container mx-auto px-4 py-6 max-w-2xl">
         <Card>
           <CardHeader>
             <CardTitle>{f.editProfile}</CardTitle>

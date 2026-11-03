@@ -145,7 +145,7 @@ export default function EditStorePage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-6">
           <p>Cargando...</p>
         </div>
       </div>
@@ -155,7 +155,7 @@ export default function EditStorePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
+      <main className="container mx-auto px-4 py-6 max-w-2xl">
         <Card>
           <CardHeader>
             <CardTitle>Editar Tienda</CardTitle>
@@ -168,7 +168,7 @@ export default function EditStorePage() {
                 <Label>Logo de la Tienda</Label>
                 <div className="flex items-center gap-4">
                   <div
-                    className="relative h-20 w-20 rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center cursor-pointer hover:opacity-80 transition"
+                    className="relative h-20 w-20 rounded-xl overflow-hidden bg-gray-200 flex items-center justify-center cursor-pointer hover:opacity-80 transition"
                     onClick={() => fileInputRef.current?.click()}
                   >
                     {avatarPreview ? (

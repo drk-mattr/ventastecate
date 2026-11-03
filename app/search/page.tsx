@@ -151,7 +151,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      <main className="container mx-auto px-4 py-4">
+      <main className="container mx-auto px-4 py-6">
         {/* Compact header */}
         <div className="mb-3">
           <h1 className="text-lg font-semibold leading-tight">

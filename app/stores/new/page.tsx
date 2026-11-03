@@ -137,7 +137,7 @@ export default function NewStorePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <main className="container mx-auto px-4 py-8 max-w-2xl">
+      <main className="container mx-auto px-4 py-6 max-w-2xl">
         {/* Step indicator */}
         <div className="flex items-center gap-2 mb-6 text-sm text-gray-500">
           <span className={step === 1 ? 'font-semibold text-gray-900' : ''}>{f.step1}</span>
@@ -157,7 +157,7 @@ export default function NewStorePage() {
                   key={st.value}
                   type="button"
                   onClick={() => setStoreType(st.value)}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition ${
+                  className={`w-full text-left p-4 rounded-xl border-2 transition ${
                     storeType === st.value
                       ? 'border-black bg-gray-50'
                       : 'border-gray-200 hover:border-gray-300'
@@ -204,7 +204,7 @@ export default function NewStorePage() {
                   <Label>{f.storeLogo}</Label>
                   <div className="flex items-center gap-4">
                     <div
-                      className="relative h-20 w-20 rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center cursor-pointer hover:opacity-80 transition"
+                      className="relative h-20 w-20 rounded-xl overflow-hidden bg-gray-200 flex items-center justify-center cursor-pointer hover:opacity-80 transition"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       {avatarPreview ? (

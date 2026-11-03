@@ -121,15 +121,15 @@ export function HeaderSearch() {
   }
 
   return (
-    <div className="flex-1 max-w-2xl mx-4">
+    <div className="flex-1 min-w-0 max-w-2xl mx-2 sm:mx-4">
       {/* Search + Filter Row */}
       <div className="flex items-center gap-2">
-        <form onSubmit={handleSearch} className="flex-1 flex items-center bg-white border rounded-lg h-8 overflow-hidden focus-within:ring-2 focus-within:ring-gray-900 focus-within:border-gray-900">
+        <form onSubmit={handleSearch} className="flex-1 min-w-0 flex items-center bg-white border rounded-lg h-8 overflow-hidden focus-within:ring-2 focus-within:ring-gray-900 focus-within:border-gray-900">
           <Search className="ml-2.5 h-3.5 w-3.5 text-gray-400 shrink-0 pointer-events-none" />
           <input
             type="search"
             placeholder={t.search.placeholder}
-            className="flex-1 h-full pl-2 pr-2 text-sm outline-none bg-transparent"
+            className="flex-1 min-w-0 h-full pl-2 pr-2 text-sm outline-none bg-transparent"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />

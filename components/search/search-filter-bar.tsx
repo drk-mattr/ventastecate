@@ -111,7 +111,7 @@ export function SearchFilterBar({ query, category, location, minPrice, maxPrice,
   const divider = <span className="h-5 w-px bg-gray-200 shrink-0" />
 
   return (
-    <div className="flex items-center gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pb-1">
       {/* Categoría */}
       <Popover open={catOpen} onOpenChange={setCatOpen}>
         <PopoverTrigger className={trigger(catActive)}>
@@ -142,12 +142,12 @@ export function SearchFilterBar({ query, category, location, minPrice, maxPrice,
         <span className="text-xs font-medium text-gray-500">{t.search.price}</span>
         <div className="relative">
           <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
-          <Input type="number" placeholder="mín" value={min} onChange={(e) => setMin(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && applyPrice()} className="h-9 w-24 pl-6 text-sm" />
+          <Input type="number" placeholder="mín" value={min} onChange={(e) => setMin(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && applyPrice()} className="h-9 w-20 sm:w-24 pl-6 text-sm" />
         </div>
         <span className="text-gray-300">–</span>
         <div className="relative">
           <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
-          <Input type="number" placeholder="máx" value={max} onChange={(e) => setMax(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && applyPrice()} className="h-9 w-24 pl-6 text-sm" />
+          <Input type="number" placeholder="máx" value={max} onChange={(e) => setMax(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && applyPrice()} className="h-9 w-20 sm:w-24 pl-6 text-sm" />
         </div>
       </div>
 
@@ -163,7 +163,7 @@ export function SearchFilterBar({ query, category, location, minPrice, maxPrice,
             onBlur={applyLoc}
             onKeyDown={(e) => e.key === 'Enter' && applyLoc()}
             placeholder={t.search.locationPlaceholder}
-            className="h-9 w-48 pr-9 text-sm"
+            className="h-9 w-36 sm:w-48 pr-9 text-sm"
           />
           <button
             type="button"

@@ -10,6 +10,7 @@ import { useReportModal } from '@/lib/report/report-modal-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
 import { Button } from '@/components/ui/button'
 import { HeaderSearch } from '@/components/search/header-search'
+import { NotificationBell } from '@/components/layout/notification-bell'
 import { MobileMenuDrawer } from '@/components/layout/mobile-menu-drawer'
 import {
   DropdownMenu,
@@ -89,6 +90,7 @@ export function Header() {
               <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex h-8 w-8 text-gray-600 hover:text-gray-900" aria-label={t.nav.messages} title={t.nav.messages}>
                 <Link href="/messages"><MessageCircle className="h-[18px] w-[18px]" /></Link>
               </Button>
+              <NotificationBell />
               {activeStore && (
                 <span className="text-[10px] text-gray-500 hidden sm:flex items-center gap-0.5 max-w-[100px] truncate" title={activeStore.name}>
                   <Store className="h-3 w-3 shrink-0" />{activeStore.name}

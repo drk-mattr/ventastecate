@@ -13,12 +13,13 @@ import { getTranslations } from '@/lib/i18n'
 import { LOCK_TO_TECATE, resolveCountry } from '@/lib/mvp-config'
 
 interface HomeProps {
-  searchParams: Promise<{ global?: string }>
+  searchParams: Promise<{ global?: string; feed?: string }>
 }
 
 export default async function Home({ searchParams }: HomeProps) {
   const supabase = await createClient()
-  const { global: globalParam } = await searchParams
+  const { global: globalParam, feed: feedParam } = await searchParams
+  const showFollowing = feedParam === 'siguiendo'
   // MVP: the worldwide view is disabled while locked to Tecate.
   const isGlobal = !LOCK_TO_TECATE && globalParam === '1'
 
@@ -45,12 +46,30 @@ export default async function Home({ searchParams }: HomeProps) {
     feedQuery = feedQuery.eq('country_code', userCountry)
   }
 
+  // Following feed: listings from sellers the logged-in user follows,
+  // newest first, reusing the same card shell as the main feed.
+  let followingIds: string[] = []
+  if (showFollowing) {
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+    if (currentUser) {
+      const { data: follows } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', currentUser.id)
+      followingIds = (follows || []).map((f) => f.following_id)
+      if (followingIds.length > 0) {
+        feedQuery = feedQuery.in('user_id', followingIds)
+      }
+    }
+  }
+
   // Newest first — simple, honest ordering for the local marketplace.
   feedQuery = feedQuery.order('created_at', { ascending: false })
 
   const { data: feedRaw } = await feedQuery.limit(30)
+  const feedListings = showFollowing && followingIds.length === 0 ? [] : feedRaw
 
-  const listings: ListingWithImages[] = (feedRaw || []).map(l => ({
+  const listings: ListingWithImages[] = (feedListings || []).map(l => ({
     ...l,
     likes_count: l.likes_count ?? 0,
     saves_count: l.saves_count ?? 0,
@@ -97,9 +116,18 @@ export default async function Home({ searchParams }: HomeProps) {
 
         {/* Main grid */}
         <div className="container mx-auto px-4 py-5">
+          {/* Feed tabs: Recientes / Siguiendo */}
+          <div className="flex items-center gap-4 mb-4 border-b border-gray-200">
+            <Link href="/" className={`pb-2 text-sm font-semibold ${!showFollowing ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
+              {t.listings.recent}
+            </Link>
+            <Link href="/?feed=siguiendo" className={`pb-2 text-sm font-semibold ${showFollowing ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
+              Siguiendo
+            </Link>
+          </div>
           {/* Header row */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-gray-900">{t.listings.recent}</h2>
+            <h2 className="text-base font-semibold text-gray-900">{showFollowing ? 'Siguiendo' : t.listings.recent}</h2>
             <div className="flex items-center gap-3">
               {!LOCK_TO_TECATE && userCountry && (
                 <Link
@@ -123,6 +151,11 @@ export default async function Home({ searchParams }: HomeProps) {
 
           {listings.length > 0 ? (
             <CommunityFeed initialListings={listings} />
+          ) : showFollowing ? (
+            <div className="rounded-xl border bg-white px-6 py-10 text-center">
+              <p className="text-sm font-semibold text-gray-900">Aún no sigues a nadie.</p>
+              <p className="text-sm text-gray-500 mt-1">Sigue a un vendedor para ver sus anuncios aquí.</p>
+            </div>
           ) : (
             <FirstVisit />
           )}

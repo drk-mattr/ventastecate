@@ -228,7 +228,7 @@ export default function EditProfilePage() {
               )}
 
               {success && (
-                <div className="text-sm text-green-600 bg-green-50 p-3 rounded">
+                <div className="text-sm text-gray-900 bg-gray-100 p-3 rounded">
                   {f.profileUpdated}
                 </div>
               )}

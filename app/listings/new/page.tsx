@@ -56,10 +56,10 @@ const QUICK_SHORTCUTS: {
   accentBorder: string
 }[] = [
   { label: 'Comida', Icon: UtensilsCrossed, type: 'product', category: 'Comida', accent: 'text-red-600', accentBg: 'bg-red-50', accentBorder: 'border-red-200' },
-  { label: 'Reseña', Icon: Star, type: 'news', category: 'Reseñas y Recomendaciones', accent: 'text-amber-600', accentBg: 'bg-amber-50', accentBorder: 'border-amber-200' },
-  { label: 'Empleo', Icon: Briefcase, type: 'news', category: 'Empleos', accent: 'text-indigo-600', accentBg: 'bg-indigo-50', accentBorder: 'border-indigo-200' },
-  { label: 'Perdido', Icon: Dog, type: 'news', category: 'Objetos Perdidos', accent: 'text-pink-600', accentBg: 'bg-pink-50', accentBorder: 'border-pink-200' },
-  { label: 'Seguridad', Icon: AlertTriangle, type: 'news', category: 'Seguridad Pública', accent: 'text-rose-600', accentBg: 'bg-rose-50', accentBorder: 'border-rose-200' },
+  { label: 'Reseña', Icon: Star, type: 'news', category: 'Reseñas y Recomendaciones', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-200' },
+  { label: 'Empleo', Icon: Briefcase, type: 'news', category: 'Empleos', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-200' },
+  { label: 'Perdido', Icon: Dog, type: 'news', category: 'Objetos Perdidos', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-200' },
+  { label: 'Seguridad', Icon: AlertTriangle, type: 'news', category: 'Seguridad Pública', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-200' },
 ]
 
 // Neutral type config — verbs describe what the user is DOING, not what they're selling
@@ -79,8 +79,8 @@ const TYPE_CONFIG: Record<ListingType, {
     verb: 'Vender o intercambiar',
     titlePlaceholder: 'Ej: iPhone 13, Mueble de cocina, Bicicleta...',
     descPlaceholder: 'Describe lo que ofreces: estado, detalles, por qué lo vendes...',
-    color: 'text-emerald-600',
-    colorBg: 'bg-emerald-50',
+    color: 'text-gray-900',
+    colorBg: 'bg-gray-100',
     colorBorder: 'border-emerald-300',
   },
   service: {
@@ -89,8 +89,8 @@ const TYPE_CONFIG: Record<ListingType, {
     verb: 'Ofrecer un servicio',
     titlePlaceholder: 'Ej: Plomero a domicilio, Clases de inglés...',
     descPlaceholder: 'Describe tu servicio: experiencia, zona, horarios, precios...',
-    color: 'text-blue-600',
-    colorBg: 'bg-blue-50',
+    color: 'text-gray-900',
+    colorBg: 'bg-gray-100',
     colorBorder: 'border-blue-300',
   },
   event: {
@@ -99,8 +99,8 @@ const TYPE_CONFIG: Record<ListingType, {
     verb: 'Compartir un evento',
     titlePlaceholder: 'Ej: Bazar navideño, Torneo de futbol, Clase abierta...',
     descPlaceholder: 'Describe el evento: fecha, hora, lugar, costo de entrada...',
-    color: 'text-purple-600',
-    colorBg: 'bg-purple-50',
+    color: 'text-gray-900',
+    colorBg: 'bg-gray-100',
     colorBorder: 'border-purple-300',
   },
   news: {

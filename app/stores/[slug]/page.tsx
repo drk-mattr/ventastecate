@@ -116,7 +116,7 @@ export default async function StoreProfilePage({ params }: { params: Promise<{ s
                   Por{' '}
                   <Link
                     href={`/users/${(store.owner as { username: string }).username}`}
-                    className="text-blue-600 hover:underline"
+                    className="text-gray-900 hover:underline"
                   >
                     {(store.owner as { display_name: string }).display_name}
                   </Link>

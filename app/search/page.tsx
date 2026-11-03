@@ -188,7 +188,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         ) : (
           <EmptyState message={t.listings.noResults}>
             {!LOCK_TO_TECATE && effectiveCountry && !isGlobal && (
-              <Link href={toggleHref} className="text-sm text-blue-600 hover:underline">
+              <Link href={toggleHref} className="text-sm text-gray-900 hover:underline">
                 {t.listings.searchWorldwide}
               </Link>
             )}

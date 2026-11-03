@@ -201,7 +201,7 @@ export function AuthForm({ initialMode = 'login', redirect = '/', onSuccess }: A
             </div>
           )}
           {success && (
-            <div className="text-sm text-green-700 bg-green-50 p-3 rounded-xl space-y-2">
+            <div className="text-sm text-gray-900 bg-gray-100 p-3 rounded-xl space-y-2">
               <p className="font-semibold">{t.auth.accountCreated}</p>
               <p>{t.auth.checkEmailHint}</p>
               <p className="text-xs">{t.auth.spamHint}</p>

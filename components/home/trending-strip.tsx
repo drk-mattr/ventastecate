@@ -80,7 +80,7 @@ export function TrendingStrip({ items }: TrendingStripProps) {
                   )}
                   {/* Info */}
                   <div className="px-2 py-1.5">
-                    <p className="text-[11px] font-medium text-gray-900 line-clamp-2 leading-tight group-hover:text-blue-600 transition-colors">
+                    <p className="text-[11px] font-medium text-gray-900 line-clamp-2 leading-tight group-hover:text-gray-900 transition-colors">
                       {item.title}
                     </p>
                     <div className="flex items-center gap-1.5 mt-1">

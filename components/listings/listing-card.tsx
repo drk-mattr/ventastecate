@@ -15,7 +15,7 @@ interface ListingCardProps {
 }
 
 const TYPE_STYLES = {
-  service: { gradient: 'from-blue-600 to-blue-800' },
+  service: { gradient: 'from-gray-700 to-gray-900' },
   event:   { gradient: 'from-amber-500 to-orange-600' },
   product: { gradient: 'from-gray-500 to-gray-700' },
   news:    { gradient: 'from-slate-700 to-slate-900' },
@@ -94,12 +94,12 @@ function CardEngagement({ listing, inline = false }: { listing: ListingWithImage
   return (
     <div className={inline ? 'flex items-center gap-2' : 'flex items-center gap-2 mt-auto pt-1'}>
       <button onClick={toggleLike} disabled={isPending}
-        className={`flex items-center gap-1 text-xs transition-colors ${liked ? 'text-red-500' : 'text-gray-500 hover:text-red-400'}`}>
+        className={`flex items-center gap-1 text-xs transition-colors ${liked ? 'text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
         <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} />
         {likesCount > 0 && <span>{likesCount}</span>}
       </button>
       <button onClick={toggleSave} disabled={isPending}
-        className={`flex items-center gap-1 text-xs transition-colors ${saved ? 'text-blue-500' : 'text-gray-500 hover:text-blue-400'}`}>
+        className={`flex items-center gap-1 text-xs transition-colors ${saved ? 'text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
         <Bookmark className={`h-4 w-4 ${saved ? 'fill-current' : ''}`} />
       </button>
       {!inline && (listing.comments_count ?? 0) > 0 && (
@@ -249,7 +249,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         </p>
         {/* Title — secondary, single line */}
         {primaryImage && (
-          <h3 className="text-[13px] text-gray-700 line-clamp-1 leading-snug group-hover:text-blue-600 transition-colors">
+          <h3 className="text-[13px] text-gray-700 line-clamp-1 leading-snug group-hover:text-gray-900 transition-colors">
             {listing.title}
           </h3>
         )}

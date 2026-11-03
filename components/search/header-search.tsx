@@ -165,7 +165,7 @@ export function HeaderSearch() {
                 {activeFilterCount > 0 && (
                   <button
                     onClick={handleClearFilters}
-                    className="text-xs text-blue-600 hover:text-blue-700"
+                    className="text-xs text-gray-900 hover:text-gray-600"
                   >
                     {t.search.clearAll}
                   </button>

@@ -16,7 +16,7 @@ import Image from 'next/image'
 import { Store as StoreIcon, Home, Car } from 'lucide-react'
 
 export default function EditStorePage() {
-  const { user, refreshStores } = useAuth()
+  const { user, refreshStores, loading: authLoading } = useAuth()
   const router = useRouter()
   const params = useParams()
   const slug = params.slug as string
@@ -35,6 +35,7 @@ export default function EditStorePage() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
+    if (authLoading) return
     if (!user) {
       router.push('/login')
       return

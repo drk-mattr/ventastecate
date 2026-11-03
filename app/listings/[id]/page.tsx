@@ -225,15 +225,15 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
   // Tagged business card (reused across layouts)
   const taggedBusinessCard = taggedBusiness ? (
-    <div className="flex items-center gap-2.5 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2.5">
-      <Store className="h-4 w-4 text-orange-500 shrink-0" />
+    <div className="flex items-center gap-2.5 bg-gray-100 border border-gray-200 rounded-xl px-3 py-2.5">
+      <Store className="h-4 w-4 text-gray-900 shrink-0" />
       <div className="flex-1 min-w-0">
         {taggedBusiness.store ? (
-          <Link href={`/stores/${taggedBusiness.store.slug}`} className="text-sm font-medium text-orange-700 hover:underline truncate block">
+          <Link href={`/stores/${taggedBusiness.store.slug}`} className="text-sm font-medium text-gray-900 hover:underline truncate block">
             {taggedBusiness.name}
           </Link>
         ) : (
-          <span className="text-sm font-medium text-orange-700 truncate block">{taggedBusiness.name}</span>
+          <span className="text-sm font-medium text-gray-900 truncate block">{taggedBusiness.name}</span>
         )}
         {(taggedBusiness.category || taggedBusiness.location) && (
           <p className="text-[10px] text-orange-400 truncate">
@@ -258,7 +258,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       />
       <div className="min-h-screen bg-white">
         <Header />
-      <main className="container mx-auto px-4 py-4 max-w-7xl">
+      <main className="container mx-auto px-4 py-6 max-w-7xl">
 
         {isNews ? (
           /* ── News / Announcement article layout ── */
@@ -274,7 +274,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             </div>
 
             {/* Headline */}
-            <h1 className="text-2xl sm:text-3xl font-bold leading-tight mb-4">{listing.title}</h1>
+            <h1 className="text-2xl font-semibold leading-tight mb-4">{listing.title}</h1>
 
             {/* Byline */}
             <div className="flex items-center gap-3 pb-4 border-b mb-6">
@@ -314,7 +314,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
             {/* Hero image */}
             {sortedImages.length > 0 && (
-              <div className="mb-6 rounded-lg overflow-hidden">
+              <div className="mb-6 rounded-xl overflow-hidden">
                 <ListingImageGallery
                   images={sortedImages}
                   listingTitle={listing.title}
@@ -375,7 +375,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               <div>
                 <h1 className="text-xl font-semibold mb-1">{listing.title}</h1>
                 {listing.price > 0 && (
-                  <p className="text-2xl font-bold text-gray-900 mb-3">{formattedPrice}</p>
+                  <p className="text-2xl font-semibold text-gray-900 mb-3">{formattedPrice}</p>
                 )}
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 pb-3 border-b">
                   {listing.location && (
@@ -404,12 +404,12 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               {taggedBusinessCard}
 
               {/* Organizer card */}
-              <div className="border rounded-lg p-4 max-w-xs">
+              <div className="border rounded-xl p-4 max-w-xs">
                 <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Organizador</p>
 
                 {listing.store ? (
                   <div className="flex items-center gap-3 mb-4">
-                    <Link href={`/stores/${listing.store.slug}`} className="relative h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden shrink-0">
+                    <Link href={`/stores/${listing.store.slug}`} className="relative h-10 w-10 rounded-xl bg-gray-200 flex items-center justify-center overflow-hidden shrink-0">
                       {listing.store.avatar_url ? (
                         <Image src={listing.store.avatar_url} alt={listing.store.name} fill className="object-cover" />
                       ) : <Store className="h-5 w-5 text-gray-400" />}
@@ -492,7 +492,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               {/* Mobile: title + price under the gallery (desktop shows these in the right buy-box) */}
               <div className="lg:hidden">
                 <h1 className="text-xl font-semibold leading-snug mb-1">{listing.title}</h1>
-                <p className="text-2xl font-bold text-gray-900 mb-2">{formattedPrice}</p>
+                <p className="text-2xl font-semibold text-gray-900 mb-2">{formattedPrice}</p>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-gray-500">
                   {listing.location && (
                     <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 shrink-0" />{listing.location}</span>
@@ -626,7 +626,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 {/* Title/price/meta — desktop only; mobile shows them under the gallery */}
                 <div className="hidden lg:block">
                   <h1 className="text-xl font-semibold leading-snug mb-1.5">{listing.title}</h1>
-                  <p className="text-2xl font-bold text-gray-900 mb-3">{formattedPrice}</p>
+                  <p className="text-2xl font-semibold text-gray-900 mb-3">{formattedPrice}</p>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-gray-500 pb-4 border-b">
                     {listing.location && (
                       <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 shrink-0" />{listing.location}</span>

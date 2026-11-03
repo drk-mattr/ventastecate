@@ -125,7 +125,7 @@ export function NotificationBell() {
     type === 'like' ? 'le dio me gusta a' : type === 'comment' ? 'comentó en' : ''
 
   return (
-    <div ref={ref} className="relative hidden md:block">
+    <div ref={ref} className="relative">
       <button
         type="button"
         onClick={markRead}
@@ -140,7 +140,7 @@ export function NotificationBell() {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-80 rounded-xl border bg-white shadow-lg z-50 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border bg-white shadow-lg z-50 overflow-hidden">
           <p className="px-4 py-3 text-sm font-semibold text-gray-900 border-b">Notificaciones</p>
           {items.length === 0 ? (
             <p className="px-4 py-6 text-sm text-gray-500">Aún no tienes notificaciones.</p>

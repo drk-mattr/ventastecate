@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import Image from 'next/image'
 
 export default function EditProfilePage() {
-  const { user, profile, refreshProfile } = useAuth()
+  const { user, profile, refreshProfile, loading: authLoading } = useAuth()
   const router = useRouter()
   const supabase = createClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -30,6 +30,7 @@ export default function EditProfilePage() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
+    if (authLoading) return
     if (!user) {
       router.push('/login?redirect=/profile/edit')
       return

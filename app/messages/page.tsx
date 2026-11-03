@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { ChevronLeft } from 'lucide-react'
 
 function MessagesContent() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -35,13 +35,14 @@ function MessagesContent() {
   const conversationId = searchParams.get('conversation')
 
   useEffect(() => {
+    if (authLoading) return
     if (!user) {
       router.push('/login?redirect=/messages')
       return
     }
     fetchConversations()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
+  }, [user, authLoading])
 
   useEffect(() => {
     if (listingId && sellerId && user) {

@@ -23,8 +23,10 @@ export default async function Home({ searchParams }: HomeProps) {
   // MVP: the worldwide view is disabled while locked to Tecate.
   const isGlobal = !LOCK_TO_TECATE && globalParam === '1'
 
-  // Detect user country via Cloudflare header; resolveCountry() forces the MVP
-  // market (MX) so border-town visitors on US IPs see Tecate listings.
+  // Language only: resolveCountry() forces es-MX so border-town visitors on
+  // US IPs still get Spanish. It no longer filters the feed (soft region):
+  // San Diego / Tijuana / Tecate are one corridor, and a country filter hid
+  // US-posted border listings entirely.
   const headersList = await headers()
   const userCountry = resolveCountry(headersList.get('cf-ipcountry') ?? null)
   const t = getTranslations(userCountry)
@@ -41,10 +43,6 @@ export default async function Home({ searchParams }: HomeProps) {
     .from('listings')
     .select(listingSelect)
     .eq('status', 'active')
-
-  if (userCountry && !isGlobal) {
-    feedQuery = feedQuery.eq('country_code', userCountry)
-  }
 
   // Following feed: listings from sellers the logged-in user follows,
   // newest first, reusing the same card shell as the main feed.
@@ -84,10 +82,6 @@ export default async function Home({ searchParams }: HomeProps) {
     .from('listings')
     .select(listingSelect)
     .eq('status', 'active')
-
-  if (userCountry && !isGlobal) {
-    trendingQuery = trendingQuery.eq('country_code', userCountry)
-  }
 
   trendingQuery = trendingQuery
     .order('ranking_score', { ascending: false })

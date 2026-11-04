@@ -8,7 +8,7 @@ import { Bell, Heart, MessageCircle, UserPlus } from 'lucide-react'
 
 type BellItem = {
   id: string
-  type: 'like' | 'comment' | 'follow'
+  type: 'like' | 'comment' | 'follow' | 'message'
   actor: string
   actorUsername?: string
   title: string
@@ -27,12 +27,10 @@ function formatTimeAgo(dateStr: string): string {
   return 'ahora mismo'
 }
 
-// Bell built on the tables that already exist live (listing_likes,
-// listing_comments, follows) so it works today, without a new migration.
-// Read state is kept per device in localStorage until the
-// 018_notifications migration is applied to the live database, at which
-// point it can move to a server-side read column.
-const SEEN_KEY = 'vt-notifications-seen-at'
+// Bell reads the notifications table (018_notifications.sql, applied live
+// 2026-11-04) with server-side read state. If that table is unavailable
+// it falls back to the original listing_likes / listing_comments /
+// follows queries, so the bell never breaks on a missing migration.
 
 export function NotificationBell() {
   const { user } = useAuth()
@@ -44,37 +42,48 @@ export function NotificationBell() {
   useEffect(() => {
     if (!user) return
     const supabase = createClient()
-    const seenAt = localStorage.getItem(SEEN_KEY)
 
-    Promise.all([
-      supabase
-        .from('listing_likes')
-        .select('id, created_at, user_id, listings!inner(id, title, user_id)')
-        .eq('listings.user_id', user.id)
-        .neq('user_id', user.id)
+    const load = async () => {
+      const { data: notifs, error } = await supabase
+        .from('notifications')
+        .select('id, type, actor_id, listing_id, read, created_at')
+        .eq('recipient_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(20),
-      supabase
-        .from('listing_comments')
-        .select('id, created_at, user_id, listings!inner(id, title, user_id)')
-        .eq('listings.user_id', user.id)
-        .neq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20),
-      supabase
-        .from('follows')
-        .select('id, created_at, follower_id')
-        .eq('following_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20),
-    ]).then(async ([likes, comments, follows]) => {
+        .limit(30)
+      if (!error && notifs) {
+        const actorIds = [...new Set(notifs.map((n: { actor_id: string }) => n.actor_id))]
+        const listingIds = [...new Set(notifs.map((n: { listing_id: string | null }) => n.listing_id).filter(Boolean))]
+        const [{ data: profiles }, { data: listings }] = await Promise.all([
+          actorIds.length ? supabase.from('profiles').select('id, display_name, username').in('id', actorIds) : Promise.resolve({ data: [] }),
+          listingIds.length ? supabase.from('listings').select('id, title').in('id', listingIds as string[]) : Promise.resolve({ data: [] }),
+        ])
+        const byActor = new Map((profiles || []).map((p: { id: string; display_name?: string; username?: string }) => [p.id, p]))
+        const byListing = new Map((listings || []).map((l: { id: string; title: string }) => [l.id, l]))
+        const items: BellItem[] = notifs.map((n: { id: string; type: string; actor_id: string; listing_id: string | null; created_at: string }) => {
+          const profile = byActor.get(n.actor_id) as { display_name?: string; username?: string } | undefined
+          const listing = n.listing_id ? byListing.get(n.listing_id) : undefined
+          return {
+            id: n.id, type: n.type as BellItem['type'], actor: profile?.display_name || 'Alguien',
+            actorUsername: profile?.username, title: listing?.title || '',
+            href: n.type === 'follow' && profile?.username ? `/users/${profile.username}` : n.listing_id ? `/listings/${n.listing_id}` : '/',
+            created_at: n.created_at,
+          }
+        })
+        setItems(items)
+        setUnread(notifs.filter((n: { read: boolean }) => !n.read).length)
+        return
+      }
+      // Fallback: original queries against likes/comments/follows.
+      const [likes, comments, follows] = await Promise.all([
+        supabase.from('listing_likes').select('id, created_at, user_id, listings!inner(id, title, user_id)').eq('listings.user_id', user.id).neq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+        supabase.from('listing_comments').select('id, created_at, user_id, listings!inner(id, title, user_id)').eq('listings.user_id', user.id).neq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+        supabase.from('follows').select('id, created_at, follower_id').eq('following_id', user.id).order('created_at', { ascending: false }).limit(20),
+      ])
       const actorIds = new Set<string>()
       ;(likes.data || []).forEach((r: { user_id: string }) => actorIds.add(r.user_id))
       ;(comments.data || []).forEach((r: { user_id: string }) => actorIds.add(r.user_id))
       ;(follows.data || []).forEach((r: { follower_id: string }) => actorIds.add(r.follower_id))
-      const { data: profiles } = actorIds.size
-        ? await supabase.from('profiles').select('id, display_name, username').in('id', [...actorIds])
-        : { data: [] }
+      const { data: profiles } = actorIds.size ? await supabase.from('profiles').select('id, display_name, username').in('id', [...actorIds]) : { data: [] }
       const byId = new Map((profiles || []).map((p: { id: string; display_name?: string; username?: string }) => [p.id, p]))
       const all: BellItem[] = []
       const push = (r: { id: string; created_at: string; listings?: { id: string; title: string } | { id: string; title: string }[] | null }, type: BellItem['type'], actorId: string) => {
@@ -92,10 +101,10 @@ export function NotificationBell() {
       ;(comments.data || []).forEach((r: { id: string; created_at: string; user_id: string; listings?: { id: string; title: string } | { id: string; title: string }[] | null }) => push(r, 'comment', r.user_id))
       ;(follows.data || []).forEach((r: { id: string; created_at: string; follower_id: string }) => push(r, 'follow', r.follower_id))
       all.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
-      const sliced = all.slice(0, 30)
-      setItems(sliced)
-      setUnread(seenAt ? sliced.filter(i => new Date(i.created_at) > new Date(seenAt)).length : sliced.length)
-    }).catch(() => {})
+      setItems(all.slice(0, 30))
+      setUnread(all.length)
+    }
+    load().catch(() => {})
   }, [user])
 
   useEffect(() => {
@@ -111,18 +120,19 @@ export function NotificationBell() {
   const markRead = () => {
     setOpen(!open)
     if (!open) {
-      localStorage.setItem(SEEN_KEY, new Date().toISOString())
       setUnread(0)
+      const supabase = createClient()
+      void supabase.from('notifications').update({ read: true }).eq('recipient_id', user?.id).eq('read', false)
     }
   }
 
   const icon = (type: BellItem['type']) =>
     type === 'like' ? <Heart className="h-4 w-4 text-gray-900 shrink-0" />
-    : type === 'comment' ? <MessageCircle className="h-4 w-4 text-gray-900 shrink-0" />
+    : type === 'comment' || type === 'message' ? <MessageCircle className="h-4 w-4 text-gray-900 shrink-0" />
     : <UserPlus className="h-4 w-4 text-gray-900 shrink-0" />
 
   const verb = (type: BellItem['type']) =>
-    type === 'like' ? 'le dio me gusta a' : type === 'comment' ? 'comentó en' : ''
+    type === 'like' ? 'le dio me gusta a' : type === 'comment' ? 'comentó en' : type === 'message' ? 'te escribió sobre' : ''
 
   return (
     <div ref={ref} className="relative">

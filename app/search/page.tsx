@@ -6,7 +6,7 @@ import { SearchFilterBar } from '@/components/search/search-filter-bar'
 import { ListingWithImages } from '@/lib/types/database'
 import { getTranslations } from '@/lib/i18n'
 import { EmptyState } from '@/components/ui/empty-state'
-import { LOCK_TO_TECATE, MVP_COUNTRY, resolveCountry } from '@/lib/mvp-config'
+import { LOCK_TO_TECATE, resolveCountry } from '@/lib/mvp-config'
 import Link from 'next/link'
 
 interface SearchPageProps {
@@ -31,18 +31,16 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const supabase = await createClient()
   const { q, category, location, city, stateRegion, minPrice, maxPrice, sort, country, type, bedrooms, bathrooms, m2 } = await searchParams
 
-  // Detect user country via Cloudflare header; resolveCountry() forces the MVP
-  // market (MX) so border-town visitors on US IPs search Tecate listings.
+  // Language only: resolveCountry() forces es-MX. Search no longer forces an
+  // MX filter (soft region) — a user-chosen country param still filters.
   const headersList = await headers()
   const userCountry = resolveCountry(headersList.get('cf-ipcountry') ?? null)
   const t = getTranslations(userCountry)
 
-  // 'all' = user opted into global search; absent = use detected country.
-  // MVP: worldwide search is disabled and the market is pinned to Tecate (MX).
-  const isGlobal = !LOCK_TO_TECATE && country === 'all'
-  const effectiveCountry = LOCK_TO_TECATE
-    ? MVP_COUNTRY
-    : (isGlobal ? null : (country ?? userCountry))
+  // Soft region: no forced country filter. Only filter when the user
+  // explicitly picks a country (and 'all' means no filter).
+  const isGlobal = country === 'all' || !country
+  const effectiveCountry = country && country !== 'all' ? country : null
 
   // Build query
   let query = supabase

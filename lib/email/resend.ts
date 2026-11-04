@@ -75,3 +75,36 @@ export async function sendMessageNotification({
     return { success: false, error }
   }
 }
+
+export async function sendReportReply({ to, reportType, reportDescription, replyBody }: {
+  to: string
+  reportType: string
+  reportDescription: string
+  replyBody: string
+}) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not set, skipping report reply')
+    return { success: false, error: 'Email not configured' }
+  }
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  try {
+    await resend.emails.send({
+      from: 'Ventas Tecate <noreply@ventastecate.com>',
+      to,
+      subject: `Ventas Tecate: respuesta a tu reporte (${reportType})`,
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2>Ventas Tecate</h2>
+          <p>Gracias por tu reporte. Te respondemos:</p>
+          <div style="background: #f9fafb; padding: 15px; border-left: 4px solid #111; margin: 15px 0;">${replyBody.replace(/</g, '&lt;')}</div>
+          <p style="color: #6b7280; font-size: 13px;">Tu reporte original: ${reportDescription.replace(/</g, '&lt;').slice(0, 500)}</p>
+          <p style="color: #6b7280; font-size: 12px;">Este correo es automático y no admite respuestas. Si quieres añadir algo, envía un nuevo reporte desde ventastecate.com.</p>
+        </div>
+      `,
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Error sending report reply:', error)
+    return { success: false, error }
+  }
+}

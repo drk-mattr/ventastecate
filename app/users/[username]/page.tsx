@@ -65,7 +65,7 @@ export default async function UserProfilePage({ params }: { params: Promise<{ us
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <UserAvatar src={profile.avatar_url} name={profile.display_name} size="xl" />
             <div className="flex-1">
-              <h1 className="text-2xl font-semibold mb-1">{profile.display_name}</h1>
+              <h1 className="text-2xl font-semibold mb-1 flex items-center gap-2">{profile.display_name}{profile.username === 'ventastecate' && (<span className="rounded-full bg-gray-900 px-2 py-0.5 text-[11px] font-semibold text-white">Cuenta oficial</span>)}</h1>
               <p className="text-sm text-gray-600 mb-2">@{profile.username}</p>
               {profile.bio && (
                 <p className="text-sm text-gray-700 mb-3">{profile.bio}</p>

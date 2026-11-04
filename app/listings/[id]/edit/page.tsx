@@ -52,7 +52,7 @@ const EVENT_CATEGORIES = [
 ]
 
 const NEWS_CATEGORIES = [
-  'Noticias Locales',
+  'Noticias',
   'Objetos Perdidos',
   'Seguridad Pública',
   'Anuncios Comunitarios',

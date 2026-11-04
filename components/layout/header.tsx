@@ -189,6 +189,11 @@ export function Header() {
                   <DropdownMenuItem asChild className="text-xs">
                     <Link href="/profile/edit">{t.nav.settings}</Link>
                   </DropdownMenuItem>
+                  {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
+                    <DropdownMenuItem asChild className="text-xs">
+                      <Link href="/admin/reports">Reportes (admin)</Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => openReport()} className="text-xs">
                     {t.nav.reportProblem}
                   </DropdownMenuItem>

@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
         category,
         location,
         listing_type: listingType,
+        country_code: 'MX',
         status: 'active',
         metadata: { source, posted_via: 'internal-community' },
       })

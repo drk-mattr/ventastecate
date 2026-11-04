@@ -42,7 +42,7 @@ const SERVICE_CATEGORIES = [
 const EVENT_CATEGORIES = ['Eventos', 'Comida y Bebida', 'Anuncios Comunitarios', 'Empleos']
 
 const NEWS_CATEGORIES = [
-  'Noticias Locales', 'Reseñas y Recomendaciones', 'Objetos Perdidos', 'Seguridad Pública', 'Anuncios Comunitarios', 'Empleos',
+  'Noticias', 'Reseñas y Recomendaciones', 'Objetos Perdidos', 'Seguridad Pública', 'Anuncios Comunitarios', 'Empleos',
 ]
 
 // Quick shortcuts — popular topics that auto-select type + category

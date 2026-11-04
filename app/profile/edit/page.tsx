@@ -28,6 +28,8 @@ export default function EditProfilePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [facebookLinked, setFacebookLinked] = useState(false)
+  const [facebookBusy, setFacebookBusy] = useState(false)
 
   useEffect(() => {
     if (authLoading) return
@@ -35,6 +37,10 @@ export default function EditProfilePage() {
       router.push('/login?redirect=/profile/edit')
       return
     }
+
+    supabase.auth.getUserIdentities().then(({ data }) => {
+      setFacebookLinked((data?.identities || []).some((i) => i.provider === 'facebook'))
+    }).catch(() => {})
 
     if (profile) {
       setDisplayName(profile.display_name || '')
@@ -57,6 +63,33 @@ export default function EditProfilePage() {
 
     setAvatarFile(file)
     setAvatarPreview(URL.createObjectURL(file))
+  }
+
+  const handleLinkFacebook = async () => {
+    setFacebookBusy(true)
+    setError('')
+    const { data, error: linkError } = await supabase.auth.linkIdentity({
+      provider: 'facebook',
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=/profile/edit`, scopes: 'email public_profile' },
+    })
+    if (linkError) {
+      setError(linkError.message)
+      setFacebookBusy(false)
+    } else if (data?.url) {
+      window.location.href = data.url
+    }
+  }
+
+  const handleUnlinkFacebook = async () => {
+    setFacebookBusy(true)
+    setError('')
+    const { data } = await supabase.auth.getUserIdentities()
+    const identity = (data?.identities || []).find((i) => i.provider === 'facebook')
+    if (!identity) { setFacebookBusy(false); return }
+    const { error: unlinkError } = await supabase.auth.unlinkIdentity(identity)
+    if (unlinkError) setError(unlinkError.message)
+    else setFacebookLinked(false)
+    setFacebookBusy(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -248,6 +281,25 @@ export default function EditProfilePage() {
                 </Button>
               </div>
             </form>
+          </CardContent>
+        </Card>
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Facebook</CardTitle>
+            <CardDescription>Entra más rápido con la cuenta de Facebook que ya usas. Puedes vincularla o desvincularla cuando quieras; tu correo sigue funcionando.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {facebookLinked ? (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-gray-600">Tu cuenta de Facebook está vinculada.</p>
+                <Button type="button" variant="outline" onClick={handleUnlinkFacebook} disabled={facebookBusy} className="rounded-xl">Desvincular Facebook</Button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-gray-600">Aún no has vinculado Facebook.</p>
+                <Button type="button" variant="outline" onClick={handleLinkFacebook} disabled={facebookBusy} className="rounded-xl">Vincular Facebook</Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>

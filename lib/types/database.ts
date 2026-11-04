@@ -7,7 +7,9 @@ export type Profile = {
   whatsapp_number?: string | null
   created_at: string
   updated_at: string
+  is_superadmin?: boolean
 }
+
 
 export type ListingType = 'product' | 'service' | 'event' | 'news'
 
@@ -154,4 +156,27 @@ export type ListingComment = {
   content: string
   created_at: string
   profile?: Pick<Profile, 'username' | 'display_name' | 'avatar_url'>
+}
+
+export type Report = {
+  id: string
+  type: string
+  description?: string | null
+  email?: string | null
+  listing_id?: string | null
+  listing_title?: string | null
+  reporter_id?: string | null
+  reporter_label?: string | null
+  status: 'new' | 'reviewed' | 'resolved'
+  created_at: string
+  updated_at: string
+}
+
+export type ReportNote = {
+  id: string
+  report_id: string
+  author_id?: string | null
+  kind: 'note' | 'reply'
+  body: string
+  created_at: string
 }

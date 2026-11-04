@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { reportSchema } from '@/lib/validation'
 import { sanitizeDiscordText, sanitizeEmailForDisplay } from '@/lib/discord'
 import { rateLimit, clientIp } from '@/lib/rate-limit'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const TYPE_LABELS: Record<string, string> = {
   bug: '🐛 Bug',
@@ -57,6 +58,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Store first, so a Discord failure can never lose the report.
+    let reportId: string | null = null
+    const admin = createAdminClient()
+    if (admin) {
+      const { data: inserted, error: insertError } = await admin.from('reports').insert({
+        type,
+        description: description || null,
+        email: email || null,
+        listing_id: listingId || null,
+        listing_title: listingTitle || null,
+        reporter_id: user?.id || null,
+        reporter_label: username,
+        status: 'new',
+      }).select('id').single()
+      if (insertError) console.error('reports insert error:', insertError.message)
+      else reportId = inserted.id
+    } else {
+      console.warn('SUPABASE_SERVICE_ROLE_KEY not set, report not stored in DB')
+    }
+
     const webhookUrl = process.env.DISCORD_WEBHOOK_URL
     if (!webhookUrl) {
       console.error('DISCORD_WEBHOOK_URL not set')
@@ -85,6 +106,7 @@ export async function POST(request: NextRequest) {
       description: description ? sanitizeDiscordText(description, 2000) : '—',
       color: isListingReport ? 0xff4444 : type === 'bug' ? 0xff4444 : type === 'suggestion' ? 0x4488ff : 0x888888,
       fields: [
+        ...(reportId ? [{ name: '🗂️ Reporte', value: `${appUrl}/admin/reports/${reportId}`, inline: false }] : []),
         ...(isListingReport ? [
           { name: '🏷️ Anuncio',  value: sanitizeDiscordText(listingTitle, 200), inline: false },
           { name: '🔗 Enlace',   value: listingUrl as string,  inline: false },
@@ -108,6 +130,7 @@ export async function POST(request: NextRequest) {
 
     if (!res.ok) {
       console.error('Discord webhook error:', res.status)
+      if (reportId) return NextResponse.json({ success: true, stored: true, discordFailed: true })
       return NextResponse.json({ error: 'Error al enviar reporte' }, { status: 500 })
     }
 

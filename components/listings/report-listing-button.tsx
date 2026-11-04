@@ -23,11 +23,11 @@ import {
 } from '@/components/ui/select'
 
 const REASONS = [
-  { value: 'spam', label: '🚫 Spam o duplicado' },
-  { value: 'scam', label: '⚠️ Fraude o estafa' },
-  { value: 'prohibited', label: '🚷 Artículo prohibido' },
-  { value: 'offensive', label: '😡 Contenido ofensivo' },
-  { value: 'listing_other', label: '📝 Otro motivo' },
+  { value: 'spam', label: 'Spam o duplicado' },
+  { value: 'scam', label: 'Fraude o estafa' },
+  { value: 'prohibited', label: 'Artículo prohibido' },
+  { value: 'offensive', label: 'Contenido ofensivo' },
+  { value: 'listing_other', label: 'Otro motivo' },
 ]
 
 export function ReportListingButton({

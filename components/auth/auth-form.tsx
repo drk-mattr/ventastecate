@@ -75,6 +75,25 @@ export function AuthForm({ initialMode = 'login', redirect = '/', onSuccess }: A
     }
   }
 
+  // Facebook OAuth (Supabase provider). Works only once the Facebook app is
+  // configured in Supabase Auth (see docs/facebook-login-setup.md). Until
+  // then Supabase returns a provider-not-enabled error, shown below.
+  const handleFacebook = async () => {
+    setLoading(true)
+    setError('')
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirect)}`,
+        scopes: 'email public_profile',
+      },
+    })
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+    }
+  }
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -144,6 +163,14 @@ export function AuthForm({ initialMode = 'login', redirect = '/', onSuccess }: A
         {mode === 'login' ? t.auth.loginWelcome : t.auth.joinTagline}
       </p>
 
+      <Button type="button" variant="outline" onClick={handleFacebook} disabled={loading} className="w-full h-11 rounded-xl text-sm font-medium">
+        <span className="mr-2 text-base font-bold">f</span> Continuar con Facebook
+      </Button>
+      <div className="my-5 flex items-center gap-3 text-xs text-gray-400">
+        <span className="h-px flex-1 bg-gray-200" />
+        o continúa con correo
+        <span className="h-px flex-1 bg-gray-200" />
+      </div>
       {mode === 'login' ? (
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1.5">

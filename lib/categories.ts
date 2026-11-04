@@ -37,7 +37,7 @@ export const EVENT_CATEGORIES = [
 ]
 
 export const NEWS_CATEGORIES = [
-  'Noticias Locales',
+  'Noticias',
   'Reseñas y Recomendaciones',
   'Objetos Perdidos',
   'Seguridad Pública',

@@ -10,7 +10,7 @@ import { ListingImageGallery } from '@/components/listings/listing-image-gallery
 import { CommentSection } from '@/components/listings/comment-section'
 import { ReportListingButton } from '@/components/listings/report-listing-button'
 import Image from 'next/image'
-import { MapPin, Calendar, Newspaper, Store, Bed, Droplets, Ruler, Home, Car, Gauge, Settings, Fuel, Palette, DoorOpen } from 'lucide-react'
+import { MapPin, Calendar, Newspaper, Store, Bed, Droplets, Ruler, Home, Car, Gauge, Settings, Fuel, Palette, DoorOpen, BadgeCheck } from 'lucide-react'
 import { ListingEngagementBar } from '@/components/listings/listing-engagement-bar'
 import { VideoEmbed } from '@/components/listings/video-embed'
 
@@ -307,7 +307,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   <span className="flex items-center gap-2">
                     <Link href={`/users/${listing.profile.username}`} className="text-sm font-semibold hover:underline">{listing.profile.display_name}</Link>
                     {listing.profile.username === 'ventastecate' && (
-                      <span className="rounded-full bg-gray-900 px-2 py-0.5 text-[11px] font-semibold text-white">Cuenta oficial</span>
+                      <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-gray-500"><BadgeCheck className="h-3.5 w-3.5 text-orange-600" />Cuenta oficial</span>
                     )}
                   </span>
                 )}
@@ -452,7 +452,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                           {listing.profile.display_name}
                         </Link>
                         {listing.profile.username === 'ventastecate' && (
-                          <span className="rounded-full bg-gray-900 px-2 py-0.5 text-[11px] font-semibold text-white">Cuenta oficial</span>
+                          <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-gray-500"><BadgeCheck className="h-3.5 w-3.5 text-orange-600" />Cuenta oficial</span>
                         )}
                       </span>
                       <p className="text-xs text-gray-500">@{listing.profile.username}</p>

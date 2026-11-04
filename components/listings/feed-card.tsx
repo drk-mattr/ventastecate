@@ -20,7 +20,7 @@ const TYPE_CONFIG = {
 } as const
 
 const NEWS_CATEGORY_COLORS: Record<string, string> = {
-  'Noticias Locales':      'bg-gray-100 text-gray-900',
+  'Noticias':      'bg-gray-100 text-gray-900',
   'Objetos Perdidos':      'bg-gray-100 text-gray-900',
   'Seguridad Pública':     'bg-red-50 text-red-700',
   'Anuncios Comunitarios': 'bg-gray-100 text-gray-900',

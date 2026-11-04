@@ -156,6 +156,19 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const { data: { user } } = await supabase.auth.getUser()
   const isOwner = user?.id === listing.user_id
 
+  // WhatsApp number lives on the seller's profile. Fetched separately so
+  // that, before migration 019 is applied, a missing column only hides
+  // the WhatsApp button instead of breaking this whole page.
+  let sellerWhatsapp: string | null = null
+  {
+    const { data: waData } = await supabase
+      .from('profiles')
+      .select('whatsapp_number')
+      .eq('id', listing.user_id)
+      .single()
+    sellerWhatsapp = (waData as { whatsapp_number?: string | null } | null)?.whatsapp_number ?? null
+  }
+
   const listingType: ListingType = listing.listing_type || 'product'
   const isService = listingType === 'service'
   const isEvent = listingType === 'event'
@@ -678,6 +691,17 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                     <Link href={`/messages?listing=${listing.id}&seller=${listing.user_id}`}>
                       {isService ? 'Contactar' : 'Contactar Vendedor'}
                     </Link>
+                  </Button>
+                )}
+                {!isOwner && listing.status === 'active' && sellerWhatsapp && (
+                  <Button asChild variant="outline" className="w-full mt-2">
+                    <a
+                      href={`https://wa.me/${String(sellerWhatsapp).replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, vi tu anuncio "${listing.title}" en ventasTecate.com y me interesa.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      WhatsApp al vendedor
+                    </a>
                   </Button>
                 )}
                 {!isOwner && listing.status === 'active' && !user && (

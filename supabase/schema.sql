@@ -239,11 +239,15 @@ grant update (read) on public.messages to authenticated;
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, username, display_name)
+  insert into public.profiles (id, username, display_name, avatar_url)
   values (
     new.id,
     new.raw_user_meta_data->>'username',
-    new.raw_user_meta_data->>'display_name'
+    new.raw_user_meta_data->>'display_name',
+    coalesce(
+      new.raw_user_meta_data->>'avatar_url',
+      new.raw_user_meta_data->>'picture'
+    )
   );
   return new;
 end;

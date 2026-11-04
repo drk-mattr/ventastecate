@@ -29,7 +29,7 @@ const TYPE_BADGE: Record<string, { icon: React.ElementType; label: string } | nu
 }
 
 const NEWS_CATEGORY_COLORS: Record<string, string> = {
-  'Noticias Locales':      'text-gray-500',
+  'Noticias':      'text-gray-500',
   'Objetos Perdidos':      'text-gray-500',
   'Seguridad Pública':     'text-gray-500',
   'Anuncios Comunitarios': 'text-gray-500',

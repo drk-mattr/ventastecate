@@ -16,7 +16,7 @@ Both require header: `Authorization: Bearer <INTERNAL_POST_TOKEN>`
 ## 1. Create the community account (Greg)
 Sign up at ventasTecate.com/signup with an email you control:
 - Display name: Ventas Tecate
-- Username: ventastecate_comunidad (or set COMMUNITY_USERNAME in Worker vars)
+- Username: ventastecate (the official account name; if the account was created via /signup it will have an auto-generated username first, rename it to ventastecate with: update public.profiles set username = 'ventastecate' where display_name = 'Ventas Tecate';, then the endpoint default matches and no COMMUNITY_USERNAME variable is needed)
 - Bio: Noticias y avisos comunitarios para Tecate y alrededores.
   Información de fuentes públicas.
 

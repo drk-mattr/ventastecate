@@ -55,7 +55,7 @@ const QUICK_SHORTCUTS: {
   accentBg: string
   accentBorder: string
 }[] = [
-  { label: 'Comida', Icon: UtensilsCrossed, type: 'product', category: 'Comida', accent: 'text-red-600', accentBg: 'bg-red-50', accentBorder: 'border-red-200' },
+  { label: 'Comida', Icon: UtensilsCrossed, type: 'product', category: 'Comida', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-200' },
   { label: 'Reseña', Icon: Star, type: 'news', category: 'Reseñas y Recomendaciones', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-200' },
   { label: 'Empleo', Icon: Briefcase, type: 'news', category: 'Empleos', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-200' },
   { label: 'Perdido', Icon: Dog, type: 'news', category: 'Objetos Perdidos', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-200' },
@@ -81,7 +81,7 @@ const TYPE_CONFIG: Record<ListingType, {
     descPlaceholder: 'Describe lo que ofreces: estado, detalles, por qué lo vendes...',
     color: 'text-gray-900',
     colorBg: 'bg-gray-100',
-    colorBorder: 'border-emerald-300',
+    colorBorder: 'border-gray-900',
   },
   service: {
     Icon: Handshake,
@@ -91,7 +91,7 @@ const TYPE_CONFIG: Record<ListingType, {
     descPlaceholder: 'Describe tu servicio: experiencia, zona, horarios, precios...',
     color: 'text-gray-900',
     colorBg: 'bg-gray-100',
-    colorBorder: 'border-blue-300',
+    colorBorder: 'border-gray-900',
   },
   event: {
     Icon: CalendarHeart,
@@ -101,7 +101,7 @@ const TYPE_CONFIG: Record<ListingType, {
     descPlaceholder: 'Describe el evento: fecha, hora, lugar, costo de entrada...',
     color: 'text-gray-900',
     colorBg: 'bg-gray-100',
-    colorBorder: 'border-purple-300',
+    colorBorder: 'border-gray-900',
   },
   news: {
     Icon: Megaphone,
@@ -109,9 +109,9 @@ const TYPE_CONFIG: Record<ListingType, {
     verb: 'Informar a la comunidad',
     titlePlaceholder: 'Ej: Corte de agua mañana, Se busca perro perdido...',
     descPlaceholder: 'Describe lo que está pasando con todos los detalles relevantes...',
-    color: 'text-orange-600',
-    colorBg: 'bg-orange-50',
-    colorBorder: 'border-orange-300',
+    color: 'text-gray-900',
+    colorBg: 'bg-gray-100',
+    colorBorder: 'border-gray-900',
   },
 }
 
@@ -169,6 +169,31 @@ export default function NewListingPage() {
   // or by an active typed store — not gated on owning a store.
   const isRealEstate = storeType === 'real_estate' || REAL_ESTATE_CATEGORIES.includes(category)
   const isAutomotive = storeType === 'automotive' || category === 'Vehículos'
+
+  // Stepped posting: same fields, same submission — only the presentation
+  // changes. Step 1 = type + photos, step 2 = title/price/category/location,
+  // step 3 = only this type's fields + Opciones adicionales, then Publish.
+  // Types never bleed: real-estate and automotive blocks still render only
+  // when isRealEstate / isAutomotive is true, exactly as before.
+  const [step, setStep] = useState(1)
+  const stepTitles = ['¿Qué quieres compartir?', 'Datos del anuncio', 'Detalles y publicar']
+  const validateStep2 = (): string | null => {
+    if (!title.trim()) return 'Escribe un título'
+    if (!description.trim()) return 'Escribe una descripción'
+    if (showPrice && !priceConsultar && !price) return 'Escribe un precio o marca Precio a consultar / Gratis'
+    if (storeType === 'general' && !category) return 'Elige una categoría'
+    return null
+  }
+  const goNext = () => {
+    if (step === 2) {
+      const err = validateStep2()
+      if (err) { setError(err); return }
+    }
+    setError('')
+    setStep(s => Math.min(3, s + 1))
+    window.scrollTo({ top: 0 })
+  }
+  const goBack = () => { setError(''); setStep(s => Math.max(1, s - 1)); window.scrollTo({ top: 0 }) }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -255,6 +280,19 @@ export default function NewListingPage() {
 
       const parsedPrice = parseFloat(price)
       const finalPrice = listingType === 'news' ? 0 : priceConsultar ? 0 : (Number.isFinite(parsedPrice) ? parsedPrice : 0)
+
+      // Step validation already ran on Next, but re-check here so a
+      // direct submit can never publish with a missing required field.
+      if (storeType === 'general' && !category) {
+        setError('Elige una categoría')
+        setLoading(false)
+        return
+      }
+      if (isAutomotive && (!year || !make.trim() || !model.trim())) {
+        setError('Completa año, marca y modelo del vehículo')
+        setLoading(false)
+        return
+      }
 
       // Validate user input before touching the DB.
       const validationError = firstListingError({
@@ -362,11 +400,26 @@ export default function NewListingPage() {
           )}
         </div>
 
+        {/* Step indicator */}
+        <div className="mb-5">
+          <div className="flex items-center gap-2">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="flex items-center gap-2 flex-1">
+                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${step >= n ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-500'}`}>{n}</span>
+                {n < 3 && <span className={`h-px flex-1 ${step > n ? 'bg-gray-900' : 'bg-gray-200'}`} />}
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-sm font-medium text-gray-900">{stepTitles[step - 1]}</p>
+          <p className="text-xs text-gray-500">Paso {step} de 3</p>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-0">
 
           {/* ══════════════════════════════════════════════
               SECTION 1: MEDIA (Visual-first — this is the hook)
               ══════════════════════════════════════════════ */}
+          {step === 1 && (
           <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
             <div
               onDrop={handleDrop}
@@ -376,7 +429,7 @@ export default function NewListingPage() {
               className={`
                 relative rounded-xl border-2 border-dashed transition-all cursor-pointer
                 ${isDragging
-                  ? 'border-orange-400 bg-orange-50 scale-[1.01]'
+                  ? 'border-gray-900 bg-gray-100 scale-[1.01]'
                   : images.length > 0
                     ? 'border-gray-200 bg-gray-50/50'
                     : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100/50'
@@ -442,13 +495,15 @@ export default function NewListingPage() {
               )}
             </div>
           </div>
+          )}
 
           {/* ══════════════════════════════════════════════
               SECTION 2: WHAT ARE YOU SHARING? (Type + core info)
               ══════════════════════════════════════════════ */}
+          {step === 1 && (
           <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-5">
 
-            {/* Type selector — pill-style, color-coded */}
+            {/* Type selector */}
             {storeType === 'general' && (
               <div className="space-y-2.5">
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -510,6 +565,11 @@ export default function NewListingPage() {
               </div>
             )}
 
+          </div>
+          )}
+
+          {step === 2 && (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-5">
             {/* Title */}
             <div className="space-y-1.5">
               <Label htmlFor="title" className="text-sm">
@@ -607,7 +667,12 @@ export default function NewListingPage() {
               ) : null}
             </div>
 
-            {/* Real Estate Fields */}
+          </div>
+          )}
+
+          {step === 3 && (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-5">
+            {/* Real Estate Fields — only for real-estate categories/stores */}
             {isRealEstate && (
               <>
                 <div className="space-y-1.5">
@@ -635,7 +700,7 @@ export default function NewListingPage() {
               </>
             )}
 
-            {/* Automotive Fields */}
+            {/* Automotive Fields — only for vehicles */}
             {isAutomotive && (
               <>
                 <div className="space-y-1.5">
@@ -687,8 +752,13 @@ export default function NewListingPage() {
                 </div>
               </>
             )}
+            {!isRealEstate && !isAutomotive && (
+              <p className="text-sm text-gray-500">No hay detalles adicionales para este tipo. Puedes agregar un video o etiquetar un negocio en Opciones adicionales abajo.</p>
+            )}
           </div>
+          )}
 
+          {step === 2 && (<>
           {/* ══════════════════════════════════════════════
               SECTION 3: LOCATION
               ══════════════════════════════════════════════ */}
@@ -711,7 +781,9 @@ export default function NewListingPage() {
               />
             </div>
           </div>
+          </>)}
 
+          {step === 3 && (<>
           {/* ══════════════════════════════════════════════
               SECTION 4: EXTRAS (collapsible — reduce overwhelm)
               ══════════════════════════════════════════════ */}
@@ -760,9 +832,10 @@ export default function NewListingPage() {
               </div>
             )}
           </div>
+          </>)}
 
           {/* ══════════════════════════════════════════════
-              SECTION 5: SUBMIT
+              SECTION 5: NAVIGATION / SUBMIT
               ══════════════════════════════════════════════ */}
           {error && (
             <div className="text-sm text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl mb-4">
@@ -771,22 +844,25 @@ export default function NewListingPage() {
           )}
 
           <div className="flex gap-3">
-            <Button
-              type="submit"
-              disabled={loading}
-              className="flex-1 h-12 text-base font-medium rounded-xl"
-            >
-              {loading ? 'Publicando...' : 'Publicar'}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-              disabled={loading}
-              className="h-12 px-6 rounded-xl"
-            >
-              Cancelar
-            </Button>
+            {step > 1 && (
+              <Button type="button" variant="outline" onClick={goBack} disabled={loading} className="h-12 px-6 rounded-xl">
+                Atrás
+              </Button>
+            )}
+            {step < 3 ? (
+              <Button type="button" onClick={goNext} disabled={loading} className="flex-1 h-12 text-base font-medium rounded-xl">
+                Siguiente
+              </Button>
+            ) : (
+              <Button type="submit" disabled={loading} className="flex-1 h-12 text-base font-medium rounded-xl">
+                {loading ? 'Publicando...' : 'Publicar'}
+              </Button>
+            )}
+            {step === 1 && (
+              <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading} className="h-12 px-6 rounded-xl">
+                Cancelar
+              </Button>
+            )}
           </div>
         </form>
       </main>

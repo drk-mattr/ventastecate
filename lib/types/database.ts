@@ -4,6 +4,7 @@ export type Profile = {
   display_name: string
   avatar_url?: string
   bio?: string
+  whatsapp_number?: string | null
   created_at: string
   updated_at: string
 }

@@ -23,6 +23,7 @@ export default function EditProfilePage() {
 
   const [displayName, setDisplayName] = useState('')
   const [bio, setBio] = useState('')
+  const [whatsappNumber, setWhatsappNumber] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -45,6 +46,7 @@ export default function EditProfilePage() {
     if (profile) {
       setDisplayName(profile.display_name || '')
       setBio(profile.bio || '')
+      setWhatsappNumber((profile as { whatsapp_number?: string | null }).whatsapp_number || '')
       if (profile.avatar_url) {
         setAvatarPreview(profile.avatar_url)
       }
@@ -133,10 +135,24 @@ export default function EditProfilePage() {
           display_name: displayName,
           bio: bio,
           avatar_url: avatarUrl,
+          whatsapp_number: whatsappNumber.replace(/\D/g, '') || null,
         })
         .eq('id', user.id)
 
-      if (updateError) throw updateError
+      if (updateError) {
+        // Before migration 019 is applied, the column does not exist yet.
+        // Retry without it so name/bio/avatar still save, and say so
+        // plainly instead of silently dropping the WhatsApp number.
+        if (String(updateError.message || '').includes('whatsapp_number')) {
+          const { error: retryError } = await supabase
+            .from('profiles')
+            .update({ display_name: displayName, bio: bio, avatar_url: avatarUrl })
+            .eq('id', user.id)
+          if (retryError) throw retryError
+          throw new Error('Perfil guardado, pero tu número de WhatsApp no se guardó todavía: falta aplicar la migración 019_whatsapp.sql en Supabase.')
+        }
+        throw updateError
+      }
 
       setSuccess(true)
       await refreshProfile()
@@ -252,6 +268,19 @@ export default function EditProfilePage() {
                 />
                 <p className="text-xs text-gray-500">
                   {bio.length}/500
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp">WhatsApp (opcional)</Label>
+                <Input
+                  id="whatsapp"
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                  placeholder="Ej: 526641234567"
+                />
+                <p className="text-xs text-gray-500">
+                  Solo si quieres que los compradores te escriban por WhatsApp desde tus anuncios. Si lo dejas vacío, no aparece ningún botón ni número. Escribe tu número con código de país, sin espacios ni signos.
                 </p>
               </div>
 

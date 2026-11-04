@@ -304,7 +304,12 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 {listing.store ? (
                   <Link href={`/stores/${listing.store.slug}`} className="text-sm font-semibold hover:underline">{listing.store.name}</Link>
                 ) : (
-                  <Link href={`/users/${listing.profile.username}`} className="text-sm font-semibold hover:underline">{listing.profile.display_name}</Link>
+                  <span className="flex items-center gap-2">
+                    <Link href={`/users/${listing.profile.username}`} className="text-sm font-semibold hover:underline">{listing.profile.display_name}</Link>
+                    {listing.profile.username === 'ventastecate' && (
+                      <span className="rounded-full bg-gray-900 px-2 py-0.5 text-[11px] font-semibold text-white">Cuenta oficial</span>
+                    )}
+                  </span>
                 )}
                 <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5">
                   <span className="flex items-center gap-1">
@@ -442,9 +447,14 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                       ) : listing.profile.display_name[0].toUpperCase()}
                     </div>
                     <div>
-                      <Link href={`/users/${listing.profile.username}`} className="text-sm font-semibold hover:underline">
-                        {listing.profile.display_name}
-                      </Link>
+                      <span className="flex items-center gap-2">
+                        <Link href={`/users/${listing.profile.username}`} className="text-sm font-semibold hover:underline">
+                          {listing.profile.display_name}
+                        </Link>
+                        {listing.profile.username === 'ventastecate' && (
+                          <span className="rounded-full bg-gray-900 px-2 py-0.5 text-[11px] font-semibold text-white">Cuenta oficial</span>
+                        )}
+                      </span>
                       <p className="text-xs text-gray-500">@{listing.profile.username}</p>
                     </div>
                   </div>

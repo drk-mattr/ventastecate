@@ -20,7 +20,7 @@ function authorized(request: NextRequest): boolean {
 // the dedicated community account. It is not tied to any personal login.
 // Setup (Greg): create the community account via /signup, set
 // INTERNAL_POST_TOKEN as a Worker secret, and optionally set
-// COMMUNITY_USERNAME (default: ventastecate_comunidad).
+// COMMUNITY_USERNAME (default: ventastecate).
 export async function POST(request: NextRequest) {
   try {
     if (!authorized(request)) {
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     if (!source) {
       return NextResponse.json({ error: 'Source is required for community posts' }, { status: 400 })
     }
-    const username = process.env.COMMUNITY_USERNAME || 'ventastecate_comunidad'
+    const username = process.env.COMMUNITY_USERNAME || 'ventastecate'
     const { data: profile, error: profileError } = await admin
       .from('profiles')
       .select('id')

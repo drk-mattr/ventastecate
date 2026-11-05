@@ -85,7 +85,7 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
 
-        <h2 className="text-base font-medium mb-4 text-gray-700">Anuncios que lo mencionan</h2>
+        <h2 className="text-base font-medium mb-4 text-gray-700">Publicaciones que lo mencionan</h2>
         {listings.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {listings.map((listing) => (
@@ -93,7 +93,7 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
             ))}
           </div>
         ) : (
-          <EmptyState surface message="Aún no hay anuncios que mencionen este negocio" actionLabel="Publicar un anuncio" actionHref="/listings/new" />
+          <EmptyState surface message="Aún no hay publicaciones que mencionen este negocio" actionLabel="Publicar un anuncio" actionHref="/listings/new" />
         )}
         <p className="text-xs text-gray-400 mt-8">
           ¿Conoces más de este negocio (dirección, teléfono, horario)? Pronto podrás agregarlo aquí; por ahora menciónalo en un anuncio.

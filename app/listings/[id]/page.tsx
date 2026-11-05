@@ -241,12 +241,13 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     <div className="flex items-center gap-2.5 bg-gray-100 border border-gray-200 rounded-xl px-3 py-2.5">
       <Store className="h-4 w-4 text-gray-900 shrink-0" />
       <div className="flex-1 min-w-0">
-        {taggedBusiness.store ? (
-          <Link href={`/stores/${taggedBusiness.store.slug}`} className="text-sm font-medium text-gray-900 hover:underline truncate block">
-            {taggedBusiness.name}
+        <Link href={`/businesses/${taggedBusiness.id}`} className="text-sm font-medium text-gray-900 hover:underline truncate block">
+          {taggedBusiness.name}
+        </Link>
+        {taggedBusiness.store && (
+          <Link href={`/stores/${taggedBusiness.store.slug}`} className="text-xs text-gray-500 hover:underline block">
+            Tienda oficial
           </Link>
-        ) : (
-          <span className="text-sm font-medium text-gray-900 truncate block">{taggedBusiness.name}</span>
         )}
         {(taggedBusiness.category || taggedBusiness.location) && (
           <p className="text-[10px] text-orange-400 truncate">

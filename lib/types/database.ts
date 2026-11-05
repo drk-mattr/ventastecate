@@ -107,6 +107,8 @@ export type Business = {
   mention_count: number
   followers_count?: number
   likes_count?: number
+  phone?: string | null
+  address?: string | null
   created_by?: string | null
   created_at: string
 }

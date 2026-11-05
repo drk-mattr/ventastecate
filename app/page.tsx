@@ -17,6 +17,58 @@ interface HomeProps {
   searchParams: Promise<{ global?: string; feed?: string }>
 }
 
+// Alive-score computation lives outside the page component: Date.now()
+// is flagged as impure during render by the repo's purity lint.
+async function getTopBusinesses(supabase: Awaited<ReturnType<typeof createClient>>): Promise<TopBusiness[]> {
+// ── Top negocios: alive score, last 30 days only ──
+// Per design doc (hidden_files/business-ranking-design-2026-11-04.md):
+// a business ranks on what happened under its shell recently, not on
+// all-time totals, so old shells cannot sit on top forever.
+let topBusinesses: TopBusiness[] = []
+{
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const { data: businesses } = await supabase.from('businesses').select('id, name, location, category, mention_count, followers_count')
+  const { data: recentListings } = await supabase.from('listings')
+    .select('id, created_at, likes_count, saves_count, comments_count, tagged_business_id')
+    .eq('status', 'active').gte('created_at', since)
+  const recentIds = (recentListings || []).map((l) => l.id)
+  const { data: recentTags } = recentIds.length > 0
+    ? await supabase.from('listing_business_tags').select('listing_id, business_id').in('listing_id', recentIds)
+    : { data: [] as { listing_id: string; business_id: string }[] }
+  const { data: recentFollows } = await supabase.from('business_follows').select('business_id').gte('created_at', since)
+  const { data: recentLikes } = await supabase.from('business_likes').select('business_id').gte('created_at', since)
+  const score = new Map<string, { points: number; mentions: number; lastMention: number }>()
+  const add = (id: string, points: number, isMention: boolean, ts?: number) => {
+    const cur = score.get(id) || { points: 0, mentions: 0, lastMention: 0 }
+    cur.points += points
+    if (isMention) { cur.mentions += 1; cur.lastMention = Math.max(cur.lastMention, ts || 0) }
+    score.set(id, cur)
+  }
+  const now = Date.now()
+  for (const l of recentListings || []) {
+    const hoursAge = Math.max((now - new Date(l.created_at).getTime()) / 3600000, 0)
+    const points = (1 + (l.likes_count ?? 0) + (l.saves_count ?? 0) * 2.5 + (l.comments_count ?? 0) * 1.5) / Math.pow(hoursAge + 2, 1.2)
+    const ids = new Set<string>()
+    if (l.tagged_business_id) ids.add(l.tagged_business_id)
+    for (const tag of recentTags || []) if (tag.listing_id === l.id) ids.add(tag.business_id)
+    for (const id of ids) add(id, points, true, new Date(l.created_at).getTime())
+  }
+  for (const f of recentFollows || []) add(f.business_id, 2, false)
+  for (const lk of recentLikes || []) add(lk.business_id, 1, false)
+  const byId = new Map((businesses || []).map((b) => [b.id, b]))
+  topBusinesses = [...score.entries()]
+    .filter(([, s]) => s.points > 0)
+    .sort((a, b) => b[1].points - a[1].points || b[1].lastMention - a[1].lastMention || ((byId.get(b[0])?.mention_count ?? 0) - (byId.get(a[0])?.mention_count ?? 0)))
+    .slice(0, 10)
+    .map(([id, s]) => {
+      const b = byId.get(id)
+      return b ? { id, name: b.name, location: b.location, category: b.category, mentionCount30: s.mentions, followersCount: b.followers_count ?? 0 } : null
+    })
+    .filter((b): b is TopBusiness => b !== null)
+}
+  return topBusinesses
+}
+
 export default async function Home({ searchParams }: HomeProps) {
   const supabase = await createClient()
   const { global: globalParam, feed: feedParam } = await searchParams
@@ -115,52 +167,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const { data: trendingRaw } = await trendingQuery.limit(12)
 
-  // ── Top negocios: alive score, last 30 days only ──
-  // Per design doc (hidden_files/business-ranking-design-2026-11-04.md):
-  // a business ranks on what happened under its shell recently, not on
-  // all-time totals, so old shells cannot sit on top forever.
-  let topBusinesses: TopBusiness[] = []
-  {
-    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-    const { data: businesses } = await supabase.from('businesses').select('id, name, location, category, mention_count, followers_count')
-    const { data: recentListings } = await supabase.from('listings')
-      .select('id, created_at, likes_count, saves_count, comments_count, tagged_business_id')
-      .eq('status', 'active').gte('created_at', since)
-    const recentIds = (recentListings || []).map((l) => l.id)
-    const { data: recentTags } = recentIds.length > 0
-      ? await supabase.from('listing_business_tags').select('listing_id, business_id').in('listing_id', recentIds)
-      : { data: [] as { listing_id: string; business_id: string }[] }
-    const { data: recentFollows } = await supabase.from('business_follows').select('business_id').gte('created_at', since)
-    const { data: recentLikes } = await supabase.from('business_likes').select('business_id').gte('created_at', since)
-    const score = new Map<string, { points: number; mentions: number; lastMention: number }>()
-    const add = (id: string, points: number, isMention: boolean, ts?: number) => {
-      const cur = score.get(id) || { points: 0, mentions: 0, lastMention: 0 }
-      cur.points += points
-      if (isMention) { cur.mentions += 1; cur.lastMention = Math.max(cur.lastMention, ts || 0) }
-      score.set(id, cur)
-    }
-    const now = Date.now()
-    for (const l of recentListings || []) {
-      const hoursAge = Math.max((now - new Date(l.created_at).getTime()) / 3600000, 0)
-      const points = (1 + (l.likes_count ?? 0) + (l.saves_count ?? 0) * 2.5 + (l.comments_count ?? 0) * 1.5) / Math.pow(hoursAge + 2, 1.2)
-      const ids = new Set<string>()
-      if (l.tagged_business_id) ids.add(l.tagged_business_id)
-      for (const tag of recentTags || []) if (tag.listing_id === l.id) ids.add(tag.business_id)
-      for (const id of ids) add(id, points, true, new Date(l.created_at).getTime())
-    }
-    for (const f of recentFollows || []) add(f.business_id, 2, false)
-    for (const lk of recentLikes || []) add(lk.business_id, 1, false)
-    const byId = new Map((businesses || []).map((b) => [b.id, b]))
-    topBusinesses = [...score.entries()]
-      .filter(([, s]) => s.points > 0)
-      .sort((a, b) => b[1].points - a[1].points || b[1].lastMention - a[1].lastMention || ((byId.get(b[0])?.mention_count ?? 0) - (byId.get(a[0])?.mention_count ?? 0)))
-      .slice(0, 10)
-      .map(([id, s]) => {
-        const b = byId.get(id)
-        return b ? { id, name: b.name, location: b.location, category: b.category, mentionCount30: s.mentions, followersCount: b.followers_count ?? 0 } : null
-      })
-      .filter((b): b is TopBusiness => b !== null)
-  }
+  const topBusinesses = await getTopBusinesses(supabase)
 
   const trending: ListingWithImages[] = (trendingRaw || [])
     .filter(l => (l.likes_count ?? 0) + (l.saves_count ?? 0) + (l.comments_count ?? 0) > 0)

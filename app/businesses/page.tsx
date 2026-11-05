@@ -10,7 +10,7 @@ import { REGIONS, townsForRegion, getRegionForTown } from '@/lib/business-region
 export default async function BusinessesPage({ searchParams }: { searchParams: Promise<{ q?: string; town?: string; region?: string }> }) {
   const { q, town, region } = await searchParams
   const supabase = await createClient()
-  let query = supabase.from('businesses').select('*').order('mention_count', { ascending: false }).limit(50)
+  let query = supabase.from('businesses').select('*').order('name_normalized', { ascending: true }).limit(100)
   if (q) query = query.ilike('name_normalized', `%${q.toLowerCase().trim()}%`)
   if (town) query = query.eq('city', town)
   else if (region) query = query.in('city', townsForRegion(region))
@@ -43,7 +43,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
             <AddBusinessForm />
           </div>
           <div>
-            <h2 className="text-base font-medium mb-3 text-gray-700">Más mencionados</h2>
+            <h2 className="text-base font-medium mb-3 text-gray-700">Índice{businesses ? ` (${businesses.length})` : ""}</h2>
             {!businesses || businesses.length === 0 ? (
               <p className="text-sm text-gray-500">Aún no hay negocios en el índice. Agrega el primero.</p>
             ) : (

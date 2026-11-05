@@ -6,6 +6,7 @@ import { ListingCard } from '@/components/listings/listing-card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Store, MapPin, BadgeCheck } from 'lucide-react'
 import { BusinessEngagementBar } from '@/components/businesses/business-engagement-bar'
+import { getRegionForTown } from '@/lib/business-regions'
 
 export default async function BusinessPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -60,7 +61,8 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
             <div className="min-w-0 flex-1">
               <h1 className="text-2xl font-semibold mb-1">{business.name}</h1>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
-                {business.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{business.location}</span>}
+                {(business.city || business.location) && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{business.city || business.location}</span>}
+                {business.city && getRegionForTown(business.city) && <span>{getRegionForTown(business.city)}</span>}
                 {business.category && <span>{business.category}</span>}
                 {business.address && <span>{business.address}</span>}
                 {business.phone && <span>{business.phone}</span>}

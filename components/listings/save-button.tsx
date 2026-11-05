@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { Bookmark } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -17,7 +17,6 @@ export function SaveButton({ listingId, initialSaved, initialCount, size = 'sm' 
   const { user } = useAuth()
   const router = useRouter()
   const [saved, setSaved] = useState(initialSaved)
-  useEffect(() => { setSaved(initialSaved) }, [initialSaved])
   const [count, setCount] = useState(initialCount)
   const [animating, setAnimating] = useState(false)
   const [isPending, startTransition] = useTransition()

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { Wrench, Megaphone, Store, Heart, Bookmark, MessageCircle, Play } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ListingWithImages } from '@/lib/types/database'
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useRouter } from 'next/navigation'
@@ -54,6 +54,11 @@ function CardEngagement({ listing, inline = false }: { listing: ListingWithImage
   const router = useRouter()
   const [liked, setLiked] = useState(listing.user_has_liked ?? false)
   const [saved, setSaved] = useState(listing.user_has_saved ?? false)
+  // CommunityFeed enriches like/save state after auth loads; without this
+  // sync the card keeps its first-render (unfilled) state, a re-tap hits the
+  // unique constraint and silently reverts — the 'likes feel broken' bug.
+  useEffect(() => { setLiked(listing.user_has_liked ?? false) }, [listing.user_has_liked])
+  useEffect(() => { setSaved(listing.user_has_saved ?? false) }, [listing.user_has_saved])
   const [likesCount, setLikesCount] = useState(listing.likes_count ?? 0)
   const [isPending, startTransition] = useTransition()
 

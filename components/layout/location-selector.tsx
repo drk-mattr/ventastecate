@@ -28,6 +28,9 @@ export function LocationSelector() {
 
   const select = (label: string) => {
     setSelected(label)
+    // Cookie assignment, not component state: the immutability lint
+    // rule flags document.cookie writes, so it is disabled here.
+    // eslint-disable-next-line react-hooks/immutability
     document.cookie = `${LOCATION_COOKIE}=${encodeURIComponent(label)}; path=/; max-age=31536000; SameSite=Lax`
     router.refresh()
   }

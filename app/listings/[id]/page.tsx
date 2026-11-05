@@ -375,7 +375,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           </article>
         ) : isEvent ? (
           /* ── Event layout: poster left, info right ── */
-          <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 items-start max-w-4xl mx-auto">
+          <>
+          <div className="grid grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)] gap-6 lg:gap-10 items-start max-w-6xl mx-auto">
             {/* Left — fixed-width sticky poster */}
             <div className="lg:sticky lg:top-4">
               <ListingImageGallery
@@ -418,15 +419,23 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">{listing.description}</p>
               </div>
 
+              {/* Like / save / share — was missing entirely on events */}
+              <ListingEngagementBar
+                listingId={listing.id}
+                likesCount={listing.likes_count ?? 0}
+                savesCount={listing.saves_count ?? 0}
+              />
+
               {/* Tagged business */}
               {taggedBusinessCard}
 
-              {/* Organizer card */}
-              <div className="border rounded-xl p-4 max-w-xs">
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Organizador</p>
+              {/* Organizer — quiet row, not a boxed checkout card */}
+              <div className="flex items-center justify-between gap-4 pt-1">
+                <div>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Organizador</p>
 
                 {listing.store ? (
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3">
                     <Link href={`/stores/${listing.store.slug}`} className="relative h-10 w-10 rounded-xl bg-gray-200 flex items-center justify-center overflow-hidden shrink-0">
                       {listing.store.avatar_url ? (
                         <Image src={listing.store.avatar_url} alt={listing.store.name} fill className="object-cover" />
@@ -440,7 +449,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3">
                     <div className="relative h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold overflow-hidden shrink-0">
                       {listing.profile.avatar_url ? (
                         <Image src={listing.profile.avatar_url} alt={listing.profile.display_name} fill className="object-cover" />
@@ -460,31 +469,35 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   </div>
                 )}
 
+                </div>
                 {!isOwner && listing.status === 'active' && user && (
-                  <Button asChild size="sm" className="w-full">
-                    <Link href={`/messages?listing=${listing.id}&seller=${listing.user_id}`}>Contactar Organizador</Link>
+                  <Button asChild size="sm" variant="outline" className="shrink-0">
+                    <Link href={`/messages?listing=${listing.id}&seller=${listing.user_id}`}>Contactar</Link>
                   </Button>
                 )}
                 {!isOwner && listing.status === 'active' && !user && (
-                  <Button asChild size="sm" className="w-full">
+                  <Button asChild size="sm" variant="outline" className="shrink-0">
                     <Link href="/login">Iniciar sesión para contactar</Link>
                   </Button>
                 )}
                 {isOwner && (
-                  <Button asChild size="sm" className="w-full" variant="outline">
+                  <Button asChild size="sm" variant="outline" className="shrink-0">
                     <Link href={`/listings/${listing.id}/edit`}>Editar Anuncio</Link>
                   </Button>
                 )}
               </div>
-
-              {/* Comments */}
-              <CommentSection
-                listingId={listing.id}
-                initialComments={comments}
-                currentUserId={user?.id ?? null}
-              />
             </div>
           </div>
+
+          {/* Comments below the poster/info grid, not crammed in the right column */}
+          <div className="max-w-3xl mx-auto mt-8">
+            <CommentSection
+              listingId={listing.id}
+              initialComments={comments}
+              currentUserId={user?.id ?? null}
+            />
+          </div>
+          </>
         ) : (
           /* ── Default layout: gallery left, sticky buy-box right ── */
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 lg:gap-8 items-start max-w-6xl mx-auto">
@@ -666,7 +679,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 </p>
 
                 {listing.store ? (
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3">
                     <Link href={`/stores/${listing.store.slug}`} className="relative h-11 w-11 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden shrink-0">
                       {listing.store.avatar_url ? (
                         <Image src={listing.store.avatar_url} alt={listing.store.name} fill className="object-cover" />
@@ -680,7 +693,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3">
                     <div className="relative h-11 w-11 rounded-full bg-gray-200 flex items-center justify-center text-base font-semibold overflow-hidden shrink-0">
                       {listing.profile.avatar_url ? (
                         <Image src={listing.profile.avatar_url} alt={listing.profile.display_name} fill className="object-cover" />

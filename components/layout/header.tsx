@@ -67,6 +67,9 @@ export function Header() {
           <Link href="/" className="text-lg sm:text-xl font-forum font-bold lowercase">
             ventastecate.com
           </Link>
+          <Link href="/businesses" className="hidden sm:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900">
+            Negocios
+          </Link>
         </div>
 
         {!isHomePage && (
@@ -187,6 +190,9 @@ export function Header() {
 
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild className="text-xs">
+                    <Link href="/businesses">Negocios</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="text-xs">
                     <Link href="/profile/edit">{t.nav.settings}</Link>
                   </DropdownMenuItem>
                   {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
@@ -247,6 +253,9 @@ export function Header() {
                 >
                   {t.nav.register}
                 </button>
+                <Link href="/businesses" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 text-sm rounded-md hover:bg-gray-50">
+                  Negocios
+                </Link>
                 <div className="my-2 border-t border-gray-100" />
                 <Link href="/terms" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-xs text-gray-500 rounded-md hover:bg-gray-50">
                   {t.footer.termsOfService}

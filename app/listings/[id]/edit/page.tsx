@@ -571,8 +571,10 @@ export default function EditListingPage() {
               <LocationPicker
                 city={city}
                 stateRegion={stateRegion}
+                country={countryCode ?? 'MX'}
                 onCityChange={setCity}
                 onStateRegionChange={setStateRegion}
+                onCountryChange={(code) => setCountryCode(code)}
                 onCountryCodeChange={setCountryCode}
               />
 

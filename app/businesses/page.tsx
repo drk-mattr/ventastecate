@@ -102,7 +102,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
           <h1 className="text-2xl font-semibold mb-1">Negocios</h1>
           <Link href="/businesses/new" aria-label="Agregar un negocio" title="Agregar un negocio" className="text-xl leading-none text-gray-500 hover:text-gray-900 border border-gray-200 hover:border-gray-400 rounded-full w-7 h-7 flex items-center justify-center shrink-0">+</Link>
         </div>
-        <div className="sticky top-14 z-40 bg-white pb-3 -mx-4 px-4 pt-1">
+        <div className="sticky top-24 sm:top-14 z-40 bg-white pb-3 -mx-4 px-4 pt-1">
           <form method="get" className="flex gap-2">
             <input type="hidden" name="region" value={effectiveRegion} />
             {town && <input type="hidden" name="town" value={town} />}

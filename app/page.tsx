@@ -1,11 +1,11 @@
 import Link from 'next/link'
-import { MapPin, Plus } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import { headers, cookies } from 'next/headers'
 import { LOCATION_COOKIE, townsForLocation } from '@/lib/business-regions'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
-import { DynamicHero } from '@/components/home/dynamic-hero'
+import { TypeShortcuts } from '@/components/home/type-shortcuts'
 import { CommunityFeed } from '@/components/home/community-feed'
 import { TrendingStrip } from '@/components/home/trending-strip'
 import { TopBusinesses, TopBusiness } from '@/components/businesses/top-businesses'
@@ -62,7 +62,7 @@ let topBusinesses: TopBusiness[] = []
   topBusinesses = [...score.entries()]
     .filter(([, s]) => s.points > 0)
     .sort((a, b) => b[1].points - a[1].points || b[1].lastMention - a[1].lastMention || ((byId.get(b[0])?.mention_count ?? 0) - (byId.get(a[0])?.mention_count ?? 0)))
-    .slice(0, 10)
+    .slice(0, 20)
     .map(([id, s]) => {
       const b = byId.get(id)
       return b ? { id, name: b.name, location: b.location, category: b.category, mentionCount30: s.mentions, followersCount: b.followers_count ?? 0 } : null
@@ -194,8 +194,10 @@ export default async function Home({ searchParams }: HomeProps) {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       <main className="flex-1">
-        {/* Search */}
-        <DynamicHero />
+        {/* No hero anymore: search lives in the header nav bar, and this
+            slim row keeps the type/category shortcuts. The space the
+            hero took is now the Top section below. */}
+        <TypeShortcuts />
 
         {/* Trending: only when engagement exists, so it never shows an empty row */}
         {trending.length > 0 && <TrendingStrip items={trending} />}
@@ -212,28 +214,20 @@ export default async function Home({ searchParams }: HomeProps) {
               Siguiendo
             </Link>
           </div>
-          {/* Header row */}
+          {/* Header row: feed only — the feed-area Publicar was removed
+              2026-11-04, the header's orange Publicar is the one CTA. */}
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-gray-900">{showFollowing ? 'Siguiendo' : t.listings.recent}</h2>
-            <div className="flex items-center gap-3">
-              {!LOCK_TO_TECATE && userCountry && (
-                <Link
-                  href={isGlobal ? '/' : '/?global=1'}
-                  className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  {isGlobal ? (
-                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{t.listings.onlyIn} {userCountry}</span>
-                  ) : t.listings.seeAll}
-                </Link>
-              )}
+            {!LOCK_TO_TECATE && userCountry && (
               <Link
-                href="/listings/new"
-                className="hidden md:flex items-center gap-1.5 text-sm font-semibold text-white bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-full transition-colors"
+                href={isGlobal ? '/' : '/?global=1'}
+                className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
               >
-                <Plus className="h-4 w-4" />
-                Publicar
+                {isGlobal ? (
+                  <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{t.listings.onlyIn} {userCountry}</span>
+                ) : t.listings.seeAll}
               </Link>
-            </div>
+            )}
           </div>
 
           {listings.length > 0 ? (

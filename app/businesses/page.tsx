@@ -54,34 +54,11 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
   const hasMore = (raw?.length ?? 0) > PAGE_SIZE
   const businesses = (raw || []).slice(0, PAGE_SIZE)
 
-  // Data-nerd layer: aggregates over the whole index (capped at 1000 rows
-  // for the breakdowns; at thousands of shells this becomes a cached
-  // aggregate, not a per-load scan). The paginated list above stays cheap.
-  const { count: totalCount } = await supabase.from('businesses').select('id', { count: 'exact', head: true })
-  const { data: statRows } = await supabase.from('businesses').select('id, name, city, category, mention_count, followers_count, likes_count, store_id, created_at').limit(1000)
-  const stats = statRows || []
-  const totalMentions = stats.reduce((sum, b) => sum + (b.mention_count ?? 0), 0)
-  const totalFollowers = stats.reduce((sum, b) => sum + (b.followers_count ?? 0), 0)
-  const totalLikes = stats.reduce((sum, b) => sum + (b.likes_count ?? 0), 0)
-  const claimedCount = stats.filter((b) => b.store_id).length
-  const countBy = (key: 'category' | 'city') => {
-    const map = new Map<string, number>()
-    for (const b of stats) {
-      const value = b[key] || 'Sin dato'
-      map.set(value, (map.get(value) || 0) + 1)
-    }
-    return [...map.entries()].sort((a, b) => b[1] - a[1])
-  }
-  const byCategory = countBy('category')
-  const byTown = countBy('city')
-  const topBy = (key: 'mention_count' | 'followers_count' | 'likes_count') =>
-    [...stats].sort((a, b) => (b[key] ?? 0) - (a[key] ?? 0) || a.name.localeCompare(b.name)).slice(0, 3).filter((b) => (b[key] ?? 0) > 0)
-  const topMentions = topBy('mention_count')
-  const topFollowers = topBy('followers_count')
-  const topLikes = topBy('likes_count')
-  const newest = [...stats].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))[0]
-  const categories = byCategory.filter(([c]) => c !== 'Sin dato').map(([c]) => c)
-  const maxCategory = byCategory[0]?.[1] || 1
+  // Category chips from the categories actually present. The "El índice
+  // en números" stats panel was deliberately removed from this public page
+  // (2026-11-04): it fits an owner's ranking view, not general browsing.
+  const { data: catRows } = await supabase.from('businesses').select('category').limit(1000)
+  const categories = [...new Set((catRows || []).map((r) => r.category).filter(Boolean) as string[])].sort()
 
   return (
     <div className="min-h-screen bg-white">
@@ -96,52 +73,6 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
           Cualquiera puede agregar uno con solo su nombre.
         </p>
 
-        <section className="border-y border-gray-200 py-4 mb-8">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500 mb-3">El índice en números</h2>
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 mb-4">
-            <div><p className="text-2xl font-semibold">{totalCount ?? stats.length}</p><p className="text-xs text-gray-500">negocios</p></div>
-            <div><p className="text-2xl font-semibold">{byTown.length}</p><p className="text-xs text-gray-500">pueblos</p></div>
-            <div><p className="text-2xl font-semibold">{byCategory.length}</p><p className="text-xs text-gray-500">categorías</p></div>
-            <div><p className="text-2xl font-semibold">{totalMentions}</p><p className="text-xs text-gray-500">menciones</p></div>
-            <div><p className="text-2xl font-semibold">{totalFollowers}</p><p className="text-xs text-gray-500">seguidores</p></div>
-            <div><p className="text-2xl font-semibold">{claimedCount}</p><p className="text-xs text-gray-500">reclamados</p></div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm">
-            <div>
-              <h3 className="text-xs font-medium text-gray-500 mb-2">Por categoría</h3>
-              <ul className="space-y-1">
-                {byCategory.slice(0, 6).map(([cat, n]) => (
-                  <li key={cat} className="flex items-center gap-2">
-                    <span className="w-24 shrink-0 truncate text-gray-700">{cat}</span>
-                    <span className="flex-1 h-2 bg-gray-100"><span className="block h-2 bg-gray-900" style={{ width: `${Math.round((n / maxCategory) * 100)}%` }} /></span>
-                    <span className="text-xs text-gray-500 w-6 text-right">{n}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-xs font-medium text-gray-500 mb-2">Por pueblo</h3>
-              <ul className="space-y-1">
-                {byTown.slice(0, 6).map(([t, n]) => (
-                  <li key={t} className="flex justify-between gap-2"><span className="text-gray-700 truncate">{t}</span><span className="text-xs text-gray-500">{n}</span></li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-xs font-medium text-gray-500 mb-2">Líderes</h3>
-              {topMentions.length === 0 && topFollowers.length === 0 && topLikes.length === 0 ? (
-                <p className="text-xs text-gray-500">Aún sin menciones, seguidores ni me gusta: el índice está por llenarse. Sé el primero en seguir un negocio.</p>
-              ) : (
-                <ul className="space-y-1">
-                  {topMentions[0] && <li className="flex justify-between gap-2"><span className="text-gray-700 truncate">Más mencionado: <Link href={`/businesses/${topMentions[0].id}`} className="underline">{topMentions[0].name}</Link></span><span className="text-xs text-gray-500">{topMentions[0].mention_count}</span></li>}
-                  {topFollowers[0] && <li className="flex justify-between gap-2"><span className="text-gray-700 truncate">Más seguido: <Link href={`/businesses/${topFollowers[0].id}`} className="underline">{topFollowers[0].name}</Link></span><span className="text-xs text-gray-500">{topFollowers[0].followers_count}</span></li>}
-                  {topLikes[0] && <li className="flex justify-between gap-2"><span className="text-gray-700 truncate">Más gustado: <Link href={`/businesses/${topLikes[0].id}`} className="underline">{topLikes[0].name}</Link></span><span className="text-xs text-gray-500">{topLikes[0].likes_count}</span></li>}
-                </ul>
-              )}
-              {newest && <p className="text-xs text-gray-500 mt-2">Más reciente: <Link href={`/businesses/${newest.id}`} className="underline text-gray-700">{newest.name}</Link></p>}
-            </div>
-          </div>
-        </section>
 
         <div className="sticky top-14 z-40 bg-white pb-3 -mx-4 px-4 pt-1">
           <div className="flex flex-wrap gap-2 mb-3">
@@ -187,31 +118,17 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
         {!businesses || businesses.length === 0 ? (
           <p className="text-sm text-gray-500">No hay negocios con ese filtro. Prueba otra letra, categoría o región.</p>
         ) : (
-          <ul className="divide-y divide-gray-200 border-y border-gray-200">
+          <ul className="columns-1 md:columns-2 lg:columns-3 gap-8 border-t border-gray-200 pt-2">
             {businesses.map((biz) => {
               const bizRegion = getRegionForTown(biz.city)
+              const meta = [biz.category, biz.city || biz.location, bizRegion, biz.address, biz.phone].filter(Boolean).join(' · ')
+              const counts = `${biz.mention_count ?? 0} menc. · ${biz.followers_count ?? 0} seg. · ${biz.likes_count ?? 0} me gusta`
               return (
-                <li key={biz.id} className="py-3 flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <Link href={`/businesses/${biz.id}`} className="text-base font-semibold text-gray-900 hover:underline">{biz.name}</Link>
-                    <p className="text-sm text-gray-500 mt-0.5">
-                      {[biz.category, biz.city || biz.location, bizRegion].filter(Boolean).join(' · ')}
-                    </p>
-                    {(biz.address || biz.phone) && (
-                      <p className="text-sm text-gray-500 mt-0.5">
-                        {[biz.address, biz.phone].filter(Boolean).join(' · ')}
-                      </p>
-                    )}
-                    {biz.store_id && (
-                      <p className="text-xs text-gray-500 mt-0.5">Negocio registrado</p>
-                    )}
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-xs text-gray-500">
-                      {biz.mention_count ?? 0} {biz.mention_count === 1 ? 'mención' : 'menciones'} · {biz.followers_count ?? 0} {biz.followers_count === 1 ? 'seguidor' : 'seguidores'} · {biz.likes_count ?? 0} me gusta
-                    </p>
-                    <Link href={`/businesses/${biz.id}`} className="text-xs text-gray-900 underline mt-1 inline-block">Ver negocio</Link>
-                  </div>
+                <li key={biz.id} className="break-inside-avoid py-2 border-b border-gray-200">
+                  <Link href={`/businesses/${biz.id}`} className="text-sm font-semibold text-gray-900 hover:underline block truncate">{biz.name}</Link>
+                  <p className="text-xs text-gray-500 truncate" title={`${meta} · ${counts}`}>
+                    {meta}{meta ? ' · ' : ''}{counts}
+                  </p>
                 </li>
               )
             })}

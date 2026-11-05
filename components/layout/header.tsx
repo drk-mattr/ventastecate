@@ -10,6 +10,7 @@ import { useReportModal } from '@/lib/report/report-modal-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
 import { Button } from '@/components/ui/button'
 import { HeaderSearch } from '@/components/search/header-search'
+import { LocationSelector } from '@/components/layout/location-selector'
 import { NotificationBell } from '@/components/layout/notification-bell'
 import { MobileMenuDrawer } from '@/components/layout/mobile-menu-drawer'
 import {
@@ -79,6 +80,7 @@ export function Header() {
         )}
 
         <div className="flex items-center gap-2 shrink-0">
+          <LocationSelector />
           {loading ? null : user ? (
             <>
               {/* Publish CTA — same orange pill as the homepage, not an outline button,

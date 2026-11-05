@@ -4,7 +4,6 @@ import { Header } from '@/components/layout/header'
 import { AddBusinessForm } from '@/components/businesses/add-business-form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Store, MapPin } from 'lucide-react'
 import { REGIONS, townsForRegion, getRegionForTown } from '@/lib/business-regions'
 
 export default async function BusinessesPage({ searchParams }: { searchParams: Promise<{ q?: string; town?: string; region?: string }> }) {
@@ -19,10 +18,10 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      <main className="container mx-auto px-4 py-6 max-w-4xl">
+      <main className="container mx-auto px-4 py-6 max-w-5xl">
         <h1 className="text-2xl font-semibold mb-1">Negocios</h1>
         <p className="text-sm text-gray-500 mb-6">
-          El índice de Tecate: negocios que la comunidad conoce, aunque el dueño todavía no se haya registrado.
+          El índice de Tecate y alrededores: lugares que la comunidad conoce, aunque el dueño todavía no se haya registrado.
           Cualquiera puede agregar uno con solo su nombre.
         </p>
 
@@ -37,37 +36,44 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
           <Button type="submit" variant="outline">Buscar</Button>
         </form>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h2 className="text-base font-medium mb-3 text-gray-700">Agregar un negocio</h2>
-            <AddBusinessForm />
-          </div>
-          <div>
-            <h2 className="text-base font-medium mb-3 text-gray-700">Índice{businesses ? ` (${businesses.length})` : ""}</h2>
-            {!businesses || businesses.length === 0 ? (
-              <p className="text-sm text-gray-500">Aún no hay negocios en el índice. Agrega el primero.</p>
-            ) : (
-              <ul className="space-y-2">
-                {businesses.map((biz) => (
-                  <li key={biz.id} className="border rounded-xl px-3 py-2.5 flex items-center gap-3">
-                    <Store className="h-4 w-4 text-gray-400 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <Link href={`/businesses/${biz.id}`} className="text-sm font-medium hover:underline block truncate">{biz.name}</Link>
-                      {(biz.location || biz.category) && (
-                        <p className="text-xs text-gray-500 truncate flex items-center gap-1">
-                          {(biz.city || biz.location) && <><MapPin className="h-3 w-3" />{biz.city || biz.location}</>}
-                          {(biz.city || biz.location) && biz.category && ' · '}{biz.category}
-                        </p>
-                      )}
-                    </div>
-                    <span className="text-xs text-gray-500 shrink-0">
-                      {biz.mention_count ?? 0} menc. · {biz.followers_count ?? 0} seg. · {biz.likes_count ?? 0} me gusta
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+        <h2 className="text-base font-medium mb-2 text-gray-700">Índice{businesses ? ` (${businesses.length})` : ''}</h2>
+        {!businesses || businesses.length === 0 ? (
+          <p className="text-sm text-gray-500">Aún no hay negocios en el índice. Agrega el primero.</p>
+        ) : (
+          <ul className="divide-y divide-gray-200 border-y border-gray-200">
+            {businesses.map((biz) => {
+              const bizRegion = getRegionForTown(biz.city)
+              return (
+                <li key={biz.id} className="py-3 flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <Link href={`/businesses/${biz.id}`} className="text-base font-semibold text-gray-900 hover:underline">{biz.name}</Link>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      {[biz.category, biz.city || biz.location, bizRegion].filter(Boolean).join(' · ')}
+                    </p>
+                    {(biz.address || biz.phone) && (
+                      <p className="text-sm text-gray-500 mt-0.5">
+                        {[biz.address, biz.phone].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
+                    {(biz as { store_id?: string | null }).store_id && (
+                      <p className="text-xs text-gray-500 mt-0.5">Negocio registrado</p>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs text-gray-500">
+                      {biz.mention_count ?? 0} {biz.mention_count === 1 ? 'mención' : 'menciones'} · {biz.followers_count ?? 0} {biz.followers_count === 1 ? 'seguidor' : 'seguidores'} · {biz.likes_count ?? 0} me gusta
+                    </p>
+                    <Link href={`/businesses/${biz.id}`} className="text-xs text-gray-900 underline mt-1 inline-block">Ver negocio</Link>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+
+        <div className="mt-12 max-w-xl">
+          <h2 className="text-base font-medium mb-3 text-gray-700">Agregar un negocio</h2>
+          <AddBusinessForm />
         </div>
       </main>
     </div>

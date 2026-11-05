@@ -36,10 +36,10 @@ export function BusinessEngagementBar({ businessId, initialFollowing, initialLik
     <div className="flex items-center gap-3">
       <button
         onClick={() => toggle('business_follows', following, setFollowing, setFollowers)}
-        className={`h-8 px-4 rounded-full text-sm font-medium transition-colors ${
+        className={`h-7 px-3 rounded-full text-xs font-medium transition-colors ${
           following
-            ? 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-            : 'bg-gray-900 text-white hover:bg-gray-800'
+            ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
         }`}
       >
         {following ? 'Siguiendo' : 'Seguir'}

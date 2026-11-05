@@ -6,8 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import { createClient } from '@/lib/supabase/client'
-import { MobileMenuDrawer } from '@/components/layout/mobile-menu-drawer'
-import { AccountMenuContent } from '@/components/layout/account-menu-content'
+import { MobileSidebar } from '@/components/layout/mobile-sidebar'
 import { Home, Search, Plus, MessageCircle, User, UserPlus } from 'lucide-react'
 
 /**
@@ -15,9 +14,9 @@ import { Home, Search, Plus, MessageCircle, User, UserPlus } from 'lucide-react'
  * Hidden on md+ (desktop uses the header). Gives phones one-tap access to the
  * core actions and keeps posting a listing always reachable.
  *
- * Cuenta opens the same account drawer the avatar opens (PR #54) — it used
- * to link to /my-listings, which is not what "Cuenta" means. Mis anuncios
- * lives inside the drawer. Mensajes carries an unread count badge like
+ * Cuenta opens the black left sidebar the avatar and the header
+ * hamburger open — it used to link to /my-listings, which is not what
+ * "Cuenta" means. Mis anuncios lives inside the sidebar. Mensajes carries an unread count badge like
  * OfferUp's Inbox and the header bell; it counts messages in the user's
  * conversations that are unread and not sent by them (same rule the
  * /messages list uses), refetched whenever the route changes so opening
@@ -122,9 +121,7 @@ export function MobileActionBar() {
           </>
         )}
       </nav>
-      <MobileMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)}>
-        <AccountMenuContent onNavigate={() => setMenuOpen(false)} />
-      </MobileMenuDrawer>
+      <MobileSidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
     </>
   )
 }

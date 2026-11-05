@@ -64,6 +64,7 @@ export function ListingEngagementBar({ listingId, likesCount, savesCount, varian
     <div className={overlay ? 'flex items-center gap-1.5' : 'flex items-center gap-1 pt-3 mt-1 border-t'}>
       <span className={pill}>
         <LikeButton
+          key={`${listingId}-like-${userLiked}`}
           listingId={listingId}
           initialLiked={userLiked}
           initialCount={likesCount}
@@ -72,6 +73,7 @@ export function ListingEngagementBar({ listingId, likesCount, savesCount, varian
       </span>
       <span className={pill}>
         <SaveButton
+          key={`${listingId}-save-${userSaved}`}
           listingId={listingId}
           initialSaved={userSaved}
           initialCount={savesCount}

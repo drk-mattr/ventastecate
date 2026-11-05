@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { Wrench, Megaphone, Store, Heart, Bookmark, MessageCircle, Play } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ListingWithImages } from '@/lib/types/database'
-import { useEffect, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useRouter } from 'next/navigation'
@@ -54,11 +54,6 @@ function CardEngagement({ listing, inline = false }: { listing: ListingWithImage
   const router = useRouter()
   const [liked, setLiked] = useState(listing.user_has_liked ?? false)
   const [saved, setSaved] = useState(listing.user_has_saved ?? false)
-  // CommunityFeed enriches like/save state after auth loads; without this
-  // sync the card keeps its first-render (unfilled) state, a re-tap hits the
-  // unique constraint and silently reverts — the 'likes feel broken' bug.
-  useEffect(() => { setLiked(listing.user_has_liked ?? false) }, [listing.user_has_liked])
-  useEffect(() => { setSaved(listing.user_has_saved ?? false) }, [listing.user_has_saved])
   const [likesCount, setLikesCount] = useState(listing.likes_count ?? 0)
   const [isPending, startTransition] = useTransition()
 
@@ -177,7 +172,7 @@ export function ListingCard({ listing }: ListingCardProps) {
           <div className="flex items-center gap-2 mt-auto pt-1.5">
             <span className="text-[10px] text-gray-400">{timeAgo(listing.created_at)}</span>
             <div className="ml-auto">
-              <CardEngagement listing={listing} />
+              <CardEngagement key={`${listing.id}-${listing.user_has_liked ?? false}-${listing.user_has_saved ?? false}`} listing={listing} />
             </div>
           </div>
         </div>
@@ -201,7 +196,7 @@ export function ListingCard({ listing }: ListingCardProps) {
               <span className="text-[11px] font-semibold text-gray-900 shrink-0 ml-1">{formattedPrice}</span>
             )}
           </div>
-          <CardEngagement listing={listing} />
+          <CardEngagement key={`${listing.id}-${listing.user_has_liked ?? false}-${listing.user_has_saved ?? false}`} listing={listing} />
         </div>
       </CardShell>
     )
@@ -267,7 +262,7 @@ export function ListingCard({ listing }: ListingCardProps) {
             </span>
           </span>
           <div className="shrink-0">
-            <CardEngagement listing={listing} inline />
+            <CardEngagement key={`${listing.id}-${listing.user_has_liked ?? false}-${listing.user_has_saved ?? false}`} listing={listing} inline />
           </div>
         </div>
       </div>

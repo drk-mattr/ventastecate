@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { MapPin, Plus } from 'lucide-react'
-import { headers } from 'next/headers'
+import { headers, cookies } from 'next/headers'
+import { LOCATION_COOKIE, townsForLocation } from '@/lib/business-regions'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
@@ -19,7 +20,7 @@ interface HomeProps {
 
 // Alive-score computation lives outside the page component: Date.now()
 // is flagged as impure during render by the repo's purity lint.
-async function getTopBusinesses(supabase: Awaited<ReturnType<typeof createClient>>): Promise<TopBusiness[]> {
+async function getTopBusinesses(supabase: Awaited<ReturnType<typeof createClient>>, towns: string[] | null): Promise<TopBusiness[]> {
 // ── Top negocios: alive score, last 30 days only ──
 // Per design doc (hidden_files/business-ranking-design-2026-11-04.md):
 // a business ranks on what happened under its shell recently, not on
@@ -27,7 +28,9 @@ async function getTopBusinesses(supabase: Awaited<ReturnType<typeof createClient
 let topBusinesses: TopBusiness[] = []
 {
   const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-  const { data: businesses } = await supabase.from('businesses').select('id, name, location, category, mention_count, followers_count')
+  let businessesQuery = supabase.from('businesses').select('id, name, location, category, mention_count, followers_count')
+  if (towns) businessesQuery = businessesQuery.in('city', towns)
+  const { data: businesses } = await businessesQuery
   const { data: recentListings } = await supabase.from('listings')
     .select('id, created_at, likes_count, saves_count, comments_count, tagged_business_id')
     .eq('status', 'active').gte('created_at', since)
@@ -84,6 +87,13 @@ export default async function Home({ searchParams }: HomeProps) {
   const userCountry = resolveCountry(headersList.get('cf-ipcountry') ?? null)
   const t = getTranslations(userCountry)
 
+  // Site-wide location: the header selector's cookie, default Tecate.
+  // Listings carry city and/or a free-text location, so the filter covers
+  // both (old community posts have city null but location set).
+  const cookieStore = await cookies()
+  const feedTowns = townsForLocation(cookieStore.get(LOCATION_COOKIE)?.value)
+  const townFilter = feedTowns ? `city.in.(${feedTowns.join(',')}),location.in.(${feedTowns.join(',')})` : null
+
   const listingSelect = `
     *,
     images:listing_images( id, image_url, order_index ),
@@ -96,6 +106,7 @@ export default async function Home({ searchParams }: HomeProps) {
     .from('listings')
     .select(listingSelect)
     .eq('status', 'active')
+  if (townFilter) feedQuery = feedQuery.or(townFilter)
 
   // Following feed: listings from sellers the logged-in user follows,
   // newest first, reusing the same card shell as the main feed.
@@ -160,6 +171,7 @@ export default async function Home({ searchParams }: HomeProps) {
     .from('listings')
     .select(listingSelect)
     .eq('status', 'active')
+  if (townFilter) trendingQuery = trendingQuery.or(townFilter)
 
   trendingQuery = trendingQuery
     .order('ranking_score', { ascending: false })
@@ -167,7 +179,7 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const { data: trendingRaw } = await trendingQuery.limit(12)
 
-  const topBusinesses = await getTopBusinesses(supabase)
+  const topBusinesses = await getTopBusinesses(supabase, feedTowns)
 
   const trending: ListingWithImages[] = (trendingRaw || [])
     .filter(l => (l.likes_count ?? 0) + (l.saves_count ?? 0) + (l.comments_count ?? 0) > 0)

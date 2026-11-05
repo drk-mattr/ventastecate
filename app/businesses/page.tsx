@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
-import { AddBusinessForm } from '@/components/businesses/add-business-form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { REGIONS, townsForRegion, getRegionForTown } from '@/lib/business-regions'
@@ -55,20 +54,94 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
   const hasMore = (raw?.length ?? 0) > PAGE_SIZE
   const businesses = (raw || []).slice(0, PAGE_SIZE)
 
-  // Category chips from the categories actually present (capped at 1000 rows
-  // for the chip list; the weighted-category system will replace this).
-  const { data: catRows } = await supabase.from('businesses').select('category').limit(1000)
-  const categories = [...new Set((catRows || []).map((r) => r.category).filter(Boolean) as string[])].sort()
+  // Data-nerd layer: aggregates over the whole index (capped at 1000 rows
+  // for the breakdowns; at thousands of shells this becomes a cached
+  // aggregate, not a per-load scan). The paginated list above stays cheap.
+  const { count: totalCount } = await supabase.from('businesses').select('id', { count: 'exact', head: true })
+  const { data: statRows } = await supabase.from('businesses').select('id, name, city, category, mention_count, followers_count, likes_count, store_id, created_at').limit(1000)
+  const stats = statRows || []
+  const totalMentions = stats.reduce((sum, b) => sum + (b.mention_count ?? 0), 0)
+  const totalFollowers = stats.reduce((sum, b) => sum + (b.followers_count ?? 0), 0)
+  const totalLikes = stats.reduce((sum, b) => sum + (b.likes_count ?? 0), 0)
+  const claimedCount = stats.filter((b) => b.store_id).length
+  const countBy = (key: 'category' | 'city') => {
+    const map = new Map<string, number>()
+    for (const b of stats) {
+      const value = b[key] || 'Sin dato'
+      map.set(value, (map.get(value) || 0) + 1)
+    }
+    return [...map.entries()].sort((a, b) => b[1] - a[1])
+  }
+  const byCategory = countBy('category')
+  const byTown = countBy('city')
+  const topBy = (key: 'mention_count' | 'followers_count' | 'likes_count') =>
+    [...stats].sort((a, b) => (b[key] ?? 0) - (a[key] ?? 0) || a.name.localeCompare(b.name)).slice(0, 3).filter((b) => (b[key] ?? 0) > 0)
+  const topMentions = topBy('mention_count')
+  const topFollowers = topBy('followers_count')
+  const topLikes = topBy('likes_count')
+  const newest = [...stats].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))[0]
+  const categories = byCategory.filter(([c]) => c !== 'Sin dato').map(([c]) => c)
+  const maxCategory = byCategory[0]?.[1] || 1
 
   return (
     <div className="min-h-screen bg-white">
       <Header />
       <main className="container mx-auto px-4 py-6 max-w-5xl">
-        <h1 className="text-2xl font-semibold mb-1">Negocios</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-semibold mb-1">Negocios</h1>
+          <Link href="/businesses/new" aria-label="Agregar un negocio" title="Agregar un negocio" className="text-xl leading-none text-gray-500 hover:text-gray-900 border border-gray-200 hover:border-gray-400 rounded-full w-7 h-7 flex items-center justify-center shrink-0">+</Link>
+        </div>
         <p className="text-sm text-gray-500 mb-6">
           El índice de Tecate y alrededores: lugares que la comunidad conoce, aunque el dueño todavía no se haya registrado.
           Cualquiera puede agregar uno con solo su nombre.
         </p>
+
+        <section className="border-y border-gray-200 py-4 mb-8">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-gray-500 mb-3">El índice en números</h2>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 mb-4">
+            <div><p className="text-2xl font-semibold">{totalCount ?? stats.length}</p><p className="text-xs text-gray-500">negocios</p></div>
+            <div><p className="text-2xl font-semibold">{byTown.length}</p><p className="text-xs text-gray-500">pueblos</p></div>
+            <div><p className="text-2xl font-semibold">{byCategory.length}</p><p className="text-xs text-gray-500">categorías</p></div>
+            <div><p className="text-2xl font-semibold">{totalMentions}</p><p className="text-xs text-gray-500">menciones</p></div>
+            <div><p className="text-2xl font-semibold">{totalFollowers}</p><p className="text-xs text-gray-500">seguidores</p></div>
+            <div><p className="text-2xl font-semibold">{claimedCount}</p><p className="text-xs text-gray-500">reclamados</p></div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm">
+            <div>
+              <h3 className="text-xs font-medium text-gray-500 mb-2">Por categoría</h3>
+              <ul className="space-y-1">
+                {byCategory.slice(0, 6).map(([cat, n]) => (
+                  <li key={cat} className="flex items-center gap-2">
+                    <span className="w-24 shrink-0 truncate text-gray-700">{cat}</span>
+                    <span className="flex-1 h-2 bg-gray-100"><span className="block h-2 bg-gray-900" style={{ width: `${Math.round((n / maxCategory) * 100)}%` }} /></span>
+                    <span className="text-xs text-gray-500 w-6 text-right">{n}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-xs font-medium text-gray-500 mb-2">Por pueblo</h3>
+              <ul className="space-y-1">
+                {byTown.slice(0, 6).map(([t, n]) => (
+                  <li key={t} className="flex justify-between gap-2"><span className="text-gray-700 truncate">{t}</span><span className="text-xs text-gray-500">{n}</span></li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-xs font-medium text-gray-500 mb-2">Líderes</h3>
+              {topMentions.length === 0 && topFollowers.length === 0 && topLikes.length === 0 ? (
+                <p className="text-xs text-gray-500">Aún sin menciones, seguidores ni me gusta: el índice está por llenarse. Sé el primero en seguir un negocio.</p>
+              ) : (
+                <ul className="space-y-1">
+                  {topMentions[0] && <li className="flex justify-between gap-2"><span className="text-gray-700 truncate">Más mencionado: <Link href={`/businesses/${topMentions[0].id}`} className="underline">{topMentions[0].name}</Link></span><span className="text-xs text-gray-500">{topMentions[0].mention_count}</span></li>}
+                  {topFollowers[0] && <li className="flex justify-between gap-2"><span className="text-gray-700 truncate">Más seguido: <Link href={`/businesses/${topFollowers[0].id}`} className="underline">{topFollowers[0].name}</Link></span><span className="text-xs text-gray-500">{topFollowers[0].followers_count}</span></li>}
+                  {topLikes[0] && <li className="flex justify-between gap-2"><span className="text-gray-700 truncate">Más gustado: <Link href={`/businesses/${topLikes[0].id}`} className="underline">{topLikes[0].name}</Link></span><span className="text-xs text-gray-500">{topLikes[0].likes_count}</span></li>}
+                </ul>
+              )}
+              {newest && <p className="text-xs text-gray-500 mt-2">Más reciente: <Link href={`/businesses/${newest.id}`} className="underline text-gray-700">{newest.name}</Link></p>}
+            </div>
+          </div>
+        </section>
 
         <div className="sticky top-14 z-40 bg-white pb-3 -mx-4 px-4 pt-1">
           <div className="flex flex-wrap gap-2 mb-3">
@@ -153,11 +226,6 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
           {hasMore ? (
             <Link href={hrefWith(filters, { page: page + 1 })} className="text-sm text-gray-900 underline">Siguiente →</Link>
           ) : <span />}
-        </div>
-
-        <div className="mt-12 max-w-xl">
-          <h2 className="text-base font-medium mb-3 text-gray-700">Agregar un negocio</h2>
-          <AddBusinessForm />
         </div>
       </main>
     </div>

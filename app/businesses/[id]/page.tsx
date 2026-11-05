@@ -62,6 +62,8 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
                 {business.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{business.location}</span>}
                 {business.category && <span>{business.category}</span>}
+                {business.address && <span>{business.address}</span>}
+                {business.phone && <span>{business.phone}</span>}
                 <span>{business.mention_count ?? 0} {(business.mention_count ?? 0) === 1 ? 'mención' : 'menciones'}</span>
               </div>
               <div className="mt-3">

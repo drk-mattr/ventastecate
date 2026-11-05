@@ -69,8 +69,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     .eq('status', 'active')
 
   // Apply filters
+  // A search term matches a listing's title, description, OR category —
+  // and, below, businesses whose name or category matches it (accent-
+  // insensitive: "cafe" must find "café"). Searching "cafe" used to miss
+  // coffee shops whose name never contains the word.
   if (q) {
-    query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`)
+    query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`)
   }
   if (category) {
     query = query.eq('category', category)
@@ -153,6 +157,28 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   if (!isGlobal) toggleParams.set('country', 'all')
   const toggleHref = `/search?${toggleParams.toString()}`
 
+  // Businesses matching the same term: by name, or by a category whose
+  // accent-stripped form contains the term ("cafe" -> "café"). Limited to
+  // the selected location unless the user typed an explicit location.
+  const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  let matchingBusinesses: { id: string; name: string; category: string | null; city: string | null; location: string | null }[] = []
+  if (q) {
+    const { data: bizCatRows } = await supabase.from('businesses').select('category').limit(2000)
+    const matchingCategories = [...new Set((bizCatRows || []).map((r) => r.category).filter(Boolean) as string[])]
+      .filter((c) => normalize(c).includes(normalize(q)))
+    let bizQuery = supabase.from('businesses').select('id, name, category, city, location')
+    const orParts = [`name_normalized.ilike.%${q.toLowerCase()}%`]
+    if (matchingCategories.length > 0) orParts.push(`category.in.(${matchingCategories.join(',')})`)
+    bizQuery = bizQuery.or(orParts.join(','))
+    if (!location && !city && !stateRegion && !country) {
+      const bizCookieStore = await cookies()
+      const bizTowns = townsForLocation(bizCookieStore.get(LOCATION_COOKIE)?.value)
+      if (bizTowns) bizQuery = bizQuery.in('city', bizTowns)
+    }
+    const { data: bizRows } = await bizQuery.order('name_normalized', { ascending: true }).limit(12)
+    matchingBusinesses = bizRows || []
+  }
+
   const resultCount = listingsWithImages.length
   const resultLabel = resultCount === 1 ? t.listings.result : t.listings.results
 
@@ -186,6 +212,23 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             m2={m2}
           />
         </div>
+
+        {/* Businesses matching the term, so a category search finds
+            the actual shops, not just listings with the word in the name. */}
+        {matchingBusinesses.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-base font-semibold mb-2">Negocios</h2>
+            <ul className="divide-y divide-gray-200 border-y border-gray-200">
+              {matchingBusinesses.map((b) => (
+                <li key={b.id} className="py-2 flex items-baseline justify-between gap-4">
+                  <Link href={`/businesses/${b.id}`} className="text-sm font-semibold text-gray-900 hover:underline truncate">{b.name}</Link>
+                  <span className="text-xs text-gray-500 shrink-0">{[b.category, b.city || b.location].filter(Boolean).join(' · ')}</span>
+                </li>
+              ))}
+            </ul>
+            <Link href={`/businesses?q=${encodeURIComponent(q || '')}`} className="text-xs text-gray-900 underline mt-2 inline-block">Ver todos los negocios →</Link>
+          </section>
+        )}
 
         {/* Full-width results grid */}
         {listingsWithImages.length > 0 ? (

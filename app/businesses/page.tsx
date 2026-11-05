@@ -47,12 +47,29 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
   const filters: Filters = { q, town, region: effectiveRegion, categoria, letra, sort: sortValue }
 
   const supabase = await createClient()
+  // Category chips first: they are also how a search term matches a
+  // category ("cafe" finds "café" shops), not just names containing it.
+  // Chips reflect the selected region, not the whole mixed index, so a
+  // chip never leads to an empty page in the region you are viewing.
+  let catQuery = supabase.from('businesses').select('category').limit(2000)
+  if (town) catQuery = catQuery.eq('city', town)
+  else if (regionTowns) catQuery = catQuery.in('city', regionTowns)
+  const { data: catRows } = await catQuery
+  const allCategories = groupCategories((catRows || []).map((r) => r.category))
+  const normalizeTerm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  const qCategoryMatches = q
+    ? allCategories.filter((c) => normalizeTerm(c.category).includes(normalizeTerm(q.trim()))).flatMap((c) => variantsForCategory(c.category))
+    : []
+
   // Only the columns the row shows — never * — so a thousands-row index
   // does not pay for columns nobody sees. No count query either: the
   // footer reads "page N" from whether a next page exists.
   let query = supabase.from('businesses')
     .select('id, name, name_normalized, location, city, category, address, phone, mention_count, followers_count, likes_count, store_id, created_at')
-  if (q) query = query.ilike('name_normalized', `%${q.toLowerCase().trim()}%`)
+  if (q) {
+    if (qCategoryMatches.length > 0) query = query.or(`name_normalized.ilike.%${q.toLowerCase().trim()}%,category.in.(${qCategoryMatches.join(',')})`)
+    else query = query.ilike('name_normalized', `%${q.toLowerCase().trim()}%`)
+  }
   if (town) query = query.eq('city', town)
   else if (regionTowns) query = query.in('city', regionTowns)
   if (categoria) query = query.in('category', variantsForCategory(categoria))
@@ -72,13 +89,6 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
   // The "El índice en números" stats panel was deliberately removed from
   // this public page (2026-11-04): it fits an owner's ranking view, not
   // general browsing.
-  // Chips reflect the selected region, not the whole mixed index, so a
-  // chip never leads to an empty page in the region you are viewing.
-  let catQuery = supabase.from('businesses').select('category').limit(2000)
-  if (town) catQuery = catQuery.eq('city', town)
-  else if (regionTowns) catQuery = catQuery.in('city', regionTowns)
-  const { data: catRows } = await catQuery
-  const allCategories = groupCategories((catRows || []).map((r) => r.category))
   const topCategories = allCategories.slice(0, 20)
   const shownCategories = categoria && !topCategories.some((c) => c.category === categoria)
     ? [...topCategories, ...allCategories.filter((c) => c.category === categoria)]

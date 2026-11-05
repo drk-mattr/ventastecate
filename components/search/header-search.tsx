@@ -121,7 +121,7 @@ export function HeaderSearch() {
   }
 
   return (
-    <div className="flex-1 min-w-0 max-w-2xl mx-2 sm:mx-4">
+    <div className="flex-1 min-w-0 max-w-2xl mx-0 sm:mx-4">
       {/* Search + Filter Row */}
       <div className="flex items-center gap-2">
         <form onSubmit={handleSearch} className="flex-1 min-w-0 flex items-center bg-white border rounded-lg h-8 overflow-hidden focus-within:ring-2 focus-within:ring-gray-900 focus-within:border-gray-900">

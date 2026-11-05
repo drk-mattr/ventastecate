@@ -198,7 +198,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         </div>
 
         {/* Sticky horizontal filter bar */}
-        <div className="sticky top-14 z-30 bg-white -mx-4 px-4 py-2 mb-4 border-b border-gray-100">
+        <div className="sticky top-24 sm:top-14 z-30 bg-white -mx-4 px-4 py-2 mb-4 border-b border-gray-100">
           <SearchFilterBar
             query={q}
             category={category}

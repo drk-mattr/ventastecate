@@ -62,9 +62,13 @@ export function Header() {
 
   return (
     <header className="border-b bg-white sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-4 shrink-0">
-          <Link href="/" className="text-lg sm:text-xl font-forum font-bold lowercase">
+      {/* Mobile is two rows: logo + actions on top, search full-width
+          below. One row on mobile squeezed the search input to a few
+          characters wide (the 2026-11-04 screenshot showed just "B").
+          Desktop keeps the single row. */}
+      <div className="container mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between">
+        <div className="order-1 flex items-center gap-4 shrink-0">
+          <Link href="/" className="text-base sm:text-xl font-forum font-bold lowercase">
             ventastecate.com
           </Link>
           <Link href="/businesses" className="hidden sm:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900">
@@ -74,11 +78,13 @@ export function Header() {
 
         {/* Search lives in the nav bar on every page, including the
             homepage — the old big hero search was removed 2026-11-04. */}
-        <Suspense fallback={<div className="flex-1 max-w-2xl mx-4" />}>
-          <HeaderSearch />
-        </Suspense>
+        <div className="order-3 sm:order-2 basis-full sm:basis-auto flex-1 min-w-0 mt-2 sm:mt-0">
+          <Suspense fallback={<div className="flex-1 max-w-2xl mx-4" />}>
+            <HeaderSearch />
+          </Suspense>
+        </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="order-2 sm:order-3 flex items-center gap-2 shrink-0">
           <LocationSelector />
           {loading ? null : user ? (
             <>

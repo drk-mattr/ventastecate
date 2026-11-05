@@ -18,17 +18,21 @@ const MAX_LIMIT = 50
  * Auth: the caller's session; RLS + the buyer/seller filter mean a
  * user can only ever list their own threads.
  *
- * Query-shape rule (learned the hard way, PR #61): the main select
- * uses ONLY the embed shape the v1 client query already proved
- * (listing/buyer/seller). The first version of this route also
- * embedded `messages` with `.order(..., { foreignTable: 'messages' })`,
- * `.limit(1, { foreignTable: 'messages' })` and `{ count: 'exact' }`
- * — the only such usage anywhere in the codebase — and the route
- * 500'd live for every signed-in user while the page silently
- * rendered its empty state. last_message comes from a separate
- * plain messages query instead; has_more from fetching one extra
- * row. No `total` here — the page does not read it; Step 2 adds a
- * proper count when pagination UI lands.
+ * NO EMBEDS — read this before adding one back. Production's
+ * conversations table is missing the listing_id -> listings foreign
+ * key that schema.sql declares (prod was built on a different schema
+ * lineage; no migration ever creates the conversations table there),
+ * so ANY embed of listings/buyer/seller 500s with PostgREST's
+ * "Could not find a relationship between 'conversations' and
+ * 'listings' in the schema cache". The v1 client query had the same
+ * embeds and the same failure — it was just masked by the page's
+ * empty state. Related rows therefore come from separate plain
+ * queries and are joined in JS below. Migration 029 restores the
+ * missing FKs; even after it runs, keep this route embed-free —
+ * a route that works with or without the FKs is strictly safer.
+ * has_more comes from fetching one extra row. No `total` here —
+ * the page does not read it; Step 2 adds a proper count when
+ * pagination UI lands.
  */
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
@@ -48,17 +52,11 @@ export async function GET(request: NextRequest) {
   )
   const from = (page - 1) * limit
 
-  // One extra row tells us whether another page exists.
+  // Plain columns only — see the header comment. One extra row tells
+  // us whether another page exists.
   const { data, error } = await supabase
     .from('conversations')
-    .select(
-      `
-        *,
-        listing:listings(id, title),
-        buyer:buyer_id(id, username, display_name, avatar_url),
-        seller:seller_id(id, username, display_name, avatar_url)
-      `
-    )
+    .select('*')
     .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
     .order('updated_at', { ascending: false })
     .range(from, from + limit)
@@ -73,11 +71,44 @@ export async function GET(request: NextRequest) {
   const conversations = rows.slice(0, limit)
   const ids = conversations.map((c) => c.id)
 
+  const listingById = new Map<string, { id: string; title: string }>()
+  const profileById = new Map<
+    string,
+    { id: string; username: string; display_name: string; avatar_url: string }
+  >()
   // Unread counts without fetching message bodies: ids only.
   const unreadByConversation = new Map<string, number>()
   // Latest message per thread, from a separate plain messages query.
   const lastByConversation = new Map<string, { content: string; created_at: string }>()
+
   if (ids.length > 0) {
+    const listingIds = [...new Set(conversations.map((c) => c.listing_id).filter(Boolean))]
+    const userIds = [
+      ...new Set(
+        conversations.flatMap((c) => [c.buyer_id, c.seller_id]).filter(Boolean)
+      ),
+    ]
+
+    const [{ data: listings, error: listingsError }, { data: profiles, error: profilesError }] =
+      await Promise.all([
+        supabase.from('listings').select('id, title').in('id', listingIds),
+        supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .in('id', userIds),
+      ])
+
+    if (listingsError) {
+      console.error('Failed to load conversation listings:', listingsError.message)
+    } else {
+      for (const row of listings ?? []) listingById.set(row.id, row)
+    }
+    if (profilesError) {
+      console.error('Failed to load conversation profiles:', profilesError.message)
+    } else {
+      for (const row of profiles ?? []) profileById.set(row.id, row)
+    }
+
     const { data: unread, error: unreadError } = await supabase
       .from('messages')
       .select('conversation_id')
@@ -120,6 +151,9 @@ export async function GET(request: NextRequest) {
 
   const shaped = conversations.map((conv) => ({
     ...conv,
+    listing: listingById.get(conv.listing_id) ?? null,
+    buyer: profileById.get(conv.buyer_id) ?? null,
+    seller: profileById.get(conv.seller_id) ?? null,
     unread_count: unreadByConversation.get(conv.id) ?? 0,
     last_message: lastByConversation.get(conv.id) ?? null,
   }))

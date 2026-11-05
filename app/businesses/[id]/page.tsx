@@ -35,6 +35,11 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
       .in('id', junctionIds).eq('status', 'active')
     junctionListings = data
   }
+  const { data: photos } = await supabase
+    .from('business_images').select('image_url, order_index').eq('business_id', id).order('order_index', { ascending: true })
+  const photoUrls = (photos || []).map((p) => p.image_url).filter(Boolean)
+  if (photoUrls.length === 0 && business.image_url) photoUrls.push(business.image_url)
+
   const byId = new Map<string, NonNullable<typeof tagged>[number]>()
   for (const l of [...(tagged || []), ...(junctionListings || [])]) byId.set(l.id, l)
   const listings = [...byId.values()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -53,6 +58,20 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
     <div className="min-h-screen bg-white">
       <Header />
       <main className="container mx-auto px-4 py-6 max-w-5xl">
+        {photoUrls.length > 0 && (
+          <div className="mb-6">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={photoUrls[0]} alt={business.name} className="w-full aspect-[4/3] object-cover rounded-xl" />
+            {photoUrls.length > 1 && (
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {photoUrls.slice(1).map((url) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={url} src={url} alt="" className="w-full aspect-square object-cover rounded-lg" />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         <div className="border-b pb-6 mb-6">
           <div className="flex items-start gap-4">
             <div className="h-16 w-16 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">

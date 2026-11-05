@@ -12,8 +12,7 @@ import { Button } from '@/components/ui/button'
 import { HeaderSearch } from '@/components/search/header-search'
 import { LocationSelector } from '@/components/layout/location-selector'
 import { NotificationBell } from '@/components/layout/notification-bell'
-import { MobileMenuDrawer } from '@/components/layout/mobile-menu-drawer'
-import { AccountMenuContent } from '@/components/layout/account-menu-content'
+import { MobileSidebar } from '@/components/layout/mobile-sidebar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,7 +67,18 @@ export function Header() {
           characters wide (the 2026-11-04 screenshot showed just "B").
           Desktop keeps the single row. */}
       <div className="container mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between">
-        <div className="order-1 flex items-center gap-4 shrink-0">
+        <div className="order-1 flex items-center gap-2 shrink-0">
+          {/* Mobile: hamburger opens the black left sidebar (Muse-app
+              style) — the same drawer the avatar and the bottom-bar
+              Cuenta tab open. Desktop has no hamburger. */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Menú"
+            className="md:hidden h-9 w-9 -ml-2 flex items-center justify-center text-gray-700"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
           <Link href="/" className="text-base sm:text-xl font-forum font-bold lowercase">
             ventastecate.com
           </Link>
@@ -107,10 +117,8 @@ export function Header() {
                   <Store className="h-3 w-3 shrink-0" />{activeStore.name}
                 </span>
               )}
-              {/* Mobile: the avatar opens the same slide-in drawer the
-                  logged-out menu uses — the desktop dropdown is too
-                  cramped and floaty on a phone, and it covers the feed
-                  behind it with no obvious way to dismiss it. */}
+              {/* Mobile: the avatar opens the sidebar — the desktop
+                  dropdown is too cramped and floaty on a phone. */}
               <button
                 type="button"
                 onClick={() => setMenuOpen(true)}
@@ -131,9 +139,6 @@ export function Header() {
                   )}
                 </span>
               </button>
-              <MobileMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)}>
-                <AccountMenuContent onNavigate={() => setMenuOpen(false)} />
-              </MobileMenuDrawer>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="hidden md:inline-flex h-8 w-8 rounded-full p-0">
@@ -263,46 +268,13 @@ export function Header() {
                 </Button>
               </div>
 
-              {/* Mobile: hamburger opens a slide-in drawer */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden h-9 w-9"
-                aria-label="Menú"
-                onClick={() => setMenuOpen(true)}
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
-              <MobileMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)}>
-                <button
-                  type="button"
-                  onClick={() => { setMenuOpen(false); openAuth('login') }}
-                  className="block w-full text-left px-3 py-2.5 text-sm rounded-md hover:bg-gray-50"
-                >
-                  {t.nav.login}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setMenuOpen(false); openAuth('signup') }}
-                  className="block w-full text-left px-3 py-2.5 text-sm rounded-md hover:bg-gray-50"
-                >
-                  {t.nav.register}
-                </button>
-                <Link href="/businesses" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 text-sm rounded-md hover:bg-gray-50">
-                  Negocios
-                </Link>
-                <div className="my-2 border-t border-gray-100" />
-                <Link href="/terms" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-xs text-gray-500 rounded-md hover:bg-gray-50">
-                  {t.footer.termsOfService}
-                </Link>
-                <Link href="/privacy" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-xs text-gray-500 rounded-md hover:bg-gray-50">
-                  {t.footer.privacyPolicy}
-                </Link>
-              </MobileMenuDrawer>
+              {/* Mobile menu lives in the header hamburger (left of the
+                  logo) — one sidebar for logged-in and logged-out. */}
             </>
           )}
         </div>
       </div>
+      <MobileSidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
     </header>
   )
 }

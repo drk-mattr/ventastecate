@@ -19,6 +19,9 @@ export function Footer() {
             <button type="button" onClick={openReport} className="hover:text-gray-900 transition-colors">
               {t.nav.reportProblem}
             </button>
+            <Link href="/businesses" className="hover:text-gray-900 transition-colors">
+              Negocios
+            </Link>
             <Link href="/terms" className="hover:text-gray-900 transition-colors">
               {t.footer.termsOfService}
             </Link>

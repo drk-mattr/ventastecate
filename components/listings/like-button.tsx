@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { Heart } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -17,7 +17,6 @@ export function LikeButton({ listingId, initialLiked, initialCount, size = 'sm' 
   const { user } = useAuth()
   const router = useRouter()
   const [liked, setLiked] = useState(initialLiked)
-  useEffect(() => { setLiked(initialLiked) }, [initialLiked])
   const [count, setCount] = useState(initialCount)
   const [animating, setAnimating] = useState(false)
   const [isPending, startTransition] = useTransition()

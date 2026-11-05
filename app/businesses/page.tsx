@@ -51,9 +51,9 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
                         </p>
                       )}
                     </div>
-                    {biz.mention_count > 0 && (
-                      <span className="text-xs text-gray-500 shrink-0">{biz.mention_count} {biz.mention_count === 1 ? 'mención' : 'menciones'}</span>
-                    )}
+                    <span className="text-xs text-gray-500 shrink-0">
+                      {biz.mention_count ?? 0} menc. · {biz.followers_count ?? 0} seg. · {biz.likes_count ?? 0} me gusta
+                    </span>
                   </li>
                 ))}
               </ul>

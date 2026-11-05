@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Store, MapPin, BadgeCheck } from 'lucide-react'
+import { BusinessEngagementBar } from '@/components/businesses/business-engagement-bar'
 
 export default async function BusinessPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -37,6 +38,16 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
   for (const l of [...(tagged || []), ...(junctionListings || [])]) byId.set(l.id, l)
   const listings = [...byId.values()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
+  const { data: { user: currentUser } } = await supabase.auth.getUser()
+  let initialFollowing = false, initialLiked = false
+  if (currentUser) {
+    const [{ data: follow }, { data: like }] = await Promise.all([
+      supabase.from('business_follows').select('id').eq('business_id', id).eq('user_id', currentUser.id).maybeSingle(),
+      supabase.from('business_likes').select('id').eq('business_id', id).eq('user_id', currentUser.id).maybeSingle(),
+    ])
+    initialFollowing = !!follow; initialLiked = !!like
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
@@ -52,6 +63,15 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
                 {business.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{business.location}</span>}
                 {business.category && <span>{business.category}</span>}
                 <span>{business.mention_count ?? 0} {(business.mention_count ?? 0) === 1 ? 'mención' : 'menciones'}</span>
+              </div>
+              <div className="mt-3">
+                <BusinessEngagementBar
+                  businessId={business.id}
+                  initialFollowing={initialFollowing}
+                  initialLiked={initialLiked}
+                  followersCount={business.followers_count ?? 0}
+                  likesCount={business.likes_count ?? 0}
+                />
               </div>
               {business.store ? (
                 <p className="text-sm text-gray-500 mt-2 flex items-center gap-1">

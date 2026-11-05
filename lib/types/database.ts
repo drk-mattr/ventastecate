@@ -105,6 +105,8 @@ export type Business = {
   location?: string | null
   category?: string | null
   mention_count: number
+  followers_count?: number
+  likes_count?: number
   created_by?: string | null
   created_at: string
 }

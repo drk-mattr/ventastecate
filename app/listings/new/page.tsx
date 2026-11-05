@@ -126,6 +126,11 @@ export default function NewListingPage() {
   const [city, setCity] = useState('')
   const [stateRegion, setStateRegion] = useState('')
   const [gpsCountryCode, setGpsCountryCode] = useState<string | null>(null)
+  // Posting country is the seller's choice, default MX for the Tecate market.
+  // It must NOT fall back to the site's locked language region (which is MX
+  // for everyone, including San Diego sellers on US connections) — that
+  // mislabelled manually typed San Diego posts as Mexico.
+  const [countryCode, setCountryCode] = useState('MX')
   const [images, setImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [videoUrl, setVideoUrl] = useState('')
@@ -157,7 +162,6 @@ export default function NewListingPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { user, activeStore } = useAuth()
-  const userCountry = useRegion()
   const t = useTranslations()
   const f = t.forms
   const storeType = activeStore?.store_type || 'general'
@@ -317,7 +321,7 @@ export default function NewListingPage() {
           price: finalPrice,
           category: finalCategory,
           location: location || activeStore?.location || '',
-          country_code: gpsCountryCode ?? userCountry ?? null,
+          country_code: gpsCountryCode ?? countryCode,
           city: city || null,
           state_region: stateRegion || null,
           metadata,
@@ -767,8 +771,10 @@ export default function NewListingPage() {
             <LocationPicker
               city={city}
               stateRegion={stateRegion}
+              country={countryCode}
               onCityChange={setCity}
               onStateRegionChange={setStateRegion}
+              onCountryChange={setCountryCode}
               onCountryCodeChange={setGpsCountryCode}
             />
             <div className="space-y-1.5">

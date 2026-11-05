@@ -79,7 +79,10 @@ export function Header() {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <Link href="/" className="text-base sm:text-xl font-forum font-bold lowercase">
+          {/* Logo matches the sidebar's presence: text-2xl on desktop,
+              text-xl on mobile (the sidebar's text-2xl would crowd the
+              mobile row with the hamburger, location and bell). */}
+          <Link href="/" className="text-xl sm:text-2xl font-forum font-bold lowercase">
             ventastecate.com
           </Link>
           <Link href="/businesses" className="hidden sm:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900">

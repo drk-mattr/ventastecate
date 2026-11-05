@@ -124,7 +124,7 @@ export function HeaderSearch() {
     <div className="flex-1 min-w-0 max-w-2xl mx-0 sm:mx-4">
       {/* Search + Filter Row */}
       <div className="flex items-center gap-2">
-        <form onSubmit={handleSearch} className="flex-1 min-w-0 flex items-center bg-white border rounded-lg h-8 overflow-hidden focus-within:ring-2 focus-within:ring-gray-900 focus-within:border-gray-900">
+        <form onSubmit={handleSearch} className="flex-1 min-w-0 flex items-center bg-white border rounded-lg h-11 sm:h-9 overflow-hidden focus-within:ring-2 focus-within:ring-gray-900 focus-within:border-gray-900">
           <Search className="ml-2.5 h-3.5 w-3.5 text-gray-400 shrink-0 pointer-events-none" />
           <input
             type="search"
@@ -148,7 +148,7 @@ export function HeaderSearch() {
 
         <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 px-2.5 gap-1.5 text-xs shrink-0">
+            <Button variant="outline" size="sm" className="h-11 sm:h-9 px-2.5 gap-1.5 text-xs shrink-0">
               <SlidersHorizontal className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">{t.search.filters}</span>
               {activeFilterCount > 0 && (

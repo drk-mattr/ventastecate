@@ -1,20 +1,58 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useAuthModal } from '@/lib/auth/auth-modal-context'
+import { createClient } from '@/lib/supabase/client'
+import { MobileMenuDrawer } from '@/components/layout/mobile-menu-drawer'
+import { AccountMenuContent } from '@/components/layout/account-menu-content'
 import { Home, Search, Plus, MessageCircle, User, UserPlus } from 'lucide-react'
 
 /**
  * Mobile-only sticky bottom navigation with a prominent "Publicar" CTA.
  * Hidden on md+ (desktop uses the header). Gives phones one-tap access to the
  * core actions and keeps posting a listing always reachable.
+ *
+ * Cuenta opens the same account drawer the avatar opens (PR #54) — it used
+ * to link to /my-listings, which is not what "Cuenta" means. Mis anuncios
+ * lives inside the drawer. Mensajes carries an unread count badge like
+ * OfferUp's Inbox and the header bell; it counts messages in the user's
+ * conversations that are unread and not sent by them (same rule the
+ * /messages list uses), refetched whenever the route changes so opening
+ * /messages clears it.
  */
 export function MobileActionBar() {
   const pathname = usePathname()
   const { user } = useAuth()
   const { openAuth } = useAuthModal()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [unreadMessages, setUnreadMessages] = useState(0)
+
+  useEffect(() => {
+    if (!user) { setUnreadMessages(0); return }
+    const load = async () => {
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from('conversations')
+          .select('messages(id, read, sender_id)')
+          .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+        if (error || !data) return
+        let count = 0
+        for (const c of data as { messages?: { read: boolean; sender_id: string }[] }[]) {
+          for (const m of c.messages || []) {
+            if (!m.read && m.sender_id !== user.id) count += 1
+          }
+        }
+        setUnreadMessages(count)
+      } catch {
+        // Badge stays hidden rather than breaking the nav.
+      }
+    }
+    load()
+  }, [user, pathname])
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
@@ -25,51 +63,63 @@ export function MobileActionBar() {
     }`
 
   return (
-    <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 h-16 bg-white border-t border-gray-200 flex items-stretch px-1 pb-[env(safe-area-inset-bottom)]">
-      <Link href="/" className={itemClass('/')} aria-label="Inicio">
-        <Home className="h-5 w-5" />
-        <span>Inicio</span>
-      </Link>
-      <Link href="/search" className={itemClass('/search')} aria-label="Buscar">
-        <Search className="h-5 w-5" />
-        <span>Buscar</span>
-      </Link>
+    <>
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 h-16 bg-white border-t border-gray-200 flex items-stretch px-1 pb-[env(safe-area-inset-bottom)]">
+        <Link href="/" className={itemClass('/')} aria-label="Inicio">
+          <Home className="h-5 w-5" />
+          <span>Inicio</span>
+        </Link>
+        <Link href="/search" className={itemClass('/search')} aria-label="Buscar">
+          <Search className="h-5 w-5" />
+          <span>Buscar</span>
+        </Link>
 
-      {/* Prominent primary CTA */}
-      <Link
-        href="/listings/new"
-        className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
-        aria-label="Publicar anuncio"
-      >
-        <span className="-mt-5 flex items-center justify-center h-12 w-12 rounded-full bg-orange-600 border border-orange-600 text-white shadow-md">
-          <Plus className="h-6 w-6" />
-        </span>
-        <span className="text-[10px] font-semibold text-orange-700">Publicar</span>
-      </Link>
+        {/* Prominent primary CTA */}
+        <Link
+          href="/listings/new"
+          className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
+          aria-label="Publicar anuncio"
+        >
+          <span className="-mt-5 flex items-center justify-center h-12 w-12 rounded-full bg-orange-600 border border-orange-600 text-white shadow-md">
+            <Plus className="h-6 w-6" />
+          </span>
+          <span className="text-[10px] font-semibold text-orange-700">Publicar</span>
+        </Link>
 
-      {user ? (
-        <>
-          <Link href="/messages" className={itemClass('/messages')} aria-label="Mensajes">
-            <MessageCircle className="h-5 w-5" />
-            <span>Mensajes</span>
-          </Link>
-          <Link href="/my-listings" className={itemClass('/my-listings')} aria-label="Mi cuenta">
-            <User className="h-5 w-5" />
-            <span>Cuenta</span>
-          </Link>
-        </>
-      ) : (
-        <>
-          <button type="button" onClick={() => openAuth('login')} className={itemClass('/login')} aria-label="Iniciar sesión">
-            <User className="h-5 w-5" />
-            <span>Entrar</span>
-          </button>
-          <button type="button" onClick={() => openAuth('signup')} className={itemClass('/signup')} aria-label="Registrarse">
-            <UserPlus className="h-5 w-5" />
-            <span>Crear</span>
-          </button>
-        </>
-      )}
-    </nav>
+        {user ? (
+          <>
+            <Link href="/messages" className={`${itemClass('/messages')} relative`} aria-label="Mensajes">
+              <span className="relative">
+                <MessageCircle className="h-5 w-5" />
+                {unreadMessages > 0 && (
+                  <span className="absolute -top-1.5 -right-2 h-4 min-w-4 px-1 rounded-full bg-gray-900 text-white text-[10px] font-semibold flex items-center justify-center">
+                    {unreadMessages > 99 ? '99+' : unreadMessages}
+                  </span>
+                )}
+              </span>
+              <span>Mensajes</span>
+            </Link>
+            <button type="button" onClick={() => setMenuOpen(true)} className={itemClass('/my-listings')} aria-label="Mi cuenta">
+              <User className="h-5 w-5" />
+              <span>Cuenta</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <button type="button" onClick={() => openAuth('login')} className={itemClass('/login')} aria-label="Iniciar sesión">
+              <User className="h-5 w-5" />
+              <span>Entrar</span>
+            </button>
+            <button type="button" onClick={() => openAuth('signup')} className={itemClass('/signup')} aria-label="Registrarse">
+              <UserPlus className="h-5 w-5" />
+              <span>Crear</span>
+            </button>
+          </>
+        )}
+      </nav>
+      <MobileMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)}>
+        <AccountMenuContent onNavigate={() => setMenuOpen(false)} />
+      </MobileMenuDrawer>
+    </>
   )
 }

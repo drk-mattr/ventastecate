@@ -4,8 +4,9 @@ import { Header } from '@/components/layout/header'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { REGIONS, townsForRegion, getRegionForTown } from '@/lib/business-regions'
+import { groupCategories, variantsForCategory } from '@/lib/business-categories'
 
-const PAGE_SIZE = 50
+const PAGE_SIZE = 100
 const LETTERS = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ'.split('')
 const SORTS = [
   { value: 'alpha', label: 'A–Z' },
@@ -43,7 +44,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
   if (q) query = query.ilike('name_normalized', `%${q.toLowerCase().trim()}%`)
   if (town) query = query.eq('city', town)
   else if (region) query = query.in('city', townsForRegion(region))
-  if (categoria) query = query.eq('category', categoria)
+  if (categoria) query = query.in('category', variantsForCategory(categoria))
   if (letra) query = query.ilike('name_normalized', `${letra.toLowerCase()}%`)
   if (sortValue === 'mentions') query = query.order('mention_count', { ascending: false }).order('name_normalized', { ascending: true })
   else if (sortValue === 'followers') query = query.order('followers_count', { ascending: false }).order('name_normalized', { ascending: true })
@@ -54,16 +55,23 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
   const hasMore = (raw?.length ?? 0) > PAGE_SIZE
   const businesses = (raw || []).slice(0, PAGE_SIZE)
 
-  // Category chips from the categories actually present. The "El índice
-  // en números" stats panel was deliberately removed from this public page
-  // (2026-11-04): it fits an owner's ranking view, not general browsing.
-  const { data: catRows } = await supabase.from('businesses').select('category').limit(1000)
-  const categories = [...new Set((catRows || []).map((r) => r.category).filter(Boolean) as string[])].sort()
+  // Category chips: grouped by canonical label (hospital/hospitales are
+  // one category), ranked by how many businesses use them. Only the top 20
+  // show on the index; the full list lives on /businesses/categorias.
+  // The "El índice en números" stats panel was deliberately removed from
+  // this public page (2026-11-04): it fits an owner's ranking view, not
+  // general browsing.
+  const { data: catRows } = await supabase.from('businesses').select('category').limit(2000)
+  const allCategories = groupCategories((catRows || []).map((r) => r.category))
+  const topCategories = allCategories.slice(0, 20)
+  const shownCategories = categoria && !topCategories.some((c) => c.category === categoria)
+    ? [...topCategories, ...allCategories.filter((c) => c.category === categoria)]
+    : topCategories
 
   return (
     <div className="min-h-screen bg-white">
       <Header />
-      <main className="container mx-auto px-4 py-6 max-w-5xl">
+      <main className="container mx-auto px-4 py-6 max-w-6xl">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold mb-1">Negocios</h1>
           <Link href="/businesses/new" aria-label="Agregar un negocio" title="Agregar un negocio" className="text-xl leading-none text-gray-500 hover:text-gray-900 border border-gray-200 hover:border-gray-400 rounded-full w-7 h-7 flex items-center justify-center shrink-0">+</Link>
@@ -100,9 +108,10 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
         </div>
 
         <div className="flex flex-wrap gap-2 mb-6">
-          {categories.map((cat) => (
-            <Link key={cat} href={hrefWith(filters, { categoria: cat, page: 1 })} className={`text-xs px-3 py-1 rounded-full border ${categoria === cat ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200 text-gray-700 hover:border-gray-400'}`}>{cat}</Link>
+          {shownCategories.map(({ category: cat, count }) => (
+            <Link key={cat} href={hrefWith(filters, { categoria: cat, page: 1 })} className={`text-xs px-3 py-1 rounded-full border ${categoria === cat ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200 text-gray-700 hover:border-gray-400'}`}>{cat} <span className="text-gray-400">{count}</span></Link>
           ))}
+          <Link href="/businesses/categorias" className="text-xs px-3 py-1 text-gray-900 underline">Todas las categorías ({allCategories.length}) →</Link>
           {categoria && <Link href={hrefWith(filters, { categoria: undefined, page: 1 })} className="text-xs px-3 py-1 text-gray-900 underline">Quitar categoría</Link>}
         </div>
 
@@ -118,7 +127,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
         {!businesses || businesses.length === 0 ? (
           <p className="text-sm text-gray-500">No hay negocios con ese filtro. Prueba otra letra, categoría o región.</p>
         ) : (
-          <ul className="columns-1 md:columns-2 lg:columns-3 gap-8 border-t border-gray-200 pt-2">
+          <ul className="columns-1 md:columns-2 lg:columns-4 gap-8 border-t border-gray-200 pt-2">
             {businesses.map((biz) => {
               const bizRegion = getRegionForTown(biz.city)
               const meta = [biz.category, biz.city || biz.location, bizRegion, biz.address, biz.phone].filter(Boolean).join(' · ')

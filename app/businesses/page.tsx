@@ -3,8 +3,20 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { REGIONS, townsForRegion, getRegionForTown } from '@/lib/business-regions'
 import { groupCategories, variantsForCategory } from '@/lib/business-categories'
+
+// Tecate-first (2026-11-04): this is a Tecate site. The index defaults to
+// Tecate only — other places are sister locations you explicitly select,
+// never mixed in by default. "Alrededores" is the small towns around
+// Tecate; "Todas" is the explicit opt-in to the mixed view.
+const REGION_OPTIONS: { label: string; towns: string[] | null }[] = [
+  { label: 'Tecate', towns: ['Tecate'] },
+  { label: 'Valle de Guadalupe', towns: ['Valle de Guadalupe', 'Ensenada'] },
+  { label: 'Tijuana', towns: ['Tijuana'] },
+  { label: 'San Diego', towns: ['San Diego'] },
+  { label: 'Alrededores', towns: ['El Hongo', 'Rumorosa', 'Porvenir', 'Villas de Campo', 'Testarazo'] },
+  { label: 'Todas', towns: null },
+]
 
 const PAGE_SIZE = 100
 const LETTERS = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ'.split('')
@@ -33,7 +45,13 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
   const { q, town, region, categoria, letra, sort } = params
   const page = Math.max(parseInt(params.page || '1', 10) || 1, 1)
   const sortValue = SORTS.some((s) => s.value === sort) ? sort! : 'alpha'
-  const filters: Filters = { q, town, region, categoria, letra, sort: sortValue }
+  // Default region is Tecate, not "all". A legacy ?region=Tecate y
+  // alrededores link maps to Alrededores; anything unknown falls back
+  // to Tecate rather than to the mixed view.
+  const effectiveRegion = region === 'Tecate y alrededores' ? 'Alrededores'
+    : REGION_OPTIONS.some((o) => o.label === region) ? region! : 'Tecate'
+  const regionTowns = REGION_OPTIONS.find((o) => o.label === effectiveRegion)?.towns ?? null
+  const filters: Filters = { q, town, region: effectiveRegion, categoria, letra, sort: sortValue }
 
   const supabase = await createClient()
   // Only the columns the row shows — never * — so a thousands-row index
@@ -43,7 +61,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
     .select('id, name, name_normalized, location, city, category, address, phone, mention_count, followers_count, likes_count, store_id, created_at')
   if (q) query = query.ilike('name_normalized', `%${q.toLowerCase().trim()}%`)
   if (town) query = query.eq('city', town)
-  else if (region) query = query.in('city', townsForRegion(region))
+  else if (regionTowns) query = query.in('city', regionTowns)
   if (categoria) query = query.in('category', variantsForCategory(categoria))
   if (letra) query = query.ilike('name_normalized', `${letra.toLowerCase()}%`)
   if (sortValue === 'mentions') query = query.order('mention_count', { ascending: false }).order('name_normalized', { ascending: true })
@@ -61,7 +79,12 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
   // The "El índice en números" stats panel was deliberately removed from
   // this public page (2026-11-04): it fits an owner's ranking view, not
   // general browsing.
-  const { data: catRows } = await supabase.from('businesses').select('category').limit(2000)
+  // Chips reflect the selected region, not the whole mixed index, so a
+  // chip never leads to an empty page in the region you are viewing.
+  let catQuery = supabase.from('businesses').select('category').limit(2000)
+  if (town) catQuery = catQuery.eq('city', town)
+  else if (regionTowns) catQuery = catQuery.in('city', regionTowns)
+  const { data: catRows } = await catQuery
   const allCategories = groupCategories((catRows || []).map((r) => r.category))
   const topCategories = allCategories.slice(0, 20)
   const shownCategories = categoria && !topCategories.some((c) => c.category === categoria)
@@ -76,21 +99,14 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
           <h1 className="text-2xl font-semibold mb-1">Negocios</h1>
           <Link href="/businesses/new" aria-label="Agregar un negocio" title="Agregar un negocio" className="text-xl leading-none text-gray-500 hover:text-gray-900 border border-gray-200 hover:border-gray-400 rounded-full w-7 h-7 flex items-center justify-center shrink-0">+</Link>
         </div>
-        <p className="text-sm text-gray-500 mb-6">
-          El índice de Tecate y alrededores: lugares que la comunidad conoce, aunque el dueño todavía no se haya registrado.
-          Cualquiera puede agregar uno con solo su nombre.
-        </p>
-
-
         <div className="sticky top-14 z-40 bg-white pb-3 -mx-4 px-4 pt-1">
           <div className="flex flex-wrap gap-2 mb-3">
-            <Link href={hrefWith(filters, { region: undefined, town: undefined, page: 1 })} className={`text-xs px-3 py-1.5 rounded-full ${!region && !town ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Todas</Link>
-            {REGIONS.map((r) => (
-              <Link key={r} href={hrefWith(filters, { region: r, town: undefined, page: 1 })} className={`text-xs px-3 py-1.5 rounded-full ${region === r ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{r}</Link>
+            {REGION_OPTIONS.map((o) => (
+              <Link key={o.label} href={hrefWith(filters, { region: o.label, town: undefined, page: 1 })} className={`text-xs px-3 py-1.5 rounded-full ${effectiveRegion === o.label && !town ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{o.label}</Link>
             ))}
           </div>
           <form method="get" className="flex gap-2">
-            {region && <input type="hidden" name="region" value={region} />}
+            <input type="hidden" name="region" value={effectiveRegion} />
             {town && <input type="hidden" name="town" value={town} />}
             {categoria && <input type="hidden" name="categoria" value={categoria} />}
             {letra && <input type="hidden" name="letra" value={letra} />}
@@ -129,8 +145,9 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
         ) : (
           <ul className="columns-1 md:columns-2 lg:columns-4 gap-8 border-t border-gray-200 pt-2">
             {businesses.map((biz) => {
-              const bizRegion = getRegionForTown(biz.city)
-              const meta = [biz.category, biz.city || biz.location, bizRegion, biz.address, biz.phone].filter(Boolean).join(' · ')
+              // No region in the row meta: the selected region chip
+              // already says where you are, and the town says the rest.
+              const meta = [biz.category, biz.city || biz.location, biz.address, biz.phone].filter(Boolean).join(' · ')
               const counts = `${biz.mention_count ?? 0} menc. · ${biz.followers_count ?? 0} seg. · ${biz.likes_count ?? 0} me gusta`
               return (
                 <li key={biz.id} className="break-inside-avoid py-2 border-b border-gray-200">

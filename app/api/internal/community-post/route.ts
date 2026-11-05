@@ -84,6 +84,16 @@ export async function POST(request: NextRequest) {
     if (insertError || !listing) {
       return NextResponse.json({ error: 'Failed to create listing' }, { status: 500 })
     }
+    // Optional images (max 5, https URLs only): stored in listing_images so
+    // the detail page gallery / event poster layout can show them.
+    const rawImages: unknown[] = Array.isArray(body.image_urls) ? body.image_urls : []
+    const imageUrls = rawImages.filter((u): u is string => typeof u === 'string' && /^https?:\/\//.test(u)).slice(0, 5)
+    if (imageUrls.length) {
+      const { error: imgError } = await admin.from('listing_images').insert(
+        imageUrls.map((image_url, i) => ({ listing_id: listing.id, image_url, order_index: i }))
+      )
+      if (imgError) console.error('listing_images insert error:', imgError.message)
+    }
     return NextResponse.json({ id: listing.id, url: `/listings/${listing.id}` }, { status: 201 })
   } catch {
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })

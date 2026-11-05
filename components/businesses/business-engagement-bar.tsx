@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
 import { Heart } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 
 interface Props {
   businessId: string
@@ -35,17 +34,20 @@ export function BusinessEngagementBar({ businessId, initialFollowing, initialLik
 
   return (
     <div className="flex items-center gap-3">
-      <Button
-        variant={following ? 'secondary' : 'outline'}
-        size="sm"
+      <button
         onClick={() => toggle('business_follows', following, setFollowing, setFollowers)}
+        className={`h-8 px-4 rounded-full text-sm font-medium transition-colors ${
+          following
+            ? 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+            : 'bg-gray-900 text-white hover:bg-gray-800'
+        }`}
       >
         {following ? 'Siguiendo' : 'Seguir'}
-      </Button>
+      </button>
       <span className="text-xs text-gray-500">{followers} {followers === 1 ? 'seguidor' : 'seguidores'}</span>
       <button
         onClick={() => toggle('business_likes', liked, setLiked, setLikes)}
-        className={`flex items-center gap-1 text-sm ${liked ? 'text-gray-900' : 'text-gray-400 hover:text-gray-900'}`}
+        className={`flex items-center gap-1.5 rounded-full px-2 py-1.5 text-sm transition-colors ${liked ? 'text-gray-900' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'}`}
         aria-label={liked ? 'Quitar me gusta' : 'Me gusta'}
       >
         <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} />

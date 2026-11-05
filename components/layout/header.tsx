@@ -117,28 +117,11 @@ export function Header() {
                   <Store className="h-3 w-3 shrink-0" />{activeStore.name}
                 </span>
               )}
-              {/* Mobile: the avatar opens the sidebar — the desktop
-                  dropdown is too cramped and floaty on a phone. */}
-              <button
-                type="button"
-                onClick={() => setMenuOpen(true)}
-                aria-label="Menú de cuenta"
-                className="md:hidden h-8 w-8 rounded-full p-0 shrink-0"
-              >
-                <span className="relative h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium overflow-hidden">
-                  {activeStore ? (
-                    activeStore.avatar_url ? (
-                      <Image src={activeStore.avatar_url} alt={activeStore.name} fill className="object-cover" />
-                    ) : (
-                      <Store className="h-4 w-4 text-gray-500" />
-                    )
-                  ) : profile?.avatar_url ? (
-                    <Image src={profile.avatar_url} alt={profile.display_name} fill className="object-cover" />
-                  ) : (
-                    profile ? getInitials(profile.display_name) : 'U'
-                  )}
-                </span>
-              </button>
+              {/* Mobile avatar removed 2026-11-05: the avatar now lives in
+                  the bottom-bar Cuenta tab instead, so it isn't shown
+                  three times (header, sidebar identity, tab). The
+                  hamburger opens the sidebar; the desktop dropdown below
+                  is unchanged. */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="hidden md:inline-flex h-8 w-8 rounded-full p-0">

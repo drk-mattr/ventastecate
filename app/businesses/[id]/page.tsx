@@ -80,6 +80,7 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
                 </p>
               ) : (
                 <p className="text-sm text-gray-500 mt-2">Negocio del índice, agregado por la comunidad. El dueño aún no lo ha reclamado.</p>
+                <p className="text-xs text-gray-400 mt-1">¿Sabes la dirección, el teléfono o el horario? <Link href="/listings/new" className="underline hover:text-gray-600">Menciónalo en una publicación</Link> y ayuda a completar este negocio.</p>
               )}
             </div>
           </div>
@@ -95,9 +96,6 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
         ) : (
           <EmptyState surface message="Aún no hay publicaciones que mencionen este negocio" actionLabel="Publicar un anuncio" actionHref="/listings/new" />
         )}
-        <p className="text-xs text-gray-400 mt-8">
-          ¿Conoces más de este negocio (dirección, teléfono, horario)? Pronto podrás agregarlo aquí; por ahora menciónalo en un anuncio.
-        </p>
       </main>
     </div>
   )

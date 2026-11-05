@@ -24,6 +24,9 @@ function MessagesContent() {
   const f = t.forms
 
   const [conversations, setConversations] = useState<any[]>([])
+  // A failed list fetch must never render as "no conversations"
+  // (PR #61: the route 500'd while the page showed the empty state).
+  const [loadError, setLoadError] = useState(false)
   const [selectedConversation, setSelectedConversation] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState('')
@@ -78,11 +81,13 @@ function MessagesContent() {
     if (!res.ok) {
       console.error('Failed to load conversations:', res.status)
       setConversations([])
+      setLoadError(true)
       setLoading(false)
       return
     }
     const json = await res.json()
     setConversations(json.conversations || [])
+    setLoadError(false)
     setLoading(false)
   }
 
@@ -233,7 +238,11 @@ function MessagesContent() {
               <h2 className="font-semibold">{f.conversationsTitle}</h2>
             </div>
             <div className="flex-1 overflow-y-auto">
-              {conversations.length > 0 ? (
+              {loadError ? (
+                <div className="p-4 text-center text-red-600">
+                  No se pudieron cargar tus conversaciones. Inténtalo de nuevo.
+                </div>
+              ) : conversations.length > 0 ? (
                 conversations.map((conv) => {
                   const otherUser = conv.buyer_id === user?.id ? conv.seller : conv.buyer
                   const unreadCount = conv.unread_count ?? 0

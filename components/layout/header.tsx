@@ -13,6 +13,7 @@ import { HeaderSearch } from '@/components/search/header-search'
 import { LocationSelector } from '@/components/layout/location-selector'
 import { NotificationBell } from '@/components/layout/notification-bell'
 import { MobileMenuDrawer } from '@/components/layout/mobile-menu-drawer'
+import { AccountMenuContent } from '@/components/layout/account-menu-content'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -131,69 +132,7 @@ export function Header() {
                 </span>
               </button>
               <MobileMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)}>
-                <div className="px-3 py-2">
-                  <p className="text-sm font-medium">{activeStore ? activeStore.name : profile?.display_name}</p>
-                  <p className="text-xs text-gray-500">{activeStore ? t.nav.storeMode : `@${profile?.username}`}</p>
-                </div>
-                <div className="my-1 border-t border-gray-100" />
-                <Link href={`/users/${profile?.username}`} onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2.5 text-sm rounded-md hover:bg-gray-50">
-                  <UserCircle className="h-4 w-4 text-gray-400" />{t.nav.myProfile}
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => { setActiveStore(null); setMenuOpen(false) }}
-                  className="flex w-full items-center justify-between px-3 py-2.5 text-sm rounded-md hover:bg-gray-50"
-                >
-                  <span className="flex items-center gap-2"><User className="h-4 w-4 text-gray-400" />{t.nav.publishAs}</span>
-                  {!activeStore && <Check className="h-4 w-4" />}
-                </button>
-                <div className="my-1 border-t border-gray-100" />
-                <p className="px-3 pt-1 pb-1 text-[10px] uppercase text-gray-400 font-medium flex items-center gap-1.5">
-                  <Store className="h-3 w-3" />{t.nav.myStores}
-                </p>
-                {visibleStores.map((store) => (
-                  <button
-                    key={store.id}
-                    type="button"
-                    onClick={() => { setActiveStore(store); setMenuOpen(false) }}
-                    className="flex w-full items-center justify-between px-3 py-2.5 text-sm rounded-md hover:bg-gray-50"
-                  >
-                    <span className="flex items-center gap-2 min-w-0">
-                      <span className="h-5 w-5 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-                        {store.avatar_url ? (
-                          <Image src={store.avatar_url} alt={store.name} width={20} height={20} className="h-5 w-5 object-cover" />
-                        ) : (
-                          <Store className="h-3 w-3 text-gray-400" />
-                        )}
-                      </span>
-                      <span className="truncate">{store.name}</span>
-                    </span>
-                    {activeStore?.id === store.id && <Check className="h-4 w-4 shrink-0" />}
-                  </button>
-                ))}
-                {hiddenStoreCount > 0 && (
-                  <Link href="/my-stores" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 text-sm text-gray-500 rounded-md hover:bg-gray-50">
-                    {t.nav.viewAllStores} ({stores.length})
-                  </Link>
-                )}
-                <Link href="/stores/new" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 text-sm text-gray-500 rounded-md hover:bg-gray-50">
-                  {t.nav.createStore}
-                </Link>
-                <div className="my-1 border-t border-gray-100" />
-                <Link href="/businesses" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 text-sm rounded-md hover:bg-gray-50">Negocios</Link>
-                <Link href="/profile/edit" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 text-sm rounded-md hover:bg-gray-50">{t.nav.settings}</Link>
-                {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
-                  <Link href="/admin/reports" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 text-sm rounded-md hover:bg-gray-50">Reportes (admin)</Link>
-                )}
-                <button type="button" onClick={() => { setMenuOpen(false); openReport() }} className="block w-full text-left px-3 py-2.5 text-sm rounded-md hover:bg-gray-50">
-                  {t.nav.reportProblem}
-                </button>
-                <button type="button" onClick={() => { setMenuOpen(false); signOut() }} className="block w-full text-left px-3 py-2.5 text-sm rounded-md hover:bg-gray-50">
-                  {t.nav.logout}
-                </button>
-                <div className="my-1 border-t border-gray-100" />
-                <Link href="/terms" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-xs text-gray-500 rounded-md hover:bg-gray-50">{t.footer.termsOfService}</Link>
-                <Link href="/privacy" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-xs text-gray-500 rounded-md hover:bg-gray-50">{t.footer.privacyPolicy}</Link>
+                <AccountMenuContent onNavigate={() => setMenuOpen(false)} />
               </MobileMenuDrawer>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

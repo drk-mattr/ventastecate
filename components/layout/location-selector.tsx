@@ -40,7 +40,11 @@ export function LocationSelector() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="h-8 px-2 gap-1 text-xs text-gray-700 hover:text-gray-900" aria-label="Ubicación" title="Ubicación">
           <MapPin className="h-4 w-4 shrink-0" />
-          <span className="hidden sm:inline max-w-[110px] truncate">{selected}</span>
+          {/* Town name visible on mobile too (was hidden sm:inline):
+              OfferUp shows the town beside search — the name is the
+              control here, not just a pin. Truncated so long names
+              (Valle de Guadalupe) don't squeeze the bell/avatar. */}
+          <span className="max-w-[110px] truncate">{selected}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">

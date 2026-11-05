@@ -2,13 +2,9 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { Wrench, Megaphone, Store, Heart, Bookmark, MessageCircle, Play } from 'lucide-react'
+import { Wrench, Megaphone, Store, Play } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ListingWithImages } from '@/lib/types/database'
-import { useState, useTransition } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
-import { useAuth } from '@/lib/auth/auth-context'
-import { useRouter } from 'next/navigation'
 
 interface ListingCardProps {
   listing: ListingWithImages
@@ -46,69 +42,6 @@ function timeAgo(dateStr: string): string {
   const days = Math.floor(hrs / 24)
   if (days < 7) return `${days}d`
   return new Date(dateStr).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
-}
-
-// ── Tiny inline like/save overlay for grid cards ──
-function CardEngagement({ listing, inline = false }: { listing: ListingWithImages; inline?: boolean }) {
-  const { user } = useAuth()
-  const router = useRouter()
-  const [liked, setLiked] = useState(listing.user_has_liked ?? false)
-  const [saved, setSaved] = useState(listing.user_has_saved ?? false)
-  const [likesCount, setLikesCount] = useState(listing.likes_count ?? 0)
-  const [isPending, startTransition] = useTransition()
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
-  const toggleLike = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!user) { router.push('/login'); return }
-    const was = liked
-    setLiked(!was)
-    setLikesCount(prev => was ? Math.max(prev - 1, 0) : prev + 1)
-    startTransition(async () => {
-      const { error } = was
-        ? await supabase.from('listing_likes').delete().eq('listing_id', listing.id).eq('user_id', user.id)
-        : await supabase.from('listing_likes').insert({ listing_id: listing.id, user_id: user.id })
-      if (error) { setLiked(was); setLikesCount(prev => was ? prev + 1 : Math.max(prev - 1, 0)) }
-    })
-  }
-
-  const toggleSave = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!user) { router.push('/login'); return }
-    const was = saved
-    setSaved(!was)
-    startTransition(async () => {
-      const { error } = was
-        ? await supabase.from('listing_saves').delete().eq('listing_id', listing.id).eq('user_id', user.id)
-        : await supabase.from('listing_saves').insert({ listing_id: listing.id, user_id: user.id })
-      if (error) { setSaved(was) }
-    })
-  }
-
-  return (
-    <div className={inline ? 'flex items-center gap-2' : 'flex items-center gap-2 mt-auto pt-1'}>
-      <button onClick={toggleLike} disabled={isPending}
-        className={`flex items-center gap-1 text-xs transition-colors ${liked ? 'text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
-        <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} />
-        {likesCount > 0 && <span>{likesCount}</span>}
-      </button>
-      <button onClick={toggleSave} disabled={isPending}
-        className={`flex items-center gap-1 text-xs transition-colors ${saved ? 'text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
-        <Bookmark className={`h-4 w-4 ${saved ? 'fill-current' : ''}`} />
-      </button>
-      {!inline && (listing.comments_count ?? 0) > 0 && (
-        <span className="flex items-center gap-1 text-xs text-gray-500 ml-auto">
-          <MessageCircle className="h-3 w-3" />{listing.comments_count}
-        </span>
-      )}
-    </div>
-  )
 }
 
 // Shared card shell — uniform across all types
@@ -168,12 +101,10 @@ export function ListingCard({ listing }: ListingCardProps) {
               {listing.description.slice(0, 300)}
             </p>
           )}
-          {/* Engagement + meta footer */}
+          {/* Meta footer — like/save live on the detail page now, not on
+              grid cards (OfferUp shows no buttons on its cards either). */}
           <div className="flex items-center gap-2 mt-auto pt-1.5">
             <span className="text-[10px] text-gray-400">{timeAgo(listing.created_at)}</span>
-            <div className="ml-auto">
-              <CardEngagement key={`${listing.id}-${listing.user_has_liked ?? false}-${listing.user_has_saved ?? false}`} listing={listing} />
-            </div>
           </div>
         </div>
       </CardShell>
@@ -196,7 +127,6 @@ export function ListingCard({ listing }: ListingCardProps) {
               <span className="text-[11px] font-semibold text-gray-900 shrink-0 ml-1">{formattedPrice}</span>
             )}
           </div>
-          <CardEngagement key={`${listing.id}-${listing.user_has_liked ?? false}-${listing.user_has_saved ?? false}`} listing={listing} />
         </div>
       </CardShell>
     )
@@ -261,9 +191,6 @@ export function ListingCard({ listing }: ListingCardProps) {
               {[listing.store?.name || listing.profile?.display_name || listing.location, timeAgo(listing.created_at)].filter(Boolean).join(' · ')}
             </span>
           </span>
-          <div className="shrink-0">
-            <CardEngagement key={`${listing.id}-${listing.user_has_liked ?? false}-${listing.user_has_saved ?? false}`} listing={listing} inline />
-          </div>
         </div>
       </div>
     </CardShell>

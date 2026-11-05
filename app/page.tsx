@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { MapPin } from 'lucide-react'
+import { Suspense } from 'react'
 import { headers, cookies } from 'next/headers'
 import { LOCATION_COOKIE, townsForLocation } from '@/lib/business-regions'
 import { createClient } from '@/lib/supabase/server'
@@ -12,7 +12,7 @@ import { TopBusinesses, TopBusiness } from '@/components/businesses/top-business
 import { FirstVisit } from '@/components/home/first-visit'
 import { ListingWithImages } from '@/lib/types/database'
 import { getTranslations } from '@/lib/i18n'
-import { LOCK_TO_TECATE, resolveCountry } from '@/lib/mvp-config'
+import { resolveCountry } from '@/lib/mvp-config'
 
 interface HomeProps {
   searchParams: Promise<{ global?: string; feed?: string }>
@@ -74,10 +74,8 @@ let topBusinesses: TopBusiness[] = []
 
 export default async function Home({ searchParams }: HomeProps) {
   const supabase = await createClient()
-  const { global: globalParam, feed: feedParam } = await searchParams
+  const { feed: feedParam } = await searchParams
   const showFollowing = feedParam === 'siguiendo'
-  // MVP: the worldwide view is disabled while locked to Tecate.
-  const isGlobal = !LOCK_TO_TECATE && globalParam === '1'
 
   // Language only: resolveCountry() forces es-MX so border-town visitors on
   // US IPs still get Spanish. It no longer filters the feed (soft region):
@@ -197,7 +195,11 @@ export default async function Home({ searchParams }: HomeProps) {
         {/* No hero anymore: search lives in the header nav bar, and this
             slim row keeps the type/category shortcuts. The space the
             hero took is now the Top section below. */}
-        <TypeShortcuts />
+        {/* TypeShortcuts reads the URL for its selected pill, so it
+            needs a Suspense boundary (useSearchParams). */}
+        <Suspense>
+          <TypeShortcuts />
+        </Suspense>
 
         {/* Trending: only when engagement exists, so it never shows an empty row */}
         {trending.length > 0 && <TrendingStrip items={trending} />}
@@ -214,22 +216,9 @@ export default async function Home({ searchParams }: HomeProps) {
               Siguiendo
             </Link>
           </div>
-          {/* Header row: feed only — the feed-area Publicar was removed
-              2026-11-04, the header's orange Publicar is the one CTA. */}
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-gray-900">{showFollowing ? 'Siguiendo' : t.listings.recent}</h2>
-            {!LOCK_TO_TECATE && userCountry && (
-              <Link
-                href={isGlobal ? '/' : '/?global=1'}
-                className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                {isGlobal ? (
-                  <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{t.listings.onlyIn} {userCountry}</span>
-                ) : t.listings.seeAll}
-              </Link>
-            )}
-          </div>
-
+          {/* No heading here: the tabs above already say
+              "Anuncios Recientes" / "Siguiendo" — repeating it as an
+              H2 was a duplicate line every competitor app skips. */}
           {listings.length > 0 ? (
             <CommunityFeed initialListings={listings} />
           ) : showFollowing ? (

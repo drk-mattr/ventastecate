@@ -68,23 +68,21 @@ function MessagesContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedConversation])
 
+  // Messaging v2 Step 1: conversations come from the paginated server
+  // route, which returns unread_count + last_message per thread instead
+  // of every message body (the old client query fetched all of them).
   const fetchConversations = async () => {
     if (!user) return
 
-    const { data, error } = await supabase
-      .from('conversations')
-      .select(`
-        *,
-        listing:listings(id, title),
-        buyer:buyer_id(id, username, display_name, avatar_url),
-        seller:seller_id(id, username, display_name, avatar_url),
-        messages(id, content, created_at, read)
-      `)
-      .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
-      .order('updated_at', { ascending: false })
-
-    if (error) console.error('Failed to load conversations:', error.message)
-    setConversations(data || [])
+    const res = await fetch('/api/messages/conversations?page=1&limit=20')
+    if (!res.ok) {
+      console.error('Failed to load conversations:', res.status)
+      setConversations([])
+      setLoading(false)
+      return
+    }
+    const json = await res.json()
+    setConversations(json.conversations || [])
     setLoading(false)
   }
 
@@ -139,14 +137,17 @@ function MessagesContent() {
     }
   }
 
+  // Messaging v2 Step 1: messages come from the paginated server route
+  // (page 1 = the most recent 50). Load-more UI is Step 2.
   const fetchMessages = async (conversationId: string) => {
-    const { data } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true })
-
-    setMessages(data || [])
+    const res = await fetch(`/api/messages/conversations/${conversationId}/messages`)
+    if (!res.ok) {
+      console.error('Failed to load messages:', res.status)
+      setMessages([])
+      return
+    }
+    const json = await res.json()
+    setMessages(json.messages || [])
   }
 
   const markMessagesAsRead = async (conversationId: string) => {
@@ -193,10 +194,10 @@ function MessagesContent() {
     setMessages([...messages, data])
     setNewMessage('')
 
-    await supabase
-      .from('conversations')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', selectedConversation.id)
+    // No client-side conversations.updated_at bump: there is no UPDATE
+    // policy on conversations, so RLS denied it. The Step 1 trigger
+    // (028) bumps updated_at server-side when a message is inserted.
+    fetchConversations()
 
     fetch('/api/send-message-notification', {
       method: 'POST',
@@ -235,9 +236,7 @@ function MessagesContent() {
               {conversations.length > 0 ? (
                 conversations.map((conv) => {
                   const otherUser = conv.buyer_id === user?.id ? conv.seller : conv.buyer
-                  const unreadCount = conv.messages?.filter(
-                    (m: any) => !m.read && m.sender_id !== user?.id
-                  ).length
+                  const unreadCount = conv.unread_count ?? 0
 
                   return (
                     <button

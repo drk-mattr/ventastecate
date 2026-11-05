@@ -79,8 +79,10 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
                   Negocio registrado: <Link href={`/stores/${business.store.slug}`} className="text-gray-900 hover:underline">{business.store.name}</Link>
                 </p>
               ) : (
-                <p className="text-sm text-gray-500 mt-2">Negocio del índice, agregado por la comunidad. El dueño aún no lo ha reclamado.</p>
-                <p className="text-xs text-gray-400 mt-1">¿Sabes la dirección, el teléfono o el horario? <Link href="/listings/new" className="underline hover:text-gray-600">Menciónalo en una publicación</Link> y ayuda a completar este negocio.</p>
+                <>
+                  <p className="text-sm text-gray-500 mt-2">Negocio del índice, agregado por la comunidad. El dueño aún no lo ha reclamado.</p>
+                  <p className="text-xs text-gray-400 mt-1">¿Sabes la dirección, el teléfono o el horario? <Link href="/listings/new" className="underline hover:text-gray-600">Menciónalo en una publicación</Link> y ayuda a completar este negocio.</p>
+                </>
               )}
             </div>
           </div>

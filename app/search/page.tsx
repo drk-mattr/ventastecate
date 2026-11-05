@@ -1,4 +1,5 @@
-import { headers } from 'next/headers'
+import { headers, cookies } from 'next/headers'
+import { LOCATION_COOKIE, townsForLocation } from '@/lib/business-regions'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { CommunityFeed } from '@/components/home/community-feed'
@@ -92,6 +93,15 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   }
   if (effectiveCountry) {
     query = query.eq('country_code', effectiveCountry)
+  }
+  // Site-wide location: the header selector's cookie, default Tecate.
+  // An explicitly typed location/city/country search wins over it.
+  if (!location && !city && !stateRegion && !country) {
+    const cookieStore = await cookies()
+    const searchTowns = townsForLocation(cookieStore.get(LOCATION_COOKIE)?.value)
+    if (searchTowns) {
+      query = query.or(`city.in.(${searchTowns.join(',')}),location.in.(${searchTowns.join(',')})`)
+    }
   }
   if (type && type !== 'all') {
     query = query.eq('listing_type', type)

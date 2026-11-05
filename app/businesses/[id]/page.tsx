@@ -6,6 +6,7 @@ import { ListingCard } from '@/components/listings/listing-card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Store, MapPin, BadgeCheck } from 'lucide-react'
 import { BusinessEngagementBar } from '@/components/businesses/business-engagement-bar'
+import { BusinessPhotoGallery } from '@/components/businesses/business-photo-gallery'
 import { getRegionForTown } from '@/lib/business-regions'
 
 export default async function BusinessPage({ params }: { params: Promise<{ id: string }> }) {
@@ -58,25 +59,20 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
     <div className="min-h-screen bg-white">
       <Header />
       <main className="container mx-auto px-4 py-6 max-w-5xl">
-        {photoUrls.length > 0 && (
-          <div className="mb-6">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photoUrls[0]} alt={business.name} className="w-full aspect-[4/3] object-cover rounded-xl" />
-            {photoUrls.length > 1 && (
-              <div className="grid grid-cols-3 gap-2 mt-2">
-                {photoUrls.slice(1).map((url) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={url} src={url} alt="" className="w-full aspect-square object-cover rounded-lg" />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        <BusinessPhotoGallery photos={photoUrls} name={business.name} />
         <div className="border-b pb-6 mb-6">
           <div className="flex items-start gap-4">
-            <div className="h-16 w-16 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-              <Store className="h-7 w-7 text-gray-400" />
-            </div>
+            {/* The business's main photo is its avatar now that galleries
+                exist — the gray Store tile read as "no photo" even with
+                a full gallery above it. Icon only when truly no photo. */}
+            {business.image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={business.image_url} alt="" className="h-16 w-16 rounded-xl object-cover shrink-0" />
+            ) : (
+              <div className="h-16 w-16 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+                <Store className="h-7 w-7 text-gray-400" />
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <h1 className="text-2xl font-semibold mb-1">{business.name}</h1>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">

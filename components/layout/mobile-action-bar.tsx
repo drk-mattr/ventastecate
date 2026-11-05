@@ -1,13 +1,14 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import { createClient } from '@/lib/supabase/client'
 import { MobileSidebar } from '@/components/layout/mobile-sidebar'
-import { Home, Search, Plus, MessageCircle, User, UserPlus } from 'lucide-react'
+import { Home, Search, Plus, MessageCircle, Store, User, UserPlus } from 'lucide-react'
 
 /**
  * Mobile-only sticky bottom navigation with a prominent "Publicar" CTA.
@@ -24,10 +25,19 @@ import { Home, Search, Plus, MessageCircle, User, UserPlus } from 'lucide-react'
  */
 export function MobileActionBar() {
   const pathname = usePathname()
-  const { user } = useAuth()
+  const { user, profile, activeStore } = useAuth()
   const { openAuth } = useAuthModal()
   const [menuOpen, setMenuOpen] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
 
   // No setState here for the logged-out case: the badge only renders
   // on the logged-in branch, and the effect refetches on every user /
@@ -103,8 +113,23 @@ export function MobileActionBar() {
               </span>
               <span>Mensajes</span>
             </Link>
+            {/* Cuenta is the user's avatar, not a generic person icon:
+                the avatar moved here from the mobile header so it isn't
+                shown three times (header, sidebar identity, tab). */}
             <button type="button" onClick={() => setMenuOpen(true)} className={itemClass('/my-listings')} aria-label="Mi cuenta">
-              <User className="h-5 w-5" />
+              <span className="relative h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-medium overflow-hidden">
+                {activeStore ? (
+                  activeStore.avatar_url ? (
+                    <Image src={activeStore.avatar_url} alt={activeStore.name} fill className="object-cover" />
+                  ) : (
+                    <Store className="h-3.5 w-3.5 text-gray-500" />
+                  )
+                ) : profile?.avatar_url ? (
+                  <Image src={profile.avatar_url} alt={profile.display_name} fill className="object-cover" />
+                ) : (
+                  profile ? getInitials(profile.display_name) : 'U'
+                )}
+              </span>
               <span>Cuenta</span>
             </button>
           </>

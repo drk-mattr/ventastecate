@@ -38,13 +38,19 @@ export function BusinessPhotoGallery({ photos, name }: { photos: string[]; name:
   // One tile of the desktop mosaic. `corners` carries the outer rounded
   // corners for its position (inner corners stay square, Airbnb-style).
   // Clicking opens the lightbox at that photo.
+  //
+  // min-h-0 / min-w-0 are load-bearing, not cosmetic: grid items default
+  // to min-height:auto, so without them each tile's automatic minimum is
+  // the portrait photo's natural height (~430px at tile width) and the
+  // mosaic blows out to ~870px tall, pushing the business info below
+  // the fold. With min-h-0 the tiles shrink to their 206px rows.
   const tile = (index: number, corners: string, span = '') => (
     <button
       key={photos[index]}
       type="button"
       onClick={() => setLightboxIndex(index)}
       aria-label={`Ver foto ${index + 1} de ${photos.length}`}
-      className={`relative block overflow-hidden ${span} ${corners}`}
+      className={`relative block min-h-0 min-w-0 overflow-hidden ${span} ${corners}`}
     >
       {img(photos[index], index === 0 ? name : '')}
     </button>
@@ -59,7 +65,7 @@ export function BusinessPhotoGallery({ photos, name }: { photos: string[]; name:
     }
     if (photos.length === 3) {
       return (
-        <div className="grid grid-rows-2 gap-2">
+        <div className="grid min-h-0 grid-rows-2 gap-2">
           {tile(1, 'rounded-tr-xl')}
           {tile(2, 'rounded-br-xl')}
         </div>
@@ -67,7 +73,7 @@ export function BusinessPhotoGallery({ photos, name }: { photos: string[]; name:
     }
     if (photos.length === 4) {
       return (
-        <div className="grid grid-cols-2 grid-rows-2 gap-2">
+        <div className="grid min-h-0 grid-cols-2 grid-rows-2 gap-2">
           {tile(1, '')}
           {tile(2, 'rounded-tr-xl')}
           {tile(3, 'rounded-br-xl', 'col-span-2')}
@@ -75,7 +81,7 @@ export function BusinessPhotoGallery({ photos, name }: { photos: string[]; name:
       )
     }
     return (
-      <div className="relative grid grid-cols-2 grid-rows-2 gap-2">
+      <div className="relative grid min-h-0 grid-cols-2 grid-rows-2 gap-2">
         {tile(1, '')}
         {tile(2, 'rounded-tr-xl')}
         {tile(3, '')}

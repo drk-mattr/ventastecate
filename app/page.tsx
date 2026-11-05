@@ -47,6 +47,7 @@ export default async function Home({ searchParams }: HomeProps) {
   // Following feed: listings from sellers the logged-in user follows,
   // newest first, reusing the same card shell as the main feed.
   let followingIds: string[] = []
+  let followedBusinessIds: string[] = []
   if (showFollowing) {
     const { data: { user: currentUser } } = await supabase.auth.getUser()
     if (currentUser) {
@@ -55,6 +56,11 @@ export default async function Home({ searchParams }: HomeProps) {
         .select('following_id')
         .eq('follower_id', currentUser.id)
       followingIds = (follows || []).map((f) => f.following_id)
+      const { data: bizFollows } = await supabase
+        .from('business_follows')
+        .select('business_id')
+        .eq('user_id', currentUser.id)
+      followedBusinessIds = (bizFollows || []).map((f) => f.business_id)
       if (followingIds.length > 0) {
         feedQuery = feedQuery.in('user_id', followingIds)
       }
@@ -65,7 +71,26 @@ export default async function Home({ searchParams }: HomeProps) {
   feedQuery = feedQuery.order('created_at', { ascending: false })
 
   const { data: feedRaw } = await feedQuery.limit(30)
-  const feedListings = showFollowing && followingIds.length === 0 ? [] : feedRaw
+  // If only businesses are followed, the seller feed must start empty —
+  // otherwise the unfiltered newest-30 would leak into Siguiendo.
+  let feedListings = showFollowing && followingIds.length === 0 ? [] : feedRaw
+  // Following a business adds its mentions to Siguiendo: listings tagged with
+  // it, or linked via the junction table, merged and re-sorted newest first.
+  if (showFollowing && followedBusinessIds.length > 0) {
+    const { data: junction } = await supabase
+      .from('listing_business_tags').select('listing_id').in('business_id', followedBusinessIds)
+    const junctionIds = (junction || []).map((j) => j.listing_id)
+    let bizListings: typeof feedRaw = []
+    if (junctionIds.length > 0 || followedBusinessIds.length > 0) {
+      const { data } = await supabase
+        .from('listings').select(listingSelect).eq('status', 'active')
+        .or(`tagged_business_id.in.(${followedBusinessIds.join(',')})${junctionIds.length ? `,id.in.(${junctionIds.join(',')})` : ''}`)
+      bizListings = data
+    }
+    const byId = new Map<string, NonNullable<typeof feedRaw>[number]>()
+    for (const l of [...(feedListings || []), ...(bizListings || [])]) byId.set(l.id, l)
+    feedListings = [...byId.values()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 30)
+  }
 
   const listings: ListingWithImages[] = (feedListings || []).map(l => ({
     ...l,
@@ -148,7 +173,7 @@ export default async function Home({ searchParams }: HomeProps) {
           ) : showFollowing ? (
             <div className="rounded-xl border bg-white px-6 py-10 text-center">
               <p className="text-sm font-semibold text-gray-900">Aún no sigues a nadie.</p>
-              <p className="text-sm text-gray-500 mt-1">Sigue a un vendedor para ver sus anuncios aquí.</p>
+              <p className="text-sm text-gray-500 mt-1">Sigue a un vendedor o a un negocio para ver sus anuncios aquí.</p>
             </div>
           ) : (
             <FirstVisit />

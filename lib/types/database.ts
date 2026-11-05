@@ -109,6 +109,9 @@ export type Business = {
   likes_count?: number
   phone?: string | null
   address?: string | null
+  city?: string | null
+  state_region?: string | null
+  country_code?: string | null
   created_by?: string | null
   created_at: string
 }

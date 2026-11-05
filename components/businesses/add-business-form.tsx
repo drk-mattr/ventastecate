@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { KNOWN_TOWNS, TOWN_REGIONS } from '@/lib/business-regions'
 
 /**
  * Add a business to the index. No ownership required: any logged-in user can
@@ -39,7 +40,7 @@ export function AddBusinessForm() {
     const nameNormalized = trimmed.toLowerCase().replace(/\s+/g, ' ')
     const { data, error: insertError } = await supabase
       .from('businesses')
-      .insert({ name: trimmed, name_normalized: nameNormalized, location: location.trim() || null, category: category.trim() || null, created_by: user.id })
+      .insert({ name: trimmed, name_normalized: nameNormalized, location: location.trim() || null, city: location.trim() || null, state_region: location.trim() ? TOWN_REGIONS[location.trim()]?.state ?? null : null, country_code: location.trim() ? TOWN_REGIONS[location.trim()]?.country ?? null : null, category: category.trim() || null, created_by: user.id })
       .select('id')
       .single()
     if (insertError) {

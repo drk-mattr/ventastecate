@@ -5,12 +5,15 @@ import { AddBusinessForm } from '@/components/businesses/add-business-form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Store, MapPin } from 'lucide-react'
+import { REGIONS, townsForRegion, getRegionForTown } from '@/lib/business-regions'
 
-export default async function BusinessesPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
-  const { q } = await searchParams
+export default async function BusinessesPage({ searchParams }: { searchParams: Promise<{ q?: string; town?: string; region?: string }> }) {
+  const { q, town, region } = await searchParams
   const supabase = await createClient()
   let query = supabase.from('businesses').select('*').order('mention_count', { ascending: false }).limit(50)
   if (q) query = query.ilike('name_normalized', `%${q.toLowerCase().trim()}%`)
+  if (town) query = query.eq('city', town)
+  else if (region) query = query.in('city', townsForRegion(region))
   const { data: businesses } = await query
 
   return (
@@ -23,6 +26,12 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
           Cualquiera puede agregar uno con solo su nombre.
         </p>
 
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Link href="/businesses" className={`text-xs px-3 py-1.5 rounded-full ${!region && !town ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>Todas</Link>
+          {REGIONS.map((r) => (
+            <Link key={r} href={`/businesses?region=${encodeURIComponent(r)}`} className={`text-xs px-3 py-1.5 rounded-full ${region === r ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{r}</Link>
+          ))}
+        </div>
         <form method="get" className="flex gap-2 mb-8">
           <Input name="q" defaultValue={q ?? ''} placeholder="Buscar un negocio…" className="flex-1" />
           <Button type="submit" variant="outline">Buscar</Button>
@@ -46,8 +55,8 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
                       <Link href={`/businesses/${biz.id}`} className="text-sm font-medium hover:underline block truncate">{biz.name}</Link>
                       {(biz.location || biz.category) && (
                         <p className="text-xs text-gray-500 truncate flex items-center gap-1">
-                          {biz.location && <><MapPin className="h-3 w-3" />{biz.location}</>}
-                          {biz.location && biz.category && ' · '}{biz.category}
+                          {(biz.city || biz.location) && <><MapPin className="h-3 w-3" />{biz.city || biz.location}</>}
+                          {(biz.city || biz.location) && biz.category && ' · '}{biz.category}
                         </p>
                       )}
                     </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { TOWN_REGIONS } from '@/lib/business-regions'
 
 function authorized(request: NextRequest): boolean {
   const expected = process.env.INTERNAL_POST_TOKEN
@@ -47,6 +48,9 @@ export async function POST(request: NextRequest) {
         name,
         name_normalized: nameNormalized,
         location: typeof item.location === 'string' && item.location.trim() ? item.location.trim() : null,
+        city: typeof item.city === 'string' && item.city.trim() ? item.city.trim() : (typeof item.location === 'string' && item.location.trim() ? item.location.trim() : null),
+        state_region: typeof item.state_region === 'string' && item.state_region.trim() ? item.state_region.trim() : (TOWN_REGIONS[(typeof item.city === 'string' ? item.city.trim() : '') || (typeof item.location === 'string' ? item.location.trim() : '')]?.state ?? null),
+        country_code: typeof item.country_code === 'string' && item.country_code.trim() ? item.country_code.trim() : (TOWN_REGIONS[(typeof item.city === 'string' ? item.city.trim() : '') || (typeof item.location === 'string' ? item.location.trim() : '')]?.country ?? null),
         category: typeof item.category === 'string' && item.category.trim() ? item.category.trim() : null,
         phone: typeof item.phone === 'string' && item.phone.trim() ? item.phone.trim() : null,
         address: typeof item.address === 'string' && item.address.trim() ? item.address.trim() : null,

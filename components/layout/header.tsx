@@ -106,9 +106,98 @@ export function Header() {
                   <Store className="h-3 w-3 shrink-0" />{activeStore.name}
                 </span>
               )}
+              {/* Mobile: the avatar opens the same slide-in drawer the
+                  logged-out menu uses — the desktop dropdown is too
+                  cramped and floaty on a phone, and it covers the feed
+                  behind it with no obvious way to dismiss it. */}
+              <button
+                type="button"
+                onClick={() => setMenuOpen(true)}
+                aria-label="Menú de cuenta"
+                className="md:hidden h-8 w-8 rounded-full p-0 shrink-0"
+              >
+                <span className="relative h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium overflow-hidden">
+                  {activeStore ? (
+                    activeStore.avatar_url ? (
+                      <Image src={activeStore.avatar_url} alt={activeStore.name} fill className="object-cover" />
+                    ) : (
+                      <Store className="h-4 w-4 text-gray-500" />
+                    )
+                  ) : profile?.avatar_url ? (
+                    <Image src={profile.avatar_url} alt={profile.display_name} fill className="object-cover" />
+                  ) : (
+                    profile ? getInitials(profile.display_name) : 'U'
+                  )}
+                </span>
+              </button>
+              <MobileMenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)}>
+                <div className="px-3 py-2">
+                  <p className="text-sm font-medium">{activeStore ? activeStore.name : profile?.display_name}</p>
+                  <p className="text-xs text-gray-500">{activeStore ? t.nav.storeMode : `@${profile?.username}`}</p>
+                </div>
+                <div className="my-1 border-t border-gray-100" />
+                <Link href={`/users/${profile?.username}`} onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2.5 text-sm rounded-md hover:bg-gray-50">
+                  <UserCircle className="h-4 w-4 text-gray-400" />{t.nav.myProfile}
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => { setActiveStore(null); setMenuOpen(false) }}
+                  className="flex w-full items-center justify-between px-3 py-2.5 text-sm rounded-md hover:bg-gray-50"
+                >
+                  <span className="flex items-center gap-2"><User className="h-4 w-4 text-gray-400" />{t.nav.publishAs}</span>
+                  {!activeStore && <Check className="h-4 w-4" />}
+                </button>
+                <div className="my-1 border-t border-gray-100" />
+                <p className="px-3 pt-1 pb-1 text-[10px] uppercase text-gray-400 font-medium flex items-center gap-1.5">
+                  <Store className="h-3 w-3" />{t.nav.myStores}
+                </p>
+                {visibleStores.map((store) => (
+                  <button
+                    key={store.id}
+                    type="button"
+                    onClick={() => { setActiveStore(store); setMenuOpen(false) }}
+                    className="flex w-full items-center justify-between px-3 py-2.5 text-sm rounded-md hover:bg-gray-50"
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      <span className="h-5 w-5 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                        {store.avatar_url ? (
+                          <Image src={store.avatar_url} alt={store.name} width={20} height={20} className="h-5 w-5 object-cover" />
+                        ) : (
+                          <Store className="h-3 w-3 text-gray-400" />
+                        )}
+                      </span>
+                      <span className="truncate">{store.name}</span>
+                    </span>
+                    {activeStore?.id === store.id && <Check className="h-4 w-4 shrink-0" />}
+                  </button>
+                ))}
+                {hiddenStoreCount > 0 && (
+                  <Link href="/my-stores" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 text-sm text-gray-500 rounded-md hover:bg-gray-50">
+                    {t.nav.viewAllStores} ({stores.length})
+                  </Link>
+                )}
+                <Link href="/stores/new" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 text-sm text-gray-500 rounded-md hover:bg-gray-50">
+                  {t.nav.createStore}
+                </Link>
+                <div className="my-1 border-t border-gray-100" />
+                <Link href="/businesses" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 text-sm rounded-md hover:bg-gray-50">Negocios</Link>
+                <Link href="/profile/edit" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 text-sm rounded-md hover:bg-gray-50">{t.nav.settings}</Link>
+                {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
+                  <Link href="/admin/reports" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 text-sm rounded-md hover:bg-gray-50">Reportes (admin)</Link>
+                )}
+                <button type="button" onClick={() => { setMenuOpen(false); openReport() }} className="block w-full text-left px-3 py-2.5 text-sm rounded-md hover:bg-gray-50">
+                  {t.nav.reportProblem}
+                </button>
+                <button type="button" onClick={() => { setMenuOpen(false); signOut() }} className="block w-full text-left px-3 py-2.5 text-sm rounded-md hover:bg-gray-50">
+                  {t.nav.logout}
+                </button>
+                <div className="my-1 border-t border-gray-100" />
+                <Link href="/terms" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-xs text-gray-500 rounded-md hover:bg-gray-50">{t.footer.termsOfService}</Link>
+                <Link href="/privacy" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-xs text-gray-500 rounded-md hover:bg-gray-50">{t.footer.privacyPolicy}</Link>
+              </MobileMenuDrawer>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 rounded-full p-0">
+                  <Button variant="ghost" size="sm" className="hidden md:inline-flex h-8 w-8 rounded-full p-0">
                     <div className="relative h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium overflow-hidden">
                       {activeStore ? (
                         activeStore.avatar_url ? (

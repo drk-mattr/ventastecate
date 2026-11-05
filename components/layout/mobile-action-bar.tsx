@@ -30,8 +30,13 @@ export function MobileActionBar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [unreadMessages, setUnreadMessages] = useState(0)
 
+  // No setState here for the logged-out case: the badge only renders
+  // on the logged-in branch, and the effect refetches on every user /
+  // route change. (Calling setUnreadMessages(0) synchronously in the
+  // effect body trips the repo's react-hooks/set-state-in-effect
+  // build lint — same gotcha as PR #28.)
   useEffect(() => {
-    if (!user) { setUnreadMessages(0); return }
+    if (!user) return
     const load = async () => {
       try {
         const supabase = createClient()

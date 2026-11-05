@@ -29,7 +29,6 @@ export function Header() {
   const { openReport } = useReportModal()
   const pathname = usePathname()
   const t = useTranslations()
-  const isHomePage = pathname === '/'
   const [menuOpen, setMenuOpen] = useState(false)
 
   // Keep the avatar dropdown clean: surface the active store + the most recent
@@ -73,11 +72,11 @@ export function Header() {
           </Link>
         </div>
 
-        {!isHomePage && (
-          <Suspense fallback={<div className="flex-1 max-w-2xl mx-4" />}>
-            <HeaderSearch />
-          </Suspense>
-        )}
+        {/* Search lives in the nav bar on every page, including the
+            homepage — the old big hero search was removed 2026-11-04. */}
+        <Suspense fallback={<div className="flex-1 max-w-2xl mx-4" />}>
+          <HeaderSearch />
+        </Suspense>
 
         <div className="flex items-center gap-2 shrink-0">
           <LocationSelector />

@@ -3,20 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { cookies } from 'next/headers'
 import { groupCategories, variantsForCategory } from '@/lib/business-categories'
-
-// Tecate-first (2026-11-04): this is a Tecate site. The index defaults to
-// Tecate only — other places are sister locations you explicitly select,
-// never mixed in by default. "Alrededores" is the small towns around
-// Tecate; "Todas" is the explicit opt-in to the mixed view.
-const REGION_OPTIONS: { label: string; towns: string[] | null }[] = [
-  { label: 'Tecate', towns: ['Tecate'] },
-  { label: 'Valle de Guadalupe', towns: ['Valle de Guadalupe', 'Ensenada'] },
-  { label: 'Tijuana', towns: ['Tijuana'] },
-  { label: 'San Diego', towns: ['San Diego'] },
-  { label: 'Alrededores', towns: ['El Hongo', 'Rumorosa', 'Porvenir', 'Villas de Campo', 'Testarazo'] },
-  { label: 'Todas', towns: null },
-]
+import { LOCATION_COOKIE, LOCATION_OPTIONS, townsForLocation } from '@/lib/business-regions'
 
 const PAGE_SIZE = 100
 const LETTERS = 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ'.split('')
@@ -45,12 +34,16 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
   const { q, town, region, categoria, letra, sort } = params
   const page = Math.max(parseInt(params.page || '1', 10) || 1, 1)
   const sortValue = SORTS.some((s) => s.value === sort) ? sort! : 'alpha'
-  // Default region is Tecate, not "all". A legacy ?region=Tecate y
-  // alrededores link maps to Alrededores; anything unknown falls back
-  // to Tecate rather than to the mixed view.
-  const effectiveRegion = region === 'Tecate y alrededores' ? 'Alrededores'
-    : REGION_OPTIONS.some((o) => o.label === region) ? region! : 'Tecate'
-  const regionTowns = REGION_OPTIONS.find((o) => o.label === effectiveRegion)?.towns ?? null
+  // Location comes from the header selector (cookie) unless a ?region=
+  // param overrides it for this shared link only. Default is Tecate, not
+  // "all". A legacy ?region=Tecate y alrededores link maps to Alrededores.
+  const cookieStore = await cookies()
+  const cookieRegion = cookieStore.get(LOCATION_COOKIE)?.value
+  const requestedRegion = region === 'Tecate y alrededores' ? 'Alrededores' : region
+  const effectiveRegion = LOCATION_OPTIONS.some((o) => o.label === requestedRegion)
+    ? requestedRegion!
+    : LOCATION_OPTIONS.some((o) => o.label === cookieRegion) ? cookieRegion! : 'Tecate'
+  const regionTowns = townsForLocation(effectiveRegion)
   const filters: Filters = { q, town, region: effectiveRegion, categoria, letra, sort: sortValue }
 
   const supabase = await createClient()
@@ -100,11 +93,6 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
           <Link href="/businesses/new" aria-label="Agregar un negocio" title="Agregar un negocio" className="text-xl leading-none text-gray-500 hover:text-gray-900 border border-gray-200 hover:border-gray-400 rounded-full w-7 h-7 flex items-center justify-center shrink-0">+</Link>
         </div>
         <div className="sticky top-14 z-40 bg-white pb-3 -mx-4 px-4 pt-1">
-          <div className="flex flex-wrap gap-2 mb-3">
-            {REGION_OPTIONS.map((o) => (
-              <Link key={o.label} href={hrefWith(filters, { region: o.label, town: undefined, page: 1 })} className={`text-xs px-3 py-1.5 rounded-full ${effectiveRegion === o.label && !town ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{o.label}</Link>
-            ))}
-          </div>
           <form method="get" className="flex gap-2">
             <input type="hidden" name="region" value={effectiveRegion} />
             {town && <input type="hidden" name="town" value={town} />}

@@ -11,16 +11,20 @@ import { useTranslations } from '@/lib/hooks/use-translations'
 interface LocationPickerProps {
   city: string
   stateRegion: string
+  country?: string
   onCityChange: (v: string) => void
   onStateRegionChange: (v: string) => void
+  onCountryChange?: (code: string) => void
   onCountryCodeChange?: (code: string) => void
 }
 
 export function LocationPicker({
   city,
   stateRegion,
+  country = 'MX',
   onCityChange,
   onStateRegionChange,
+  onCountryChange,
   onCountryCodeChange,
 }: LocationPickerProps) {
   const t = useTranslations()
@@ -47,6 +51,9 @@ export function LocationPicker({
         if (result.city) onCityChange(result.city)
         if (result.state) onStateRegionChange(result.state)
         if (result.countryCode && onCountryCodeChange) onCountryCodeChange(result.countryCode)
+        // GPS is the most truthful source: a San Diego tap sets US, a Tecate
+        // tap sets MX, so the stored country always matches the real place.
+        if (result.countryCode && (result.countryCode === 'MX' || result.countryCode === 'US') && onCountryChange) onCountryChange(result.countryCode)
         if (!result.city && !result.state) {
           setGeoError(f.locationDetectFail)
         } else {
@@ -97,6 +104,21 @@ export function LocationPicker({
         <p className="text-xs text-red-500">{geoError}</p>
       )}
 
+      <div className="space-y-1">
+        <Label htmlFor="listing-country" className="text-xs text-gray-500">
+          País
+        </Label>
+        <select
+          id="listing-country"
+          value={country}
+          onChange={(e) => onCountryChange?.(e.target.value)}
+          className="flex h-9 w-full rounded-md border border-gray-200 bg-white px-3 py-1 text-sm"
+        >
+          <option value="MX">México</option>
+          <option value="US">Estados Unidos</option>
+        </select>
+        <p className="text-xs text-gray-400">El país del anuncio, no el de tu conexión: un anuncio en San Diego debe quedar como Estados Unidos.</p>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label htmlFor="listing-city" className="text-xs text-gray-500">

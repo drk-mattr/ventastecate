@@ -7,7 +7,16 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Store, MapPin, BadgeCheck } from 'lucide-react'
 import { BusinessEngagementBar } from '@/components/businesses/business-engagement-bar'
 import { BusinessPhotoGallery } from '@/components/businesses/business-photo-gallery'
+import { ContributionFlag } from '@/components/businesses/contribution-flag'
 import { getRegionForTown } from '@/lib/business-regions'
+
+const CONTRIBUTION_FIELD_LABEL: Record<string, string> = {
+  phone: 'Teléfono',
+  address: 'Dirección',
+  hours: 'Horario',
+  category: 'Categoría',
+  website: 'Web',
+}
 
 export default async function BusinessPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -55,16 +64,60 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
     initialFollowing = !!follow; initialLiked = !!like
   }
 
+  const claimedBy = (business as { claimed_by?: string | null }).claimed_by ?? null
+  const claimed = Boolean(claimedBy)
+  const hours = (business as { hours?: string | null }).hours ?? null
+  const website = (business as { website?: string | null }).website ?? null
+
+  // Latest community contribution, for attribution under the info.
+  // Pre-032 the table is missing and the query errors; treat as none.
+  let latestContribution: { id: string; field: string; created_at: string; username: string | null } | null = null
+  const { data: contrib, error: contribError } = await supabase
+    .from('business_contributions')
+    .select('id, field, user_id, created_at')
+    .eq('business_id', id)
+    .is('flagged_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (!contribError && contrib) {
+    let username: string | null = null
+    if (contrib.user_id) {
+      const { data: contributor } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', contrib.user_id)
+        .single()
+      username = contributor?.username ?? null
+    }
+    latestContribution = { id: contrib.id, field: contrib.field, created_at: contrib.created_at, username }
+  }
+
+  // Does the signed-in user already have a pending claim request here?
+  // Pre-032 the table is missing and the query errors; treat as none.
+  let pendingClaim = false
+  if (currentUser && !claimed) {
+    const { data: claim } = await supabase
+      .from('business_claim_requests')
+      .select('id')
+      .eq('business_id', id)
+      .eq('user_id', currentUser.id)
+      .eq('status', 'pending')
+      .maybeSingle()
+    pendingClaim = Boolean(claim)
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
       <main className="container mx-auto px-4 py-6 max-w-5xl">
-        <BusinessPhotoGallery photos={photoUrls} name={business.name} />
-        <div className="border-b pb-6 mb-6">
-          <div className="flex items-start gap-4">
-            {/* The business's main photo is its avatar now that galleries
-                exist — the gray Store tile read as "no photo" even with
-                a full gallery above it. Icon only when truly no photo. */}
+        {/* Identity above the gallery, Airbnb-style: name on the left,
+            follow / followers / like right-aligned in the same row. */}
+        <div className="mb-6">
+          <div className="flex flex-wrap items-start gap-4">
+            {/* The business's main photo is its avatar — the gray Store tile
+                read as "no photo" even with a full gallery below it. Icon
+                only when truly no photo. */}
             {business.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={business.image_url} alt="" className="h-16 w-16 rounded-xl object-cover shrink-0" />
@@ -81,31 +134,66 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
                 {business.category && <span>{business.category}</span>}
                 {business.address && <span>{business.address}</span>}
                 {business.phone && <span>{business.phone}</span>}
+                {hours && <span>{hours}</span>}
+                {website && (
+                  <a href={website} target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">
+                    {website.replace(/^https?:\/\//, '')}
+                  </a>
+                )}
                 <span>{business.mention_count ?? 0} {(business.mention_count ?? 0) === 1 ? 'mención' : 'menciones'}</span>
-              </div>
-              <div className="mt-3">
-                <BusinessEngagementBar
-                  businessId={business.id}
-                  initialFollowing={initialFollowing}
-                  initialLiked={initialLiked}
-                  followersCount={business.followers_count ?? 0}
-                  likesCount={business.likes_count ?? 0}
-                />
               </div>
               {business.store ? (
                 <p className="text-sm text-gray-500 mt-2 flex items-center gap-1">
                   <BadgeCheck className="h-4 w-4 text-orange-600" />
                   Negocio registrado: <Link href={`/stores/${business.store.slug}`} className="text-gray-900 hover:underline">{business.store.name}</Link>
                 </p>
+              ) : claimed ? (
+                <p className="text-sm text-gray-500 mt-2 flex items-center gap-1">
+                  <BadgeCheck className="h-4 w-4 text-orange-600" />
+                  Negocio reclamado
+                </p>
               ) : (
-                <>
-                  <p className="text-sm text-gray-500 mt-2">Negocio del índice, agregado por la comunidad. El dueño aún no lo ha reclamado.</p>
-                  <p className="text-xs text-gray-400 mt-1">¿Sabes la dirección, el teléfono o el horario? <Link href="/listings/new" className="underline hover:text-gray-600">Menciónalo en una publicación</Link> y ayuda a completar este negocio.</p>
-                </>
+                <p className="text-sm text-gray-500 mt-2">Negocio del índice, agregado por la comunidad. El dueño aún no lo ha reclamado.</p>
               )}
+              {latestContribution && (
+                <p className="text-xs text-gray-400 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span>
+                    {CONTRIBUTION_FIELD_LABEL[latestContribution.field] || 'Dato'} agregado por{' '}
+                    {latestContribution.username ? `@${latestContribution.username}` : 'la comunidad'}
+                    {' · '}
+                    {new Date(latestContribution.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}
+                  </span>
+                  <ContributionFlag businessId={id} contributionId={latestContribution.id} />
+                </p>
+              )}
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                <Link href={`/businesses/${id}/agregar-informacion`} className="text-gray-500 underline hover:text-gray-700">
+                  Agregar información
+                </Link>
+                {!claimed && (
+                  pendingClaim ? (
+                    <span className="text-gray-400">Solicitud de reclamo en revisión</span>
+                  ) : (
+                    <Link href={`/businesses/${id}/reclamar`} className="text-gray-500 underline hover:text-gray-700">
+                      Reclamar este negocio
+                    </Link>
+                  )
+                )}
+              </div>
+            </div>
+            <div className="shrink-0">
+              <BusinessEngagementBar
+                businessId={business.id}
+                initialFollowing={initialFollowing}
+                initialLiked={initialLiked}
+                followersCount={business.followers_count ?? 0}
+                likesCount={business.likes_count ?? 0}
+              />
             </div>
           </div>
         </div>
+
+        <BusinessPhotoGallery photos={photoUrls} name={business.name} />
 
         <h2 className="text-base font-medium mb-4 text-gray-700">Publicaciones que lo mencionan</h2>
         {listings.length > 0 ? (

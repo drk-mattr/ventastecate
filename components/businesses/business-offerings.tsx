@@ -1,6 +1,6 @@
 // Items engine — "Lo que ofrecen aquí" on the business page (§8, 034B).
 //
-// Server component. Lists the business's offerings (up to 5, ordered
+// Server component. Lists the business's offerings (up to 8, ordered
 // by all-time mentions — there is no activity score yet; 034D adds
 // it), each with its EVIDENCE LEVEL, plus the affordance to add an
 // offering without a full publication.
@@ -42,7 +42,7 @@ type OfferingRow = {
   latestMentionAt: string | null
 }
 
-const MAX_SHOWN = 5
+const MAX_SHOWN = 8
 
 export async function BusinessOfferings({
   businessId,

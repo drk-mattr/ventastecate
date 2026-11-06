@@ -17,6 +17,8 @@ import { RealEstateMetadata, AutomotiveMetadata, ListingType } from '@/lib/types
 import { firstListingError } from '@/lib/validation'
 import Image from 'next/image'
 import { BusinessTagPicker } from '@/components/listings/business-tag-picker'
+import { ItemTagPicker } from '@/components/listings/item-tag-picker'
+import type { SelectedItemTag } from '@/lib/items/types'
 import { Business } from '@/lib/types/database'
 import {
   ImagePlus, X, Video, ChevronDown, ChevronUp,
@@ -135,6 +137,15 @@ export default function NewListingPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [videoUrl, setVideoUrl] = useState('')
   const [taggedBusiness, setTaggedBusiness] = useState<Business | null>(null)
+  // Items engine (§8, 034B): optional offering tags for the tagged
+  // business. First selected = primary, the rest secondary.
+  const [selectedItems, setSelectedItems] = useState<SelectedItemTag[]>([])
+  const handleBusinessChange = (biz: Business | null) => {
+    setTaggedBusiness(biz)
+    // Offerings belong to one business — a different business (or
+    // none) invalidates the selection.
+    setSelectedItems([])
+  }
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -368,6 +379,36 @@ export default function NewListingPage() {
           }
           await supabase.from('listings').delete().eq('id', listing.id).eq('user_id', user.id)
           throw imgErr
+        }
+      }
+
+      // Items engine (§8, 034B): tag the listing's offerings through
+      // the server route, which enforces ownership, business
+      // consistency and attribution. Best-effort like the business
+      // tag above: the listing is already live, and tags are
+      // optional — a failure here must not strand the user on the
+      // form with a published listing (a retry would duplicate it).
+      if (selectedItems.length > 0) {
+        try {
+          const res = await fetch(`/api/listings/${listing.id}/item-tags`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              items: selectedItems.map((s) =>
+                s.itemId
+                  ? { item_id: s.itemId }
+                  : s.kindId
+                    ? { kind_id: s.kindId }
+                    : { kind_name: s.kindName },
+              ),
+            }),
+          })
+          if (!res.ok) {
+            const data = (await res.json().catch(() => null)) as { error?: string } | null
+            console.error('item-tags failed:', data?.error || res.status)
+          }
+        } catch (tagErr) {
+          console.error('item-tags failed:', tagErr)
         }
       }
 
@@ -831,10 +872,24 @@ export default function NewListingPage() {
                 {/* Business Tag */}
                 <BusinessTagPicker
                   value={taggedBusiness}
-                  onChange={setTaggedBusiness}
+                  onChange={handleBusinessChange}
                   location={location || undefined}
                   category={category || undefined}
                 />
+
+                {/* Item Tag — only after a business is tagged (decision 4).
+                    key remounts the picker when the business changes, so
+                    its search state never leaks across businesses. */}
+                {taggedBusiness && (
+                  <ItemTagPicker
+                    key={taggedBusiness.id}
+                    business={taggedBusiness}
+                    listingType={listingType}
+                    textForHashtags={`${title} ${description}`}
+                    value={selectedItems}
+                    onChange={setSelectedItems}
+                  />
+                )}
               </div>
             )}
           </div>

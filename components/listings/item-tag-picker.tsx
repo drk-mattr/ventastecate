@@ -11,6 +11,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Link from 'next/link'
 import { useAuth } from '@/lib/auth/auth-context'
 import { Business } from '@/lib/types/database'
 import { ListingType } from '@/lib/types/database'
@@ -107,7 +108,21 @@ export function ItemTagPicker({
                   : 'border-gray-200 bg-white text-gray-700'
               }`}
             >
-              {tag.kindName}
+              {/* The name links to the kind's /tipos page (new tab — the
+                  post draft must survive the click); a brand-new kind
+                  has no page yet, so it stays plain text. */}
+              {tag.kindId ? (
+                <Link
+                  href={`/tipos/${tag.kindSlug}`}
+                  target="_blank"
+                  rel="noopener"
+                  className="hover:underline"
+                >
+                  {tag.kindName}
+                </Link>
+              ) : (
+                tag.kindName
+              )}
               {index === 0 ? (
                 <span className="text-[10px] text-gray-300">Principal</span>
               ) : (

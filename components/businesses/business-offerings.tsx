@@ -24,6 +24,7 @@
 // active listings only; nothing else is exposed.
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import Link from 'next/link'
 import { AddOfferingForm } from './add-offering-form'
 import { ItemReportButton } from './item-report-button'
 import { Tag } from 'lucide-react'
@@ -181,7 +182,15 @@ export async function BusinessOfferings({
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-900 truncate">{row.kindName}</p>
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {row.kindSlug ? (
+                  <Link href={`/tipos/${row.kindSlug}`} className="hover:underline">
+                    {row.kindName}
+                  </Link>
+                ) : (
+                  row.kindName
+                )}
+              </p>
               <p className="text-xs text-gray-500">
                 {row.contributors > 0
                   ? `Mencionados por ${row.contributors} ${row.contributors === 1 ? 'persona' : 'personas'}`

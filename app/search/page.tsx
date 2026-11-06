@@ -1,6 +1,8 @@
 import { headers, cookies } from 'next/headers'
 import { LOCATION_COOKIE, townsForLocation } from '@/lib/business-regions'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { searchKinds, type KindSearchHit } from '@/lib/items/kind-search'
 import { Header } from '@/components/layout/header'
 import { CommunityFeed } from '@/components/home/community-feed'
 import { SearchFilterBar } from '@/components/search/search-filter-bar'
@@ -179,6 +181,23 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     matchingBusinesses = bizRows || []
   }
 
+  // Kinds matching the term (§5 pipeline: exact canonical/alias, then
+  // normalized suggestions). A kind is the thing itself — the section
+  // links to its /tipos page. Counts respect the same location scope
+  // as the businesses above (cookie towns, unless the user typed an
+  // explicit location).
+  let matchingKinds: KindSearchHit[] = []
+  if (q) {
+    const kindsAdmin = createAdminClient()
+    if (kindsAdmin) {
+      const kindsTowns =
+        !location && !city && !stateRegion && !country
+          ? townsForLocation((await cookies()).get(LOCATION_COOKIE)?.value)
+          : null
+      matchingKinds = await searchKinds(kindsAdmin, q, { towns: kindsTowns, limit: 8 })
+    }
+  }
+
   const resultCount = listingsWithImages.length
   const resultLabel = resultCount === 1 ? t.listings.result : t.listings.results
 
@@ -212,6 +231,28 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             m2={m2}
           />
         </div>
+
+        {/* Kinds matching the term, so "tacos" finds the type itself —
+            with its parent breadcrumb — and leads to its /tipos page. */}
+        {matchingKinds.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-base font-semibold mb-2">Tipos</h2>
+            <ul className="divide-y divide-gray-200 border-y border-gray-200">
+              {matchingKinds.map((k) => (
+                <li key={k.id} className="py-2 flex items-baseline justify-between gap-4">
+                  <Link href={`/tipos/${k.slug}`} className="text-sm font-semibold text-gray-900 hover:underline truncate">
+                    {k.parent_name ? `${k.parent_name} › ${k.name}` : k.name}
+                  </Link>
+                  <span className="text-xs text-gray-500 shrink-0">
+                    {k.offering_count > 0
+                      ? `${k.offering_count} ${k.offering_count === 1 ? 'negocio lo ofrece' : 'negocios lo ofrecen'}`
+                      : 'Sin ofertas todavía'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* Businesses matching the term, so a category search finds
             the actual shops, not just listings with the word in the name. */}

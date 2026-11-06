@@ -14,6 +14,7 @@ import { MapPin, Calendar, Newspaper, Store, Bed, Droplets, Ruler, Home, Car, Ga
 import { ListingEngagementBar } from '@/components/listings/listing-engagement-bar'
 import { VideoEmbed } from '@/components/listings/video-embed'
 import { ContactSellerButton } from '@/components/messages/contact-seller-button'
+import { MarkSoldButton } from '@/components/listings/mark-sold-button'
 
 // Serialize JSON-LD safely: escape characters that could break out of the
 // <script> tag (prevents stored XSS via user-controlled title/description).
@@ -480,9 +481,12 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   className="w-full"
                 />
                 {isOwner && (
-                  <Button asChild size="sm" variant="outline" className="w-full">
-                    <Link href={`/listings/${listing.id}/edit`}>Editar Anuncio</Link>
-                  </Button>
+                  <div className="space-y-2">
+                    <MarkSoldButton listingId={listing.id} initialSold={listing.status === 'sold'} />
+                    <Button asChild size="sm" variant="outline" className="w-full">
+                      <Link href={`/listings/${listing.id}/edit`}>Editar Anuncio</Link>
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
@@ -697,6 +701,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 />
                 {isOwner && (
                   <div className="space-y-2">
+                    <MarkSoldButton listingId={listing.id} initialSold={listing.status === 'sold'} />
                     <Button asChild className="w-full" variant="outline">
                       <Link href={`/listings/${listing.id}/edit`}>Editar Anuncio</Link>
                     </Button>

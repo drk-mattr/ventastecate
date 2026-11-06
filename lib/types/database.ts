@@ -73,6 +73,7 @@ export type Listing = {
   conversation_count?: number
   ranking_score?: number
   status: 'active' | 'sold' | 'inactive'
+  sold_at?: string | null
   created_at: string
   updated_at: string
 }

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
+import { MyListingCard } from '@/components/listings/my-listing-card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getTranslations } from '@/lib/i18n'
@@ -120,7 +121,7 @@ export default async function MyListingsPage() {
             {activeListings.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {activeListings.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} />
+                  <MyListingCard key={listing.id} listing={listing} />
                 ))}
               </div>
             ) : (
@@ -137,7 +138,7 @@ export default async function MyListingsPage() {
             {soldListings.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {soldListings.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} />
+                  <MyListingCard key={listing.id} listing={listing} />
                 ))}
               </div>
             ) : (

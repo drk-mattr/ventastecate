@@ -15,6 +15,7 @@ import { ListingEngagementBar } from '@/components/listings/listing-engagement-b
 import { VideoEmbed } from '@/components/listings/video-embed'
 import { ContactSellerButton } from '@/components/messages/contact-seller-button'
 import { MarkSoldButton } from '@/components/listings/mark-sold-button'
+import { getEngagementCounts } from '@/lib/listings/engagement-counts'
 
 // Serialize JSON-LD safely: escape characters that could break out of the
 // <script> tag (prevents stored XSS via user-controlled title/description).
@@ -183,6 +184,12 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     .eq('listing_id', id)
     .order('created_at', { ascending: true })
   const comments: ListingComment[] = (commentData as ListingComment[]) || []
+
+  // Real like/save counts from the per-action tables — the listing row
+  // has no likes_count / saves_count columns on prod (dropped by 016).
+  const engagement = await getEngagementCounts(supabase, [id])
+  const likesCount = engagement.get(id)?.likes ?? 0
+  const savesCount = engagement.get(id)?.saves ?? 0
 
   // Fetch tagged business if present
   let taggedBusiness = null
@@ -365,8 +372,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             {/* Engagement bar */}
             <ListingEngagementBar
               listingId={listing.id}
-              likesCount={listing.likes_count ?? 0}
-              savesCount={listing.saves_count ?? 0}
+              likesCount={likesCount}
+              savesCount={savesCount}
             />
 
             {/* Comment section */}
@@ -422,8 +429,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               {/* Like / save / share — was missing entirely on events */}
               <ListingEngagementBar
                 listingId={listing.id}
-                likesCount={listing.likes_count ?? 0}
-                savesCount={listing.saves_count ?? 0}
+                likesCount={likesCount}
+                savesCount={savesCount}
               />
 
               {/* Tagged business */}
@@ -514,8 +521,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 actions={
                   <ListingEngagementBar
                     listingId={listing.id}
-                    likesCount={listing.likes_count ?? 0}
-                    savesCount={listing.saves_count ?? 0}
+                    likesCount={likesCount}
+                    savesCount={savesCount}
                     variant="overlay"
                   />
                 }

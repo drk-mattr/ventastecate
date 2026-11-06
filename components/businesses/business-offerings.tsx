@@ -165,7 +165,7 @@ export async function BusinessOfferings({
   return (
     <div className="border-b pb-6 mb-6">
       <h2 className="text-base font-medium mb-4 text-gray-700">Lo que ofrecen aquí</h2>
-      <ul className="space-y-3">
+      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {shown.map((row) => (
           <li key={row.id} className="flex items-start gap-3">
             {row.photoUrl ? (

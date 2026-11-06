@@ -54,7 +54,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     : `${business.name} en ${town} — Negocio del índice de Ventas Tecate.`
 
   return {
-    title: `${business.name} · ${town} | Ventas Tecate`,
+    // No "| Ventas Tecate" suffix here — the layout's title template
+    // adds it. (Including it would render it twice in the tab.)
+    title: `${business.name} · ${town}`,
     description,
     openGraph: {
       title: business.name,

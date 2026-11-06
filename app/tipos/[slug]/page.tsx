@@ -35,7 +35,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { Header } from '@/components/layout/header'
 import { CommunityFeed } from '@/components/home/community-feed'
 import { EmptyState } from '@/components/ui/empty-state'
-import { Tag, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import {
   LOCATION_COOKIE,
   LOCATION_OPTIONS,
@@ -43,6 +43,8 @@ import {
 } from '@/lib/business-regions'
 import { fetchItemsEvidence } from '@/lib/items/evidence'
 import { fetchItemActivity, TRENDING_LIMIT } from '@/lib/items/activity'
+import { OfferSection } from '@/components/items/offer-section'
+import type { Offer, BusinessRow } from '@/components/items/offer-row'
 import type { Metadata } from 'next'
 import type { ListingWithImages } from '@/lib/types/database'
 
@@ -55,82 +57,9 @@ type KindRow = {
   merge_to: string | null
 }
 
-type BusinessRow = {
-  id: string
-  name: string
-  category: string | null
-  city: string | null
-  location: string | null
-  image_url: string | null
-}
-
-type Offer = {
-  itemId: string
-  business: BusinessRow
-  kindId: string
-  kindName: string
-  origin: string
-  createdAt: string
-  mentionCount: number
-  contributors: number
-  photoUrl: string | null
-}
-
-// One offer row, shared by both lists. The rank number shows only
-// when the list is a real ranking (gate passed, §7.3); unranked
-// lists show the same rows without numbers.
-function OfferRow({
-  offer,
-  rank,
-  multiKind,
-}: {
-  offer: Offer
-  rank?: number
-  multiKind: boolean
-}) {
-  return (
-    <li className="flex items-start gap-3">
-      {rank !== undefined && (
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-900 text-white text-xs font-semibold mt-3">
-          {rank}
-        </span>
-      )}
-      {offer.photoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={offer.photoUrl}
-          alt=""
-          className="h-12 w-12 rounded-lg object-cover shrink-0"
-        />
-      ) : (
-        <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-          <Tag className="h-5 w-5 text-gray-400" />
-        </div>
-      )}
-      <div className="min-w-0 flex-1">
-        <Link
-          href={`/businesses/${offer.business.id}`}
-          className="text-sm font-medium text-gray-900 hover:underline truncate block"
-        >
-          {offer.business.name}
-        </Link>
-        <p className="text-xs text-gray-500">
-          {[offer.business.category, offer.business.city || offer.business.location]
-            .filter(Boolean)
-            .join(' · ')}
-        </p>
-        {multiKind && <p className="text-xs text-gray-400">{offer.kindName}</p>}
-        <p className="text-xs text-gray-500">
-          {offer.contributors > 0
-            ? `Mencionados por ${offer.contributors} ${offer.contributors === 1 ? 'persona' : 'personas'}`
-            : offer.origin === 'owner_claim'
-              ? 'Agregado por el dueño'
-              : 'Agregados por la comunidad · Sin menciones'}
-        </p>
-      </div>
-    </li>
-  )
-}
+// Offer rows render through the shared OfferRow / OfferSection
+// components (components/items/) — the live page and the demo preview
+// (/demo/tipos) render the same markup from the same code.
 
 export async function generateMetadata({
   params,
@@ -395,38 +324,27 @@ export default async function TypePage({
             when the §11.3 gate passes — below it there is no trending
             list at all, and the mentions below show unranked. */}
         {showTrending && (
-          <section className="mt-6">
-            <h2 className="text-base font-semibold mb-3">En tendencia</h2>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {trendingOffers.map((o, i) => (
-                <OfferRow key={o.itemId} offer={o} rank={i + 1} multiKind={multiKind} />
-              ))}
-            </ul>
-          </section>
+          <OfferSection
+            title="En tendencia"
+            offers={trendingOffers}
+            ranked
+            multiKind={multiKind}
+          />
         )}
 
         {/* Offers. */}
         {offers.length > 0 ? (
-          <section className="mt-6">
-            <h2 className="text-base font-semibold mb-3">
-              {hasMentions ? 'Más mencionados' : 'Negocios que lo ofrecen'}
-            </h2>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {offers.map((o, i) => (
-                <OfferRow
-                  key={o.itemId}
-                  offer={o}
-                  rank={showTrending ? i + 1 : undefined}
-                  multiKind={multiKind}
-                />
-              ))}
-            </ul>
-            {hasMentions && activity?.available && !showTrending && (
-              <p className="text-xs text-gray-400 mt-3">
-                Todavía no hay suficiente para ordenar.
-              </p>
-            )}
-          </section>
+          <OfferSection
+            title={hasMentions ? 'Más mencionados' : 'Negocios que lo ofrecen'}
+            offers={offers}
+            ranked={showTrending}
+            multiKind={multiKind}
+            note={
+              hasMentions && activity?.available && !showTrending
+                ? 'Todavía no hay suficiente para ordenar.'
+                : undefined
+            }
+          />
         ) : (
           <EmptyState
             surface

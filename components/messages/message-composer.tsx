@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { SendHorizontal } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
@@ -172,9 +173,9 @@ export function MessageComposer({
   }
 
   return (
-    <form onSubmit={sendMessage} className="p-4 border-t">
-      {sendError && <p className="text-xs text-red-600 mb-2">{sendError}</p>}
-      <div className="flex gap-2">
+    <form onSubmit={sendMessage} className="shrink-0 border-t px-3 py-3">
+      {sendError && <p className="text-xs text-red-600 mb-2 px-1">{sendError}</p>}
+      <div className="flex items-end gap-2">
         <Input
           value={text}
           onChange={(e) => {
@@ -182,10 +183,16 @@ export function MessageComposer({
             if (sendError) setSendError('')
           }}
           placeholder={f.messagePlaceholder}
-          className="flex-1"
+          className="h-11 flex-1 rounded-full border-gray-200 bg-gray-100 px-4 text-[15px] focus-visible:ring-gray-900"
         />
-        <Button type="submit" disabled={!text.trim()}>
-          {f.sendMessage}
+        <Button
+          type="submit"
+          size="icon"
+          disabled={!text.trim()}
+          aria-label={f.sendMessage}
+          className="h-11 w-11 shrink-0 rounded-full bg-gray-900 text-white hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400"
+        >
+          <SendHorizontal className="h-5 w-5" />
         </Button>
       </div>
     </form>

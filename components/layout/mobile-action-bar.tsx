@@ -2,12 +2,10 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import { useUnreadMessages } from '@/lib/hooks/use-unread-messages'
-import { MobileSidebar } from '@/components/layout/mobile-sidebar'
 import { Home, Search, Plus, MessageCircle, Store, User, UserPlus } from 'lucide-react'
 
 /**
@@ -15,18 +13,19 @@ import { Home, Search, Plus, MessageCircle, Store, User, UserPlus } from 'lucide
  * Hidden on md+ (desktop uses the header). Gives phones one-tap access to the
  * core actions and keeps posting a listing always reachable.
  *
- * Cuenta opens the black left sidebar the avatar and the header
- * hamburger open — it used to link to /my-listings, which is not what
- * "Cuenta" means. Mis anuncios lives inside the sidebar. Mensajes carries an unread count badge like
- * OfferUp's Inbox and the header bell; the count comes from the shared
- * useUnreadMessages hook (same value the header shows on desktop),
- * refreshed on route changes and Realtime message inserts.
+ * Cuenta links to /my-listings (Mis anuncios) — the user's own page.
+ * It used to open the black left sidebar, but the hamburger and the header
+ * avatar already open that drawer, so the tab was a duplicate. The drawer
+ * still holds Editar perfil, settings and the rest of the account links.
+ * Mensajes carries an unread count badge like OfferUp's Inbox and the
+ * header bell; the count comes from the shared useUnreadMessages hook
+ * (same value the header shows on desktop), refreshed on route changes
+ * and Realtime message inserts.
  */
 export function MobileActionBar() {
   const pathname = usePathname()
   const { user, profile, activeStore } = useAuth()
   const { openAuth } = useAuthModal()
-  const [menuOpen, setMenuOpen] = useState(false)
   const unreadMessages = useUnreadMessages()
 
   const getInitials = (name: string) => {
@@ -85,8 +84,10 @@ export function MobileActionBar() {
             </Link>
             {/* Cuenta is the user's avatar, not a generic person icon:
                 the avatar moved here from the mobile header so it isn't
-                shown three times (header, sidebar identity, tab). */}
-            <button type="button" onClick={() => setMenuOpen(true)} className={itemClass('/my-listings')} aria-label="Mi cuenta">
+                shown three times (header, sidebar identity, tab). It links
+                to Mis anuncios — the drawer is one tap away on the
+                hamburger for everything else. */}
+            <Link href="/my-listings" className={itemClass('/my-listings')} aria-label="Mi cuenta">
               <span className="relative h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-medium overflow-hidden">
                 {activeStore ? (
                   activeStore.avatar_url ? (
@@ -101,7 +102,7 @@ export function MobileActionBar() {
                 )}
               </span>
               <span>Cuenta</span>
-            </button>
+            </Link>
           </>
         ) : (
           <>
@@ -116,7 +117,6 @@ export function MobileActionBar() {
           </>
         )}
       </nav>
-      <MobileSidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
     </>
   )
 }

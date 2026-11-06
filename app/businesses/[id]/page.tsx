@@ -6,6 +6,7 @@ import { ListingCard } from '@/components/listings/listing-card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Store, MapPin, BadgeCheck } from 'lucide-react'
 import { BusinessEngagementBar } from '@/components/businesses/business-engagement-bar'
+import { BusinessOfferings } from '@/components/businesses/business-offerings'
 import { BusinessPhotoGallery } from '@/components/businesses/business-photo-gallery'
 import { ContributionFlag } from '@/components/businesses/contribution-flag'
 import { getRegionForTown } from '@/lib/business-regions'
@@ -200,6 +201,12 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
             </div>
           </div>
         </div>
+
+        {/* Items engine (§8, 034B): what they offer here, with evidence
+            levels, plus the affordance to add an offering without a
+            full publication. Sits above "Publicaciones que lo
+            mencionan", which stays the evidence below it. */}
+        <BusinessOfferings businessId={id} businessCategory={business.category} />
 
         <h2 className="text-base font-medium mb-4 text-gray-700">Publicaciones que lo mencionan</h2>
         {listings.length > 0 ? (

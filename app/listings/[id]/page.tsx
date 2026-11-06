@@ -376,21 +376,18 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             />
           </article>
         ) : isEvent ? (
-          /* ── Event layout: poster left, info right ── */
+          /* ── Event layout: single stacked column ── */
           <>
-          <div className="grid grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)] gap-6 lg:gap-10 items-start max-w-6xl mx-auto">
-            {/* Left — fixed-width sticky poster */}
-            <div className="lg:sticky lg:top-4">
-              <ListingImageGallery
-                images={sortedImages}
-                listingTitle={listing.title}
-                isSold={listing.status === 'sold'}
-                listingType={listingType}
-                variant="side"
-              />
-            </div>
+          <div className="max-w-3xl mx-auto space-y-4">
+            {/* Poster on top */}
+            <ListingImageGallery
+              images={sortedImages}
+              listingTitle={listing.title}
+              isSold={listing.status === 'sold'}
+              listingType={listingType}
+            />
 
-            {/* Right — all event info */}
+            {/* All event info, stacked below the poster */}
             <div className="space-y-4">
               {/* Title, price, meta */}
               <div>
@@ -431,10 +428,9 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               {/* Tagged business */}
               {taggedBusinessCard}
 
-              {/* Organizer — quiet row, not a boxed checkout card */}
-              <div className="flex items-center justify-between gap-4 pt-1">
-                <div>
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Organizador</p>
+              {/* Organizer — stacked: identity, then full-width contact below */}
+              <div className="space-y-3 pt-1">
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Organizador</p>
 
                 {listing.store ? (
                   <div className="flex items-center gap-3">
@@ -471,7 +467,6 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   </div>
                 )}
 
-                </div>
                 <ContactSellerButton
                   listingId={listing.id}
                   sellerId={listing.user_id}
@@ -482,10 +477,10 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   label="Contactar"
                   size="sm"
                   variant="outline"
-                  className="shrink-0"
+                  className="w-full"
                 />
                 {isOwner && (
-                  <Button asChild size="sm" variant="outline" className="shrink-0">
+                  <Button asChild size="sm" variant="outline" className="w-full">
                     <Link href={`/listings/${listing.id}/edit`}>Editar Anuncio</Link>
                   </Button>
                 )}
@@ -493,7 +488,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             </div>
           </div>
 
-          {/* Comments below the poster/info grid, not crammed in the right column */}
+          {/* Comments */}
           <div className="max-w-3xl mx-auto mt-8">
             <CommentSection
               listingId={listing.id}
@@ -503,9 +498,9 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           </div>
           </>
         ) : (
-          /* ── Default layout: gallery left, sticky buy-box right ── */
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 lg:gap-8 items-start max-w-6xl mx-auto">
-            {/* Left Column — gallery + details */}
+          /* ── Default layout: single stacked column ── */
+          <div className="max-w-3xl mx-auto space-y-5">
+            {/* Gallery + details, stacked */}
             <div className="min-w-0 space-y-5">
               <ListingImageGallery
                 images={sortedImages}
@@ -529,8 +524,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 </div>
               )}
 
-              {/* Mobile: title + price under the gallery (desktop shows these in the right buy-box) */}
-              <div className="lg:hidden">
+              {/* Title + price under the gallery */}
+              <div>
                 <h1 className="text-xl font-semibold leading-snug mb-1">{listing.title}</h1>
                 <p className="text-2xl font-semibold text-gray-900 mb-2">{formattedPrice}</p>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-gray-500">
@@ -651,34 +646,11 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
                 {/* Tagged business */}
                 {taggedBusinessCard}
-
-                {/* Comments */}
-                <CommentSection
-                  listingId={listing.id}
-                  initialComments={comments}
-                  currentUserId={user?.id ?? null}
-                />
             </div>
 
-            {/* Right Column — sticky buy-box: title, price, meta, seller, contact */}
-            <aside className="lg:sticky lg:top-4">
-              <div className="border rounded-xl p-5">
-                {/* Title/price/meta — desktop only; mobile shows them under the gallery */}
-                <div className="hidden lg:block">
-                  <h1 className="text-xl font-semibold leading-snug mb-1.5">{listing.title}</h1>
-                  <p className="text-2xl font-semibold text-gray-900 mb-3">{formattedPrice}</p>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-gray-500 pb-4 border-b">
-                    {listing.location && (
-                      <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 shrink-0" />{listing.location}</span>
-                    )}
-                    <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 shrink-0" />{formatPostedDate(listing.created_at)}</span>
-                    {listing.category && (
-                      <Badge variant="secondary" className="text-[11px] font-normal text-gray-600">{listing.category}</Badge>
-                    )}
-                  </div>
-                </div>
-
-                <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide lg:mt-4 mb-3">
+            {/* Seller — stacked section in the main flow */}
+            <div className="border rounded-xl p-5">
+                <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-3">
                   {isService ? 'Proveedor' : 'Vendedor'}
                 </p>
 
@@ -731,8 +703,14 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                     <p className="text-sm text-center text-gray-500">Este es tu anuncio</p>
                   </div>
                 )}
-              </div>
-            </aside>
+            </div>
+
+            {/* Comments */}
+            <CommentSection
+              listingId={listing.id}
+              initialComments={comments}
+              currentUserId={user?.id ?? null}
+            />
           </div>
         )}
 

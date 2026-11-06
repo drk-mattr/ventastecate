@@ -1,7 +1,6 @@
 'use client'
 
 import Image from 'next/image'
-import Link from 'next/link'
 import { MessageCircle } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTranslations } from '@/lib/hooks/use-translations'
@@ -53,12 +52,6 @@ export function ConversationList({
         <p className="text-sm text-gray-500">
           Explora anuncios y contacta con un vendedor para empezar.
         </p>
-        <Link
-          href="/"
-          className="mt-1 inline-flex items-center rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-        >
-          Ver anuncios
-        </Link>
       </div>
     )
   }

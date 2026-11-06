@@ -177,13 +177,18 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const isEvent = listingType === 'event'
   const isNews = listingType === 'news'
 
-  // Fetch comments for ALL listing types
-  const { data: commentData } = await supabase
-    .from('listing_comments')
-    .select('*, profile:profiles(username, display_name, avatar_url)')
-    .eq('listing_id', id)
-    .order('created_at', { ascending: true })
-  const comments: ListingComment[] = (commentData as ListingComment[]) || []
+  // Comments live only on news/event listings — product/service
+  // conversations happen in DMs (user decision 2026-11-06), so for
+  // items there is no comments section to feed.
+  let comments: ListingComment[] = []
+  if (isNews || isEvent) {
+    const { data: commentData } = await supabase
+      .from('listing_comments')
+      .select('*, profile:profiles(username, display_name, avatar_url)')
+      .eq('listing_id', id)
+      .order('created_at', { ascending: true })
+    comments = (commentData as ListingComment[]) || []
+  }
 
   // Real like/save counts from the per-action tables — the listing row
   // has no likes_count / saves_count columns on prod (dropped by 016).
@@ -659,12 +664,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 {taggedBusinessCard}
             </div>
 
-            {/* Seller — stacked section in the main flow */}
-            <div className="border rounded-xl p-5">
-                <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-3">
-                  {isService ? 'Proveedor' : 'Vendedor'}
-                </p>
-
+            {/* Seller — plain identity row + actions, no card chrome */}
+            <div className="space-y-3 pt-1">
                 {listing.store ? (
                   <div className="flex items-center gap-3">
                     <Link href={`/stores/${listing.store.slug}`} className="relative h-11 w-11 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden shrink-0">
@@ -707,22 +708,14 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   className="w-full"
                 />
                 {isOwner && (
-                  <div className="space-y-2">
+                  <>
                     <MarkSoldButton listingId={listing.id} initialSold={listing.status === 'sold'} />
-                    <Button asChild className="w-full" variant="outline">
-                      <Link href={`/listings/${listing.id}/edit`}>Editar Anuncio</Link>
-                    </Button>
-                    <p className="text-sm text-center text-gray-500">Este es tu anuncio</p>
-                  </div>
+                    <Link href={`/listings/${listing.id}/edit`} className="block text-center text-sm text-gray-500 hover:text-gray-900">
+                      Editar Anuncio
+                    </Link>
+                  </>
                 )}
             </div>
-
-            {/* Comments */}
-            <CommentSection
-              listingId={listing.id}
-              initialComments={comments}
-              currentUserId={user?.id ?? null}
-            />
           </div>
         )}
 

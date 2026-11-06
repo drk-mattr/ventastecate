@@ -1,5 +1,5 @@
 import { headers, cookies } from 'next/headers'
-import { LOCATION_COOKIE, townsForLocation } from '@/lib/business-regions'
+import { LOCATION_COOKIE, townsForLocation, townFilterOr } from '@/lib/business-regions'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { searchKinds, type KindSearchHit } from '@/lib/items/kind-search'
@@ -106,7 +106,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     const cookieStore = await cookies()
     const searchTowns = townsForLocation(cookieStore.get(LOCATION_COOKIE)?.value)
     if (searchTowns) {
-      query = query.or(`city.in.(${searchTowns.join(',')}),location.in.(${searchTowns.join(',')})`)
+      // Case-insensitive (ilike): a listing whose city was saved
+      // free-typed as "tecate" still matches the "Tecate" town.
+      query = query.or(townFilterOr(searchTowns))
     }
   }
   if (type && type !== 'all') {

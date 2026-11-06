@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { headers, cookies } from 'next/headers'
-import { LOCATION_COOKIE, townsForLocation } from '@/lib/business-regions'
+import { LOCATION_COOKIE, townsForLocation, townFilterOr } from '@/lib/business-regions'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
@@ -96,7 +96,9 @@ export default async function Home({ searchParams }: HomeProps) {
   // both (old community posts have city null but location set).
   const cookieStore = await cookies()
   const feedTowns = townsForLocation(cookieStore.get(LOCATION_COOKIE)?.value)
-  const townFilter = feedTowns ? `city.in.(${feedTowns.join(',')}),location.in.(${feedTowns.join(',')})` : null
+  // Case-insensitive (townFilterOr uses ilike): a listing whose city was
+  // saved free-typed as "tecate" still matches the "Tecate" town.
+  const townFilter = feedTowns ? townFilterOr(feedTowns) : null
 
   const listingSelect = `
     *,

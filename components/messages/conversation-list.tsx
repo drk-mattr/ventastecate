@@ -1,6 +1,8 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
+import { MessageCircle } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTranslations } from '@/lib/hooks/use-translations'
 import { formatRowTime } from '@/lib/messages/format-time'
@@ -42,7 +44,23 @@ export function ConversationList({
   }
 
   if (conversations.length === 0) {
-    return <div className="p-4 text-center text-gray-500">{f.noConversations}</div>
+    return (
+      <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+          <MessageCircle className="h-7 w-7 text-gray-400" />
+        </span>
+        <p className="font-semibold text-gray-900">{f.noConversations}</p>
+        <p className="text-sm text-gray-500">
+          Explora anuncios y contacta con un vendedor para empezar.
+        </p>
+        <Link
+          href="/"
+          className="mt-1 inline-flex items-center rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+        >
+          Ver anuncios
+        </Link>
+      </div>
+    )
   }
 
   return (

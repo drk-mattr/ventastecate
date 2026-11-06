@@ -1,12 +1,13 @@
 'use client'
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
+import { MessageCircle } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
 import { Header } from '@/components/layout/header'
-import { Card } from '@/components/ui/card'
 import { ConversationList } from '@/components/messages/conversation-list'
 import { MessageThread } from '@/components/messages/message-thread'
 import { refreshUnreadCount } from '@/lib/messages/unread-store'
@@ -366,69 +367,95 @@ function MessagesContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-white md:h-dvh">
         <Header />
-        <div className="container mx-auto px-4 py-6">
-          <p>{f.loadingMessages}</p>
+        <div className="flex flex-1 items-center justify-center">
+          <p className="text-gray-500">{f.loadingMessages}</p>
         </div>
       </div>
     )
   }
 
+  // Design overhaul: a messaging app, not two cards on gray. The
+  // rail (~340px) holds the conversation list; the thread fills the
+  // rest. The surface is exactly the visible viewport height — the
+  // 4rem subtraction is the fixed mobile bottom bar, which the body
+  // reserves with pb-16 (see app/layout.tsx); desktop has no bar.
+  // On mobile only one pane shows at a time: list full-screen, then
+  // thread full-screen with the back control.
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-white md:h-dvh">
       <Header />
-      <main className="container mx-auto px-4 py-6">
-        <h1 className="text-2xl font-semibold mb-6">{f.messagesTitle}</h1>
+      <main className="flex min-h-0 flex-1">
+        {/* Conversation rail */}
+        <section
+          className={`${
+            showThreadPane ? 'hidden md:flex' : 'flex'
+          } w-full flex-col border-r border-gray-200 md:w-[340px] md:shrink-0`}
+        >
+          <div className="shrink-0 border-b px-4 py-3">
+            <h2 className="font-semibold">{f.conversationsTitle}</h2>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <ConversationList
+              conversations={conversations}
+              currentUserId={user?.id ?? ''}
+              selectedId={selectedId}
+              loadError={loadError}
+              onSelect={selectConversation}
+            />
+          </div>
+        </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[70vh] md:h-[600px]">
-          {/* Conversations List */}
-          <Card
-            className={`${
-              showThreadPane ? 'hidden md:flex' : 'flex'
-            } flex-col md:col-span-1 overflow-hidden`}
-          >
-            <div className="p-4 border-b">
-              <h2 className="font-semibold">{f.conversationsTitle}</h2>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              <ConversationList
-                conversations={conversations}
-                currentUserId={user?.id ?? ''}
-                selectedId={selectedId}
-                loadError={loadError}
-                onSelect={selectConversation}
-              />
-            </div>
-          </Card>
-
-          {/* Chat Area */}
-          <Card
-            className={`${
-              showThreadPane ? 'flex' : 'hidden md:flex'
-            } flex-col md:col-span-2 overflow-hidden`}
-          >
-            {selectedConversation || pending ? (
-              <MessageThread
-                conversation={selectedConversation}
-                pending={selectedConversation ? null : pending}
-                currentUserId={user?.id ?? ''}
-                messages={messages}
-                onBack={backToList}
-                onSent={handleSent}
-                onConversationCreated={handleConversationCreated}
-              />
-            ) : pendingError ? (
-              <div className="flex-1 flex items-center justify-center text-gray-500 px-6 text-center">
+        {/* Thread */}
+        <section
+          className={`${
+            showThreadPane ? 'flex' : 'hidden md:flex'
+          } min-w-0 flex-1 flex-col`}
+        >
+          {selectedConversation || pending ? (
+            <MessageThread
+              conversation={selectedConversation}
+              pending={selectedConversation ? null : pending}
+              currentUserId={user?.id ?? ''}
+              messages={messages}
+              onBack={backToList}
+              onSent={handleSent}
+              onConversationCreated={handleConversationCreated}
+            />
+          ) : pendingError ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+                <MessageCircle className="h-7 w-7 text-gray-400" />
+              </span>
+              <p className="font-semibold text-gray-900">
                 Este anuncio ya no está disponible o no se pudo iniciar la conversación.
-              </div>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-gray-500">
-                {f.selectConversation}
-              </div>
-            )}
-          </Card>
-        </div>
+              </p>
+              <Link
+                href="/"
+                className="mt-1 inline-flex items-center rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+              >
+                Ver anuncios
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+                <MessageCircle className="h-8 w-8 text-gray-400" />
+              </span>
+              <p className="font-semibold text-gray-900">{f.selectConversation}</p>
+              <p className="text-sm text-gray-500">
+                Explora anuncios y contacta con un vendedor para empezar.
+              </p>
+              <Link
+                href="/"
+                className="mt-1 inline-flex items-center rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+              >
+                Ver anuncios
+              </Link>
+            </div>
+          )}
+        </section>
       </main>
     </div>
   )
@@ -440,10 +467,10 @@ export default function MessagesPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gray-50">
+        <div className="flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-white md:h-dvh">
           <Header />
-          <div className="container mx-auto px-4 py-6">
-            <p>{f.loadingMessages}</p>
+          <div className="flex flex-1 items-center justify-center">
+            <p className="text-gray-500">{f.loadingMessages}</p>
           </div>
         </div>
       }

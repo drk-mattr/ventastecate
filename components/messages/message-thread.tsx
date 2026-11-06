@@ -64,7 +64,8 @@ export function MessageThread({
 
   // The listing, live or snapshotted. A pending thread always has
   // the live listing; a real thread has it unless it was deleted.
-  const listing: ConversationListing | null = conversation?.listing ?? null
+  const listing: ConversationListing | null =
+    conversation?.listing ?? pending?.listing ?? null
   const listingTitle =
     listing?.title ?? conversation?.listing_title ?? pending?.listing.title ?? null
 

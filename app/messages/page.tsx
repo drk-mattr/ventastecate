@@ -1,7 +1,6 @@
 'use client'
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
 import { MessageCircle } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -431,12 +430,6 @@ function MessagesContent() {
               <p className="font-semibold text-gray-900">
                 Este anuncio ya no está disponible o no se pudo iniciar la conversación.
               </p>
-              <Link
-                href="/"
-                className="mt-1 inline-flex items-center rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-              >
-                Ver anuncios
-              </Link>
             </div>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
@@ -447,12 +440,6 @@ function MessagesContent() {
               <p className="text-sm text-gray-500">
                 Explora anuncios y contacta con un vendedor para empezar.
               </p>
-              <Link
-                href="/"
-                className="mt-1 inline-flex items-center rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-              >
-                Ver anuncios
-              </Link>
             </div>
           )}
         </section>

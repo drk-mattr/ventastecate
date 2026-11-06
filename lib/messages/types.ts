@@ -17,6 +17,10 @@ export type ConversationProfile = {
 export type ConversationListing = {
   id: string
   title: string
+  /** MXN price; null when the listing has no price. */
+  price: number | null
+  /** listings.status: 'active' | 'sold' | 'inactive'. Null when unknown. */
+  status: string | null
   /** First listing image (lowest order_index), if the listing has one. */
   image_url: string | null
 }
@@ -28,16 +32,39 @@ export type LastMessage = {
 
 export type Conversation = {
   id: string
-  listing_id: string
+  /** Null once the listing is deleted (migration 030, ON DELETE SET NULL). */
+  listing_id: string | null
   buyer_id: string
   seller_id: string
   created_at: string
   updated_at: string
   listing: ConversationListing | null
+  /**
+   * Title snapshot taken when the conversation was created, so a
+   * thread stays readable after its listing is deleted. Null for
+   * threads created before migration 030.
+   */
+  listing_title: string | null
   buyer: ConversationProfile | null
   seller: ConversationProfile | null
   unread_count: number
   last_message: LastMessage | null
+}
+
+/** A thread that does not exist yet: Contactar was tapped, nothing inserted. */
+export type PendingListing = {
+  id: string
+  title: string
+  price: number | null
+  status: string | null
+  image_url: string | null
+}
+
+export type PendingThread = {
+  listingId: string
+  sellerId: string
+  listing: PendingListing
+  seller: ConversationProfile | null
 }
 
 export type Message = {

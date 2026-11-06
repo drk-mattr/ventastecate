@@ -71,6 +71,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Recipient email not found' }, { status: 404 })
     }
 
+    // Step 5: respect the recipient's email preference (migration
+    // 033, profiles.email_message_notifications, default true).
+    // Fail OPEN: if the column does not exist yet (migration not
+    // applied) or the lookup fails for any reason, the email still
+    // goes out — a missing column must never silently drop
+    // notifications.
+    const { data: recipientPrefs, error: prefsError } = await admin
+      .from('profiles')
+      .select('email_message_notifications')
+      .eq('id', recipient.id)
+      .maybeSingle()
+
+    if (!prefsError && recipientPrefs?.email_message_notifications === false) {
+      return NextResponse.json({ success: true, skipped: true, reason: 'email_notifications_disabled' })
+    }
+    if (prefsError) {
+      console.warn('Could not read recipient email preference; sending anyway:', prefsError.message)
+    }
+
     // Send email notification
     const messagePreview = message.content.length > 100 
       ? message.content.substring(0, 100) + '...'

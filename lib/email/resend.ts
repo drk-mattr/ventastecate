@@ -1,5 +1,16 @@
 import { Resend } from 'resend'
 
+// User-supplied strings (names, titles, message text) are escaped
+// before going into the HTML, so a stray "<" can never break the
+// layout or inject markup.
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
 export async function sendMessageNotification({
   to,
   recipientName,
@@ -22,48 +33,54 @@ export async function sendMessageNotification({
 
   const resend = new Resend(process.env.RESEND_API_KEY)
 
+  // The footer links to the real setting (Step 5): /profile/edit,
+  // where the recipient can turn these emails off. The promise in
+  // the footer is now true — there is a real switch behind it.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ventastecate.com'
+  const settingsUrl = `${appUrl}/profile/edit`
+
+  const safeRecipient = escapeHtml(recipientName)
+  const safeSender = escapeHtml(senderName)
+  const safeListing = escapeHtml(listingTitle)
+  const safePreview = escapeHtml(messagePreview)
+
   try {
     await resend.emails.send({
       from: 'Ventas Tecate <noreply@ventastecate.com>',
       to,
       subject: `Nuevo mensaje de ${senderName} sobre "${listingTitle}"`,
+      text: [
+        `Hola ${recipientName},`,
+        ``,
+        `${senderName} te escribió sobre "${listingTitle}":`,
+        ``,
+        `"${messagePreview}"`,
+        ``,
+        `Ver mensaje: ${messageUrl}`,
+        ``,
+        `Este correo es automático. Si no quieres recibir estos avisos por correo, desactívalos en tu configuración: ${settingsUrl}`,
+        `Las notificaciones dentro del sitio seguirán funcionando.`,
+      ].join('\n'),
       html: `
         <!DOCTYPE html>
         <html>
           <head>
             <meta charset="utf-8">
-            <style>
-              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-              .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; }
-              .content { background-color: #f9fafb; padding: 20px; margin: 20px 0; }
-              .message-preview { background-color: white; padding: 15px; border-left: 4px solid #2563eb; margin: 15px 0; }
-              .button { display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
-              .footer { text-align: center; color: #6b7280; font-size: 12px; margin-top: 20px; }
-            </style>
           </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>Ventas Tecate</h1>
+          <body style="margin: 0; padding: 0; background-color: #ffffff;">
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111111; max-width: 600px; margin: 0 auto; padding: 24px 20px;">
+              <p style="margin: 0 0 8px; font-size: 20px; font-weight: bold; color: #111111;">ventastecate.com</p>
+              <div style="border-top: 1px solid #e5e5e5; margin: 0 0 24px;"></div>
+              <p style="margin: 0 0 12px;">Hola ${safeRecipient},</p>
+              <p style="margin: 0 0 12px;"><strong>${safeSender}</strong> te escribió sobre <strong>&ldquo;${safeListing}&rdquo;</strong>:</p>
+              <div style="background-color: #f5f5f5; padding: 16px; border-left: 4px solid #111111; margin: 16px 0;">
+                <p style="margin: 0; color: #333333;"><em>${safePreview}</em></p>
               </div>
-              <div class="content">
-                <h2>¡Hola ${recipientName}!</h2>
-                <p><strong>${senderName}</strong> te ha enviado un mensaje sobre tu anuncio:</p>
-                <p><strong>"${listingTitle}"</strong></p>
-                
-                <div class="message-preview">
-                  <p><em>${messagePreview}</em></p>
-                </div>
-                
-                <a href="${messageUrl}" class="button">Ver Mensaje Completo</a>
-                
-                <p>Puedes responder directamente desde la plataforma.</p>
-              </div>
-              <div class="footer">
-                <p>Este es un correo automático de Ventas Tecate</p>
-                <p>Si no deseas recibir notificaciones, puedes desactivarlas en tu configuración</p>
-              </div>
+              <a href="${messageUrl}" style="display: inline-block; background-color: #111111; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 8px 0 20px;">Ver mensaje</a>
+              <p style="margin: 0 0 12px; color: #555555;">Puedes responder directamente desde la plataforma.</p>
+              <div style="border-top: 1px solid #e5e5e5; margin: 24px 0 12px;"></div>
+              <p style="margin: 0; color: #6b7280; font-size: 12px;">Este correo es automático. Si no quieres recibir estos avisos por correo, desactívalos en <a href="${settingsUrl}" style="color: #111111;">tu configuración</a>.</p>
+              <p style="margin: 4px 0 0; color: #6b7280; font-size: 12px;">Las notificaciones dentro del sitio seguirán funcionando.</p>
             </div>
           </body>
         </html>

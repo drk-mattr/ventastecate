@@ -11,6 +11,7 @@ import { TrendingStrip } from '@/components/home/trending-strip'
 import { TopBusinesses, TopBusiness } from '@/components/businesses/top-businesses'
 import { FirstVisit } from '@/components/home/first-visit'
 import { ListingWithImages } from '@/lib/types/database'
+import { getEngagementCounts, attachEngagementCounts } from '@/lib/listings/engagement-counts'
 import { getTranslations } from '@/lib/i18n'
 import { resolveCountry } from '@/lib/mvp-config'
 
@@ -32,9 +33,13 @@ let topBusinesses: TopBusiness[] = []
   if (towns) businessesQuery = businessesQuery.in('city', towns)
   const { data: businesses } = await businessesQuery
   const { data: recentListings } = await supabase.from('listings')
-    .select('id, created_at, likes_count, saves_count, comments_count, tagged_business_id')
+    .select('id, created_at, tagged_business_id')
     .eq('status', 'active').gte('created_at', since)
   const recentIds = (recentListings || []).map((l) => l.id)
+  // Engagement lives in the per-action tables, not on the listing row
+  // (likes_count / saves_count / comments_count were dropped by
+  // migration 016 and never existed on prod) — count rows here.
+  const engagement = await getEngagementCounts(supabase, recentIds)
   const { data: recentTags } = recentIds.length > 0
     ? await supabase.from('listing_business_tags').select('listing_id, business_id').in('listing_id', recentIds)
     : { data: [] as { listing_id: string; business_id: string }[] }
@@ -50,7 +55,8 @@ let topBusinesses: TopBusiness[] = []
   const now = Date.now()
   for (const l of recentListings || []) {
     const hoursAge = Math.max((now - new Date(l.created_at).getTime()) / 3600000, 0)
-    const points = (1 + (l.likes_count ?? 0) + (l.saves_count ?? 0) * 2.5 + (l.comments_count ?? 0) * 1.5) / Math.pow(hoursAge + 2, 1.2)
+    const c = engagement.get(l.id)
+    const points = (1 + (c?.likes ?? 0) + (c?.saves ?? 0) * 2.5 + (c?.comments ?? 0) * 1.5) / Math.pow(hoursAge + 2, 1.2)
     const ids = new Set<string>()
     if (l.tagged_business_id) ids.add(l.tagged_business_id)
     for (const tag of recentTags || []) if (tag.listing_id === l.id) ids.add(tag.business_id)
@@ -154,13 +160,6 @@ export default async function Home({ searchParams }: HomeProps) {
     feedListings = [...byId.values()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 30)
   }
 
-  const listings: ListingWithImages[] = (feedListings || []).map(l => ({
-    ...l,
-    likes_count: l.likes_count ?? 0,
-    saves_count: l.saves_count ?? 0,
-    comments_count: l.comments_count ?? 0,
-  }))
-
   // ── Trending: engagement-ranked, so good posts actually get seen ──
   // The ranking_score formula (likes 1, comments 1.5, saves 2.5,
   // conversations 4, with time decay) already exists in the DB and is used
@@ -179,14 +178,24 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const topBusinesses = await getTopBusinesses(supabase, feedTowns)
 
-  const trending: ListingWithImages[] = (trendingRaw || [])
-    .filter(l => (l.likes_count ?? 0) + (l.saves_count ?? 0) + (l.comments_count ?? 0) > 0)
-    .map(l => ({
-      ...l,
-      likes_count: l.likes_count ?? 0,
-      saves_count: l.saves_count ?? 0,
-      comments_count: l.comments_count ?? 0,
-    }))
+  // Real engagement counts for the feed + trending rows, in one call.
+  // The `*` select above never carries likes/saves/comments (those
+  // columns don't exist on prod), so without this the trending gate
+  // below would always see 0 and the strip could never render.
+  const homeEngagement = await getEngagementCounts(
+    supabase,
+    [...(feedListings || []).map((l) => l.id), ...(trendingRaw || []).map((l) => l.id)],
+  )
+
+  const listings: ListingWithImages[] = attachEngagementCounts(
+    feedListings || [],
+    homeEngagement,
+  )
+
+  const trending: ListingWithImages[] = attachEngagementCounts(
+    trendingRaw || [],
+    homeEngagement,
+  ).filter((l) => l.likes_count + l.saves_count + l.comments_count > 0)
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

@@ -10,7 +10,7 @@ import { useReportModal } from '@/lib/report/report-modal-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
 import {
   Check, Flag, Home, LogOut, MessageCircle, PenLine, Search, Settings,
-  Store, Tag, User, UserCircle, X,
+  Store, Tag, TrendingUp, User, UserCircle, X,
 } from 'lucide-react'
 
 // Mobile sidebar, in the style of the Muse app's own sidebar: a black
@@ -173,6 +173,11 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
               {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
                 <Link href="/admin/reports" onClick={onClose} className={rowClass('/admin/reports')}>
                   <Flag className="h-5 w-5 text-zinc-400" />Reportes (admin)
+                </Link>
+              )}
+              {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
+                <Link href="/admin/liquidity" onClick={onClose} className={rowClass('/admin/liquidity')}>
+                  <TrendingUp className="h-5 w-5 text-zinc-400" />Liquidez (admin)
                 </Link>
               )}
 

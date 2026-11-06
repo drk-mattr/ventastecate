@@ -227,7 +227,7 @@ export default async function Home({ searchParams }: HomeProps) {
               <p className="text-sm text-gray-500 mt-1">Sigue a un vendedor o a un negocio para ver sus anuncios aquí.</p>
             </div>
           ) : (
-            <FirstVisit />
+            <FirstVisit place={cookieStore.get(LOCATION_COOKIE)?.value || 'Tecate'} />
           )}
         </div>
       </main>

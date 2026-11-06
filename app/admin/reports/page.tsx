@@ -10,6 +10,9 @@ const TYPE_LABEL: Record<string, string> = {
   bug: 'Bug', suggestion: 'Sugerencia', other: 'Otro',
   spam: 'Spam o duplicado', scam: 'Fraude o estafa', prohibited: 'Artículo prohibido',
   offensive: 'Contenido ofensivo', listing_other: 'Otro motivo',
+  message_spam: 'Spam (mensaje)', message_harassment: 'Acoso (mensaje)',
+  message_scam: 'Fraude (mensaje)', message_offensive: 'Ofensivo (mensaje)',
+  message_other: 'Otro (mensaje)',
 }
 
 export default async function AdminReportsPage({ searchParams }: { searchParams: Promise<{ status?: string; type?: string }> }) {
@@ -17,7 +20,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
   if (!admin) redirect('/login')
   const sp = await searchParams
   const supabase = await createClient()
-  let q = supabase.from('reports').select('id, type, description, email, listing_id, listing_title, reporter_label, status, created_at').order('created_at', { ascending: false })
+  let q = supabase.from('reports').select('id, type, description, email, listing_id, listing_title, conversation_id, reporter_label, status, created_at').order('created_at', { ascending: false })
   if (sp.status) q = q.eq('status', sp.status)
   if (sp.type) q = q.eq('type', sp.type)
   const { data: reports } = await q

@@ -60,6 +60,30 @@ export const messageContentSchema = z
   .min(1, 'El mensaje no puede estar vacío')
   .max(MESSAGE_MAX, `El mensaje no puede exceder ${MESSAGE_MAX} caracteres`)
 
+// Messaging v2 Step 4 — safety actions. Report reasons are the
+// suffix of the stored report type (`message_<reason>`); the block
+// and archive payloads are validated server-side in their routes.
+export const MESSAGE_REPORT_REASONS = [
+  'spam',
+  'harassment',
+  'scam',
+  'offensive',
+  'other',
+] as const
+
+export const messageReportSchema = z.object({
+  reason: z.enum(MESSAGE_REPORT_REASONS),
+  description: z.string().trim().max(1000).optional().nullable(),
+})
+
+export const messageBlockSchema = z.object({
+  userId: z.string().uuid(),
+})
+
+export const messageArchiveSchema = z.object({
+  archived: z.boolean(),
+})
+
 // ── API payloads (server-side) ──────────────────────────────────────────────
 
 export const reportSchema = z.object({

@@ -38,6 +38,14 @@ export type Conversation = {
   seller_id: string
   created_at: string
   updated_at: string
+  /**
+   * Step 4 archive flags, per participant. Normalized to false
+   * pre-migration-031 by the server route and by
+   * normalizeConversation. A thread archived by one participant
+   * is hidden from that participant's list only.
+   */
+  archived_by_buyer: boolean
+  archived_by_seller: boolean
   listing: ConversationListing | null
   /**
    * Title snapshot taken when the conversation was created, so a
@@ -49,6 +57,15 @@ export type Conversation = {
   seller: ConversationProfile | null
   unread_count: number
   last_message: LastMessage | null
+}
+
+/**
+ * Is this thread archived for the given participant? Pure function
+ * of the row — the list route already filters by it, but the thread
+ * header menu needs it to label the action Archivar/Desarchivar.
+ */
+export function isArchivedFor(conv: Conversation, userId: string): boolean {
+  return conv.buyer_id === userId ? conv.archived_by_buyer : conv.archived_by_seller
 }
 
 /** A thread that does not exist yet: Contactar was tapped, nothing inserted. */

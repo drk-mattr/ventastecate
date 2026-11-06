@@ -8,6 +8,10 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
 import { Header } from '@/components/layout/header'
 import { ConversationList } from '@/components/messages/conversation-list'
+import {
+  BlockedUsersList,
+  type BlockedUser,
+} from '@/components/messages/blocked-users-list'
 import { MessageThread } from '@/components/messages/message-thread'
 import { refreshUnreadCount } from '@/lib/messages/unread-store'
 import {
@@ -44,6 +48,14 @@ import type {
  * - messages INSERT filtered to the open thread -> append the
  *   message, deduplicated by id against the sender's own echo.
  * No polling fallback.
+ *
+ * Step 4 — safety: the rail has a Todas / Archivadas / Bloqueados
+ * filter. Archiving is per-participant (server route, no UPDATE
+ * policy exists on conversations); blocking hides the thread and
+ * the database triggers refuse new threads and sends from the
+ * blocked user; reporting stores a report for the superadmin
+ * inbox. The thread component remounts per thread (key), so the
+ * menu state resets without syncing state in an effect.
  */
 
 // The embed columns for the pending-flow existing-thread lookup.
@@ -53,6 +65,15 @@ const CONVERSATION_EMBED = `
   buyer:buyer_id(id, username, display_name, avatar_url),
   seller:seller_id(id, username, display_name, avatar_url)
 `
+
+// Step 4 rail filter: the default list, archived threads, or the
+// blocked-users view (where unblocking happens).
+const LIST_FILTERS = [
+  { value: 'all', label: 'Todas' },
+  { value: 'archived', label: 'Archivadas' },
+  { value: 'blocked', label: 'Bloqueados' },
+] as const
+type ListFilter = (typeof LIST_FILTERS)[number]['value']
 
 function MessagesContent() {
   const { user, loading: authLoading } = useAuth()
@@ -71,6 +92,15 @@ function MessagesContent() {
   const [loadError, setLoadError] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Step 4: rail filter + blocked users. The filter is component
+  // state (not a URL param); a ref mirrors it so the Realtime
+  // refetch always uses the current filter.
+  const [listFilter, setListFilter] = useState<ListFilter>('all')
+  const listFilterRef = useRef<ListFilter>('all')
+  listFilterRef.current = listFilter
+  const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([])
+  const [blockedError, setBlockedError] = useState(false)
 
   // Pending thread: Contactar was tapped, no row exists yet.
   const [pending, setPending] = useState<PendingThread | null>(null)
@@ -92,32 +122,52 @@ function MessagesContent() {
   // UPDATE handlers below, and sending refetches too.
   const listFetchRef = useRef<Promise<void> | null>(null)
 
-  const fetchConversations = useCallback(async () => {
-    if (!user) return
+  const fetchConversations = useCallback(
+    async (filter: 'all' | 'archived' = 'all') => {
+      if (!user) return
 
-    const res = await fetch('/api/messages/conversations?page=1&limit=20')
-    if (!res.ok) {
-      console.error('Failed to load conversations:', res.status)
-      setConversations([])
-      setLoadError(true)
+      const res = await fetch(
+        `/api/messages/conversations?page=1&limit=20&filter=${filter}`
+      )
+      if (!res.ok) {
+        console.error('Failed to load conversations:', res.status)
+        setConversations([])
+        setLoadError(true)
+        setLoading(false)
+        return
+      }
+      const json = await res.json()
+      setConversations(json.conversations || [])
+      setLoadError(false)
       setLoading(false)
+    },
+    [user]
+  )
+
+  const fetchBlockedUsers = useCallback(async () => {
+    if (!user) return
+    const res = await fetch('/api/messages/blocks')
+    if (!res.ok) {
+      console.error('Failed to load blocked users:', res.status)
+      setBlockedUsers([])
+      setBlockedError(true)
       return
     }
     const json = await res.json()
-    setConversations(json.conversations || [])
-    setLoadError(false)
-    setLoading(false)
+    setBlockedUsers(json.blocked || [])
+    setBlockedError(false)
   }, [user])
 
   const refreshList = useCallback(() => {
+    if (listFilterRef.current === 'blocked') return fetchBlockedUsers()
     if (listFetchRef.current) return listFetchRef.current
-    const p = fetchConversations()
+    const p = fetchConversations(listFilterRef.current)
     listFetchRef.current = p
     void p.finally(() => {
       listFetchRef.current = null
     })
     return p
-  }, [fetchConversations])
+  }, [fetchConversations, fetchBlockedUsers])
 
   const markMessagesAsRead = useCallback(
     async (convId: string) => {
@@ -158,6 +208,13 @@ function MessagesContent() {
     }
     void refreshList()
   }, [user, authLoading, refreshList, router, listingId, sellerId])
+
+  // Step 4: switching the rail filter reloads the matching view
+  // (default list, archived threads, or blocked users).
+  useEffect(() => {
+    if (!user) return
+    void refreshList()
+  }, [listFilter, user, refreshList])
 
   // Contactar resolution (?listing&seller): look up an existing
   // thread WITHOUT inserting anything. Found -> replace the URL
@@ -344,6 +401,24 @@ function MessagesContent() {
     [router]
   )
 
+  const handleUnblocked = useCallback(
+    (userId: string) => {
+      setBlockedUsers((prev) => prev.filter((b) => b.id !== userId))
+      void refreshList()
+    },
+    [refreshList]
+  )
+
+  // Step 4: the open thread left the list (archived, or its user
+  // blocked). Back to the default view and refetch, so the change
+  // is visible immediately — including the unread badge.
+  const handleThreadLeft = useCallback(() => {
+    setListFilter('all')
+    void refreshList()
+    if (user) void refreshUnreadCount(user.id)
+    router.push('/messages')
+  }, [refreshList, router, user])
+
   const handleSent = (message: Message) => {
     setMessages((prev) =>
       prev.some((m) => m.id === message.id) ? prev : [...prev, message]
@@ -394,15 +469,41 @@ function MessagesContent() {
         >
           <div className="shrink-0 border-b px-4 py-3">
             <h2 className="font-semibold">{f.conversationsTitle}</h2>
+            {/* Step 4 filter: Todas / Archivadas / Bloqueados. */}
+            <div className="mt-2 flex gap-1 rounded-full bg-gray-100 p-1">
+              {LIST_FILTERS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setListFilter(option.value)}
+                  className={`flex-1 rounded-full px-2 py-1 text-xs font-medium ${
+                    listFilter === option.value
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <ConversationList
-              conversations={conversations}
-              currentUserId={user?.id ?? ''}
-              selectedId={selectedId}
-              loadError={loadError}
-              onSelect={selectConversation}
-            />
+            {listFilter === 'blocked' ? (
+              <BlockedUsersList
+                blocked={blockedUsers}
+                loadError={blockedError}
+                onUnblocked={handleUnblocked}
+              />
+            ) : (
+              <ConversationList
+                conversations={conversations}
+                currentUserId={user?.id ?? ''}
+                selectedId={selectedId}
+                loadError={loadError}
+                filter={listFilter}
+                onSelect={selectConversation}
+              />
+            )}
           </div>
         </section>
 
@@ -414,6 +515,10 @@ function MessagesContent() {
         >
           {selectedConversation || pending ? (
             <MessageThread
+              // Key-based remount per thread: the menu, block
+              // confirm and report form reset when the thread
+              // changes, without syncing state in an effect.
+              key={selectedConversation?.id ?? `pending-${pending?.listingId ?? 'none'}`}
               conversation={selectedConversation}
               pending={selectedConversation ? null : pending}
               currentUserId={user?.id ?? ''}
@@ -421,6 +526,8 @@ function MessagesContent() {
               onBack={backToList}
               onSent={handleSent}
               onConversationCreated={handleConversationCreated}
+              onArchived={handleThreadLeft}
+              onBlocked={handleThreadLeft}
             />
           ) : pendingError ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">

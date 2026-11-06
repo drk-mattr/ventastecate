@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getBlockedIds, isArchivedByMe } from '@/lib/messages/safety'
 
 const DEFAULT_LIMIT = 20
 const MAX_LIMIT = 50
@@ -28,6 +30,15 @@ const MAX_LIMIT = 50
  * 030, ON DELETE SET NULL). listing_title is read off the row only
  * when the column exists — pre-030 it is simply absent, and the
  * route must NOT 500 on a pre-migration database.
+ *
+ * Step 4 adds a ?filter= param: `archived` returns only threads
+ * archived by the caller, the default returns only unarchived
+ * ones. Threads with a user the caller blocked are hidden from
+ * both views (they live under the "Bloqueados" view instead), and
+ * unread counts exclude archived threads by construction — only
+ * returned threads get a count. Pre-031 the archive columns and
+ * the user_blocks table do not exist yet: the columns normalize to
+ * false and a failed blocks lookup means "nobody blocked".
  *
  * NO EMBEDS — read this before adding one back. Production's
  * conversations table is missing the listing_id -> listings foreign
@@ -62,6 +73,15 @@ export async function GET(request: NextRequest) {
     Math.max(1, Number.parseInt(params.get('limit') ?? String(DEFAULT_LIMIT), 10) || DEFAULT_LIMIT)
   )
   const from = (page - 1) * limit
+  // Step 4 filter: 'archived' shows only threads the caller
+  // archived; anything else is the default unarchived view.
+  const filter = params.get('filter') === 'archived' ? 'archived' : 'all'
+
+  // Blocked users, via the service-role client — the user_blocks
+  // table has no permissive RLS policies (Step 4). Pre-031 the
+  // table does not exist and the lookup fails: nobody is blocked.
+  const admin = createAdminClient()
+  const blockedIds = admin ? await getBlockedIds(admin, user.id) : new Set<string>()
 
   // Plain columns only — see the header comment. One extra row tells
   // us whether another page exists.
@@ -79,7 +99,18 @@ export async function GET(request: NextRequest) {
 
   const rows = data ?? []
   const has_more = rows.length > limit
-  const conversations = rows.slice(0, limit)
+  // Step 4 visibility: hide threads archived by the caller from
+  // the default view (and vice versa for ?filter=archived), and
+  // hide threads with a user the caller blocked from both views.
+  // Filtering happens after the page fetch — there is no load-more
+  // UI yet, so an exact page boundary is not load-bearing.
+  const visible = rows.filter((row) => {
+    const otherId = row.buyer_id === user.id ? row.seller_id : row.buyer_id
+    if (blockedIds.has(otherId)) return false
+    const archived = isArchivedByMe(row, user.id)
+    return filter === 'archived' ? archived : !archived
+  })
+  const conversations = visible.slice(0, limit)
   const ids = conversations.map((c) => c.id)
 
   const listingById = new Map<
@@ -203,6 +234,10 @@ export async function GET(request: NextRequest) {
     // listing_title only exists post-migration-030; pre-030 the key
     // is absent from the row, so normalize it to null here.
     listing_title: (conv as { listing_title?: string | null }).listing_title ?? null,
+    // Step 4 archive flags, same pre-migration pattern as
+    // listing_title: absent columns normalize to false.
+    archived_by_buyer: (conv as { archived_by_buyer?: boolean | null }).archived_by_buyer ?? false,
+    archived_by_seller: (conv as { archived_by_seller?: boolean | null }).archived_by_seller ?? false,
     // listing_id is null once the listing is deleted (030 SET NULL);
     // listingById.get(null) is undefined, so listing is null and the
     // client falls back to listing_title.

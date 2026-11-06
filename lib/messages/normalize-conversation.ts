@@ -22,6 +22,9 @@ export type ConversationEmbedRow = {
   created_at: string
   updated_at: string
   listing_title?: string | null
+  // Step 4 archive flags — absent pre-031, defaulted to false below.
+  archived_by_buyer?: boolean | null
+  archived_by_seller?: boolean | null
   listing: {
     id: string
     title: string
@@ -50,6 +53,8 @@ export function normalizeConversation(row: ConversationEmbedRow): Conversation {
         }
       : null,
     listing_title: row.listing_title ?? null,
+    archived_by_buyer: row.archived_by_buyer ?? false,
+    archived_by_seller: row.archived_by_seller ?? false,
     buyer: row.buyer,
     seller: row.seller,
     unread_count: 0,

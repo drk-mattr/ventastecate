@@ -25,14 +25,16 @@ export function townsForRegion(region: string): string[] {
   return Object.entries(TOWN_REGIONS).filter(([, v]) => v.region === region).map(([town]) => town)
 }
 
-// Site-wide location selector (2026-11-04, Tecate-first): the viewer picks
-// one location in the header and every browsable feed follows it. Tecate
-// is the default; other places are sister locations you explicitly select,
-// never mixed in by default. "Alrededores" is the small towns around
-// Tecate; "Todas" is the explicit opt-in to the mixed view. Towns: null
-// means no town filter.
+// Site-wide location selector (2026-11-04, Tecate-first; 2026-11-05 the
+// default Tecate view was widened to include the surrounding towns):
+// the viewer picks one location in the header and every browsable feed
+// follows it. Tecate is the default and now covers Tecate plus its
+// surrounding towns; farther places are sister locations you explicitly
+// select, never mixed in by default. "Alrededores" is the surrounding
+// towns on their own; "Todas" is the explicit opt-in to the mixed view.
+// Towns: null means no town filter.
 export const LOCATION_OPTIONS: { label: string; towns: string[] | null }[] = [
-  { label: 'Tecate', towns: ['Tecate'] },
+  { label: 'Tecate', towns: ['Tecate', 'El Hongo', 'Rumorosa', 'Porvenir', 'Villas de Campo', 'Testarazo'] },
   { label: 'Valle de Guadalupe', towns: ['Valle de Guadalupe', 'Ensenada'] },
   { label: 'Tijuana', towns: ['Tijuana'] },
   { label: 'San Diego', towns: ['San Diego'] },

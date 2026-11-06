@@ -1,4 +1,4 @@
-// Items engine — type page (§8, §12: 034C Discovery).
+// Items engine — type page (§8, §12: 034C Discovery, 034D Activity).
 //
 // /tipos/<slug>: the kind, its offers (businesses offering it, with
 // evidence), and the listings mentioning it. A parent kind shows the
@@ -7,12 +7,21 @@
 // ?region= overrides for a shared link only — same rule as
 // /businesses).
 //
-// Ordering (034C, not 034D): offers sort by the brief's "Más
-// mencionados" sort — distinct contributors first, then mentions. The
-// heading says "Más mencionados" only when at least one offer has
-// mentions; with zero mentions anywhere the heading is neutral
-// ("Negocios que lo ofrecen") — a list of "Sin menciones" rows is not
-// a ranking. No activity ordering here; that is 034D ("En tendencia").
+// Ordering (034D): two lists, two honest labels (§7).
+//   - "En tendencia" — activity-ordered (activity_score, §7.1),
+//     numbered, rendered ONLY when the §11.3 confidence gate passes
+//     (>= 3 scoring items in Tecate, >= 5 / 2 towns / 5 users
+//     elsewhere, leader with >= 3 distinct contributors). Below
+//     the gate there is no trending list at all.
+//   - "Más mencionados" — the mention-count sort (distinct
+//     contributors, then mentions). Numbered only when the same
+//     gate passes; with mentions but no gate, the list shows
+//     unnumbered with the honest note ("Todavía no hay suficiente
+//     para ordenar."); with zero mentions anywhere the heading is
+//     neutral ("Negocios que lo ofrecen") — a list of "Sin
+//     menciones" rows is not a ranking.
+// No "Más recomendados" / "Lo mejor de Tecate" anywhere: there is
+// no item_feedback data, so no recommendation_score exists (§7.2).
 //
 // A pending kind renders too (its name is already visible on the
 // business page that links here); it has no parent breadcrumb and no
@@ -33,6 +42,7 @@ import {
   townsForLocation,
 } from '@/lib/business-regions'
 import { fetchItemsEvidence } from '@/lib/items/evidence'
+import { fetchItemActivity, TRENDING_LIMIT } from '@/lib/items/activity'
 import type { Metadata } from 'next'
 import type { ListingWithImages } from '@/lib/types/database'
 
@@ -52,6 +62,74 @@ type BusinessRow = {
   city: string | null
   location: string | null
   image_url: string | null
+}
+
+type Offer = {
+  itemId: string
+  business: BusinessRow
+  kindId: string
+  kindName: string
+  origin: string
+  createdAt: string
+  mentionCount: number
+  contributors: number
+  photoUrl: string | null
+}
+
+// One offer row, shared by both lists. The rank number shows only
+// when the list is a real ranking (gate passed, §7.3); unranked
+// lists show the same rows without numbers.
+function OfferRow({
+  offer,
+  rank,
+  multiKind,
+}: {
+  offer: Offer
+  rank?: number
+  multiKind: boolean
+}) {
+  return (
+    <li className="flex items-start gap-3">
+      {rank !== undefined && (
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-900 text-white text-xs font-semibold mt-3">
+          {rank}
+        </span>
+      )}
+      {offer.photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={offer.photoUrl}
+          alt=""
+          className="h-12 w-12 rounded-lg object-cover shrink-0"
+        />
+      ) : (
+        <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+          <Tag className="h-5 w-5 text-gray-400" />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <Link
+          href={`/businesses/${offer.business.id}`}
+          className="text-sm font-medium text-gray-900 hover:underline truncate block"
+        >
+          {offer.business.name}
+        </Link>
+        <p className="text-xs text-gray-500">
+          {[offer.business.category, offer.business.city || offer.business.location]
+            .filter(Boolean)
+            .join(' · ')}
+        </p>
+        {multiKind && <p className="text-xs text-gray-400">{offer.kindName}</p>}
+        <p className="text-xs text-gray-500">
+          {offer.contributors > 0
+            ? `Mencionados por ${offer.contributors} ${offer.contributors === 1 ? 'persona' : 'personas'}`
+            : offer.origin === 'owner_claim'
+              ? 'Agregado por el dueño'
+              : 'Agregados por la comunidad · Sin menciones'}
+        </p>
+      </div>
+    </li>
+  )
 }
 
 export async function generateMetadata({
@@ -187,17 +265,6 @@ export default async function TypePage({
     itemRows.map((i) => i.id),
   )
 
-  type Offer = {
-    itemId: string
-    business: BusinessRow
-    kindId: string
-    kindName: string
-    origin: string
-    createdAt: string
-    mentionCount: number
-    contributors: number
-    photoUrl: string | null
-  }
   const allOffers: Offer[] = []
   for (const item of itemRows) {
     const biz = bizById.get(item.business_id)
@@ -233,6 +300,22 @@ export default async function TypePage({
   const hasMentions = offers.some((o) => o.contributors > 0)
   const totalMentions = offers.reduce((s, o) => s + o.mentionCount, 0)
   const multiKind = new Set(offers.map((o) => o.kindId)).size > 1
+
+  // Activity (§7.1, 034D): the scored rows and the §11.3 gate for
+  // this (kind × place). When migration 035 has not been applied
+  // yet the helper reports available: false and nothing below
+  // renders as a ranking — the page keeps its 034C state.
+  const activity =
+    offers.length > 0
+      ? await fetchItemActivity(admin, kindIds, scopeTowns, effectiveRegion)
+      : null
+  const showTrending = (activity?.available ?? false) && (activity?.gate.passes ?? false)
+  const trendingOffers = showTrending
+    ? (activity?.rows ?? [])
+        .map((r) => offers.find((o) => o.itemId === r.itemId))
+        .filter((o): o is Offer => !!o)
+        .slice(0, TRENDING_LIMIT)
+    : []
 
   // Mentioning listings: active listings tagging any in-scope offer,
   // newest first. The listing ids come from the same evidence query.
@@ -308,6 +391,20 @@ export default async function TypePage({
           </div>
         )}
 
+        {/* En tendencia (034D): activity-ordered, numbered. Only
+            when the §11.3 gate passes — below it there is no trending
+            list at all, and the mentions below show unranked. */}
+        {showTrending && (
+          <section className="mt-6">
+            <h2 className="text-base font-semibold mb-3">En tendencia</h2>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {trendingOffers.map((o, i) => (
+                <OfferRow key={o.itemId} offer={o} rank={i + 1} multiKind={multiKind} />
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Offers. */}
         {offers.length > 0 ? (
           <section className="mt-6">
@@ -315,44 +412,20 @@ export default async function TypePage({
               {hasMentions ? 'Más mencionados' : 'Negocios que lo ofrecen'}
             </h2>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {offers.map((o) => (
-                <li key={o.itemId} className="flex items-start gap-3">
-                  {o.photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={o.photoUrl}
-                      alt=""
-                      className="h-12 w-12 rounded-lg object-cover shrink-0"
-                    />
-                  ) : (
-                    <div className="h-12 w-12 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
-                      <Tag className="h-5 w-5 text-gray-400" />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      href={`/businesses/${o.business.id}`}
-                      className="text-sm font-medium text-gray-900 hover:underline truncate block"
-                    >
-                      {o.business.name}
-                    </Link>
-                    <p className="text-xs text-gray-500">
-                      {[o.business.category, o.business.city || o.business.location]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </p>
-                    {multiKind && <p className="text-xs text-gray-400">{o.kindName}</p>}
-                    <p className="text-xs text-gray-500">
-                      {o.contributors > 0
-                        ? `Mencionados por ${o.contributors} ${o.contributors === 1 ? 'persona' : 'personas'}`
-                        : o.origin === 'owner_claim'
-                          ? 'Agregado por el dueño'
-                          : 'Agregados por la comunidad · Sin menciones'}
-                    </p>
-                  </div>
-                </li>
+              {offers.map((o, i) => (
+                <OfferRow
+                  key={o.itemId}
+                  offer={o}
+                  rank={showTrending ? i + 1 : undefined}
+                  multiKind={multiKind}
+                />
               ))}
             </ul>
+            {hasMentions && activity?.available && !showTrending && (
+              <p className="text-xs text-gray-400 mt-3">
+                Todavía no hay suficiente para ordenar.
+              </p>
+            )}
           </section>
         ) : (
           <EmptyState

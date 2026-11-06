@@ -10,6 +10,13 @@
 // Same rules as the business-page offerings component
 // (components/businesses/business-offerings.tsx); kept as a shared
 // helper so the type page and the business page cannot drift apart.
+//
+// Counts are INDEPENDENT evidence (§7.4, 034D): mentions by the
+// claimed owner of the business never count toward mentionCount or
+// contributors — the owner cannot score their own offerings. The
+// listing ids (the mentions feed), the best photo and the latest
+// mention still cover all active mentions: an owner post is a real
+// publication, it just is not independent evidence.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -37,6 +44,28 @@ export async function fetchItemsEvidence(
   }
   if (itemIds.length === 0) return evidence
 
+  // Claimed owners, so their own mentions can be excluded from the
+  // independent counts below (§7.4). A business with no claimed
+  // owner has no owner to exclude.
+  const { data: itemBiz } = await admin
+    .from('items')
+    .select('id, business_id')
+    .in('id', itemIds)
+  const itemToBusiness = new Map(
+    ((itemBiz || []) as { id: string; business_id: string }[]).map((r) => [r.id, r.business_id]),
+  )
+  const bizIds = [...new Set(itemToBusiness.values())]
+  const claimedBy = new Map<string, string | null>()
+  if (bizIds.length > 0) {
+    const { data: bizRows } = await admin
+      .from('businesses')
+      .select('id, claimed_by')
+      .in('id', bizIds)
+    for (const b of (bizRows || []) as { id: string; claimed_by: string | null }[]) {
+      claimedBy.set(b.id, b.claimed_by)
+    }
+  }
+
   const { data: tags } = await admin
     .from('listing_item_tags')
     .select(
@@ -49,8 +78,14 @@ export async function fetchItemsEvidence(
     const activeTags = itemTags.filter(
       (t) => (t.listing as { status?: string } | null)?.status === 'active',
     )
+    // Independent evidence only: the claimed owner's own posts do
+    // not count as community mentions of their own offering.
+    const ownerId = claimedBy.get(itemToBusiness.get(itemId) ?? '') ?? null
+    const independentTags = ownerId
+      ? activeTags.filter((t) => (t.listing as { user_id?: string } | null)?.user_id !== ownerId)
+      : activeTags
     const contributors = new Set(
-      activeTags.map((t) => (t.listing as { user_id?: string } | null)?.user_id).filter(Boolean),
+      independentTags.map((t) => (t.listing as { user_id?: string } | null)?.user_id).filter(Boolean),
     )
     const listingIds = [
       ...new Set(
@@ -90,7 +125,7 @@ export async function fetchItemsEvidence(
         : null
 
     evidence.set(itemId, {
-      mentionCount: activeTags.length,
+      mentionCount: independentTags.length,
       contributors: contributors.size,
       photoUrl,
       latestMentionAt,

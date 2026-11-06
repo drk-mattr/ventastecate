@@ -40,6 +40,19 @@ export function refreshUnreadCount(userId: string): Promise<number> {
   if (inFlight) return inFlight
   inFlight = (async () => {
     try {
+      // Step 4: the server route applies the archive/block rules,
+      // so archived threads and blocked users never count toward
+      // the badges. If the route fails (or is not deployed yet),
+      // fall back to the client-direct query below — the badge
+      // keeps working, just without the Step 4 exclusions.
+      const res = await fetch('/api/messages/unread')
+      if (res.ok) {
+        const json = await res.json()
+        if (typeof json.unread === 'number') {
+          setCount(json.unread)
+          return json.unread
+        }
+      }
       const supabase = createClient()
       const { data, error } = await supabase
         .from('conversations')

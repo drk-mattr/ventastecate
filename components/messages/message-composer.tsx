@@ -55,6 +55,13 @@ const CONVERSATION_EMBED = `
  * listing_title may not exist yet (migration 030 runs by hand after
  * deploy): if the insert errors on the unknown column, retry
  * without it. The thread still works — only the snapshot is lost.
+ *
+ * Step 4 — server-side enforcement lives in the database, not
+ * here: BEFORE INSERT triggers (migration 031) refuse the send
+ * when either participant blocked the other, or when the sender
+ * is over the rate limit (10/min, 100/hour). The composer only
+ * maps those coded errors to plain Spanish; the draft text stays
+ * in the box so the user can retry.
  */
 export function MessageComposer({
   conversationId,
@@ -112,6 +119,13 @@ export function MessageComposer({
       return normalizeConversation(created as ConversationEmbedRow)
     }
 
+    if (insertError && /CONVERSATION_BLOCKED|MESSAGE_BLOCKED/.test(insertError.message)) {
+      // Step 4: the other user blocked this user (or vice versa) —
+      // the trigger refused the thread. Throw a coded error instead
+      // of recovering, so the composer can say so plainly.
+      throw new Error('CONVERSATION_BLOCKED')
+    }
+
     // Unique-constraint hit: a concurrent send created it first.
     // Recover with a fresh lookup; anything else is a real failure.
     if (insertError) console.error('Failed to start conversation:', insertError.message)
@@ -140,7 +154,18 @@ export function MessageComposer({
 
     let targetId = conversationId
     if (pending) {
-      const conversation = await getOrCreateConversation(supabase)
+      let conversation: Conversation | null = null
+      try {
+        conversation = await getOrCreateConversation(supabase)
+      } catch (err) {
+        if (err instanceof Error && err.message === 'CONVERSATION_BLOCKED') {
+          setSendError('No puedes enviar mensajes a este usuario.')
+        } else {
+          console.error('Failed to start conversation:', err)
+          setSendError('No se pudo enviar el mensaje. Inténtalo de nuevo.')
+        }
+        return
+      }
       if (!conversation) {
         setSendError('No se pudo enviar el mensaje. Inténtalo de nuevo.')
         return
@@ -162,8 +187,18 @@ export function MessageComposer({
       .single()
 
     if (error || !data) {
-      // Keep the text in the box so the user can retry.
-      setSendError('No se pudo enviar el mensaje. Inténtalo de nuevo.')
+      // Keep the text in the box so the user can retry. The Step 4
+      // triggers refuse the insert with a coded message — map it to
+      // plain Spanish instead of the generic failure.
+      if (error && /MESSAGE_RATE_LIMITED/.test(error.message)) {
+        setSendError(
+          'Estás enviando mensajes demasiado rápido. Espera un poco e inténtalo de nuevo.'
+        )
+      } else if (error && /MESSAGE_BLOCKED/.test(error.message)) {
+        setSendError('No puedes enviar mensajes a este usuario.')
+      } else {
+        setSendError('No se pudo enviar el mensaje. Inténtalo de nuevo.')
+      }
       if (error) console.error('Failed to send message:', error.message)
       return
     }

@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ChevronLeft } from 'lucide-react'
+import { Archive, ArchiveRestore, Ban, ChevronLeft, Flag, MoreVertical } from 'lucide-react'
 import { MessageComposer } from '@/components/messages/message-composer'
 import { formatPrice } from '@/lib/messages/format-price'
 import {
@@ -12,11 +12,12 @@ import {
   formatDayLabel,
   formatMessageTime,
 } from '@/lib/messages/format-time'
-import type {
-  Conversation,
-  ConversationListing,
-  Message,
-  PendingThread,
+import {
+  isArchivedFor,
+  type Conversation,
+  type ConversationListing,
+  type Message,
+  type PendingThread,
 } from '@/lib/messages/types'
 
 type MessageThreadProps = {
@@ -29,6 +30,10 @@ type MessageThreadProps = {
   onBack: () => void
   onSent: (message: Message) => void
   onConversationCreated: (conversation: Conversation) => void
+  /** The thread was archived (or unarchived): refetch + leave it. */
+  onArchived: () => void
+  /** The other user was blocked: refetch + leave the thread. */
+  onBlocked: () => void
 }
 
 const LISTING_STATUS_LABELS: Record<string, string> = {
@@ -36,6 +41,16 @@ const LISTING_STATUS_LABELS: Record<string, string> = {
   sold: 'Vendido',
   inactive: 'Inactivo',
 }
+
+// Step 4 report reasons — the value is the suffix of the stored
+// report type (`message_<value>`, see the report route).
+const REPORT_REASONS = [
+  { value: 'spam', label: 'Spam' },
+  { value: 'harassment', label: 'Acoso' },
+  { value: 'scam', label: 'Fraude o estafa' },
+  { value: 'offensive', label: 'Contenido ofensivo' },
+  { value: 'other', label: 'Otro motivo' },
+] as const
 
 type MessageGroup = {
   day: string
@@ -78,6 +93,15 @@ function groupMessages(messages: Message[]): MessageGroup[] {
  *
  * Pending mode: Contactar opened /messages?listing&seller without
  * creating a thread. The composer creates it with the first send.
+ *
+ * Step 4 — the header menu: Archivar/Desarchivar (per-participant,
+ * hides the thread from the caller's list), Bloquear (hides the
+ * thread and the database triggers refuse new threads and sends
+ * from the blocked user), Reportar (stores a report for the
+ * superadmin inbox; the thread stays readable). Menu state is
+ * local; the page remounts this component per thread (key), so
+ * switching threads resets the menu, the confirm panel and the
+ * report form without syncing state in an effect.
  */
 export function MessageThread({
   conversation,
@@ -87,6 +111,8 @@ export function MessageThread({
   onBack,
   onSent,
   onConversationCreated,
+  onArchived,
+  onBlocked,
 }: MessageThreadProps) {
   const otherUser =
     conversation?.buyer_id === currentUserId ? conversation.seller : conversation?.buyer
@@ -99,6 +125,118 @@ export function MessageThread({
     conversation?.listing ?? pending?.listing ?? null
   const listingTitle =
     listing?.title ?? conversation?.listing_title ?? pending?.listing.title ?? null
+
+  // Step 4 menu state.
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false)
+  const [showReportForm, setShowReportForm] = useState(false)
+  const [reportReason, setReportReason] = useState('spam')
+  const [reportDescription, setReportDescription] = useState('')
+  const [reportDone, setReportDone] = useState(false)
+  const [actionError, setActionError] = useState('')
+  const [actionBusy, setActionBusy] = useState(false)
+
+  // The user on the other side — for a real thread from the row,
+  // for a pending thread the seller from the Contactar lookup.
+  const otherUserId = conversation
+    ? conversation.buyer_id === currentUserId
+      ? conversation.seller_id
+      : conversation.buyer_id
+    : (pending?.sellerId ?? null)
+
+  const handleArchive = async () => {
+    if (!conversation) return
+    setMenuOpen(false)
+    setActionError('')
+    setActionBusy(true)
+    try {
+      const res = await fetch(
+        `/api/messages/conversations/${conversation.id}/archive`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            archived: !isArchivedFor(conversation, currentUserId),
+          }),
+        }
+      )
+      if (!res.ok) {
+        const json = await res.json().catch(() => null)
+        setActionError(
+          json?.error === 'migration_pending'
+            ? 'Esta función aún no está disponible.'
+            : 'No se pudo archivar. Inténtalo de nuevo.'
+        )
+        return
+      }
+      onArchived()
+    } catch {
+      setActionError('No se pudo archivar. Inténtalo de nuevo.')
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  const handleBlock = async () => {
+    if (!otherUserId) return
+    setActionError('')
+    setActionBusy(true)
+    try {
+      const res = await fetch('/api/messages/blocks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: otherUserId }),
+      })
+      if (!res.ok) {
+        const json = await res.json().catch(() => null)
+        setActionError(
+          json?.error === 'migration_pending'
+            ? 'Esta función aún no está disponible.'
+            : 'No se pudo bloquear. Inténtalo de nuevo.'
+        )
+        return
+      }
+      setShowBlockConfirm(false)
+      onBlocked()
+    } catch {
+      setActionError('No se pudo bloquear. Inténtalo de nuevo.')
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  const handleReport = async () => {
+    if (!conversation) return
+    setActionError('')
+    setActionBusy(true)
+    try {
+      const res = await fetch(
+        `/api/messages/conversations/${conversation.id}/report`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reason: reportReason,
+            description: reportDescription.trim() || null,
+          }),
+        }
+      )
+      if (!res.ok) {
+        const json = await res.json().catch(() => null)
+        setActionError(
+          json?.error === 'migration_pending'
+            ? 'Esta función aún no está disponible.'
+            : 'No se pudo enviar el reporte. Inténtalo de nuevo.'
+        )
+        return
+      }
+      setReportDone(true)
+    } catch {
+      setActionError('No se pudo enviar el reporte. Inténtalo de nuevo.')
+    } finally {
+      setActionBusy(false)
+    }
+  }
 
   const groups = groupMessages(messages)
 
@@ -141,7 +279,7 @@ export function MessageThread({
               {headerUser?.display_name?.[0]?.toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="font-semibold truncate">{headerUser?.display_name}</p>
             {pending && (
               <p className="text-sm text-gray-500 truncate">
@@ -149,6 +287,83 @@ export function MessageThread({
               </p>
             )}
           </div>
+
+          {/* Step 4 menu: archivar, bloquear, reportar. A pending
+              thread has no row to archive or report, so it only
+              offers blocking the seller. */}
+          {headerUser && (
+            <div className="relative ml-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen((v) => !v)
+                  setActionError('')
+                }}
+                aria-label="Más opciones"
+                className="p-2 text-gray-500 hover:text-gray-900"
+              >
+                <MoreVertical className="h-5 w-5" />
+              </button>
+              {menuOpen && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Cerrar menú"
+                    onClick={() => setMenuOpen(false)}
+                    className="fixed inset-0 z-10 cursor-default"
+                  />
+                  <div className="absolute right-0 z-20 mt-1 w-56 rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+                    {conversation && (
+                      <button
+                        type="button"
+                        onClick={() => void handleArchive()}
+                        disabled={actionBusy}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        {isArchivedFor(conversation, currentUserId) ? (
+                          <>
+                            <ArchiveRestore className="h-4 w-4 shrink-0" />
+                            Desarchivar conversación
+                          </>
+                        ) : (
+                          <>
+                            <Archive className="h-4 w-4 shrink-0" />
+                            Archivar conversación
+                          </>
+                        )}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        setShowReportForm(false)
+                        setShowBlockConfirm(true)
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <Ban className="h-4 w-4 shrink-0" />
+                      Bloquear a {headerUser.display_name}
+                    </button>
+                    {conversation && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuOpen(false)
+                          setShowBlockConfirm(false)
+                          setShowReportForm(true)
+                        }}
+                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                      >
+                        <Flag className="h-4 w-4 shrink-0" />
+                        Reportar conversación
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Listing strip */}
@@ -188,6 +403,109 @@ export function MessageThread({
           </div>
         )}
       </div>
+
+      {/* Step 4 inline panels: block confirm and report form. They
+          sit under the header so the thread stays visible behind
+          them; reporting never hides the thread. */}
+      {showBlockConfirm && headerUser && (
+        <div className="shrink-0 border-b bg-gray-50 px-4 py-3">
+          <p className="text-sm font-medium text-gray-900">
+            ¿Bloquear a {headerUser.display_name}?
+          </p>
+          <p className="mt-1 text-sm text-gray-500">
+            No podrán enviarte mensajes y la conversación se ocultará.
+            Puedes desbloquearlo cuando quieras desde la lista de bloqueados.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => void handleBlock()}
+              disabled={actionBusy}
+              className="rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+            >
+              Bloquear
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowBlockConfirm(false)}
+              className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showReportForm && conversation && (
+        <div className="shrink-0 border-b bg-gray-50 px-4 py-3">
+          {reportDone ? (
+            <>
+              <p className="text-sm font-medium text-gray-900">Reporte enviado.</p>
+              <p className="mt-1 text-sm text-gray-500">
+                Gracias — lo revisaremos pronto. La conversación sigue disponible.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowReportForm(false)}
+                className="mt-3 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white"
+              >
+                Cerrar
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-gray-900">Reportar conversación</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {REPORT_REASONS.map((reason) => (
+                  <button
+                    key={reason.value}
+                    type="button"
+                    onClick={() => setReportReason(reason.value)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
+                      reportReason === reason.value
+                        ? 'border-gray-900 bg-gray-900 text-white'
+                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {reason.label}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={reportDescription}
+                onChange={(e) => setReportDescription(e.target.value)}
+                placeholder="Cuéntanos qué pasó (opcional)"
+                rows={3}
+                maxLength={1000}
+                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-gray-400"
+              />
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleReport()}
+                  disabled={actionBusy}
+                  className="rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                >
+                  Enviar reporte
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowReportForm(false)}
+                  className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {actionError && (
+        <div className="shrink-0 border-b bg-red-50 px-4 py-2">
+          <p className="text-xs text-red-600">{actionError}</p>
+        </div>
+      )}
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         <div className="mx-auto flex max-w-2xl flex-col gap-4">

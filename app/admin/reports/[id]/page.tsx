@@ -11,6 +11,9 @@ const TYPE_LABEL: Record<string, string> = {
   bug: 'Bug', suggestion: 'Sugerencia', other: 'Otro',
   spam: 'Spam o duplicado', scam: 'Fraude o estafa', prohibited: 'Artículo prohibido',
   offensive: 'Contenido ofensivo', listing_other: 'Otro motivo',
+  message_spam: 'Spam (mensaje)', message_harassment: 'Acoso (mensaje)',
+  message_scam: 'Fraude (mensaje)', message_offensive: 'Ofensivo (mensaje)',
+  message_other: 'Otro (mensaje)',
 }
 
 export default async function AdminReportDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -35,6 +38,9 @@ export default async function AdminReportDetail({ params }: { params: Promise<{ 
           <p className="text-sm text-gray-800 whitespace-pre-wrap">{report.description || 'Sin descripción'}</p>
           {report.listing_id && (
             <p className="text-sm mt-3"><Link href={`/listings/${report.listing_id}`} className="underline">{report.listing_title || 'Ver anuncio reportado'}</Link></p>
+          )}
+          {report.conversation_id && (
+            <p className="text-sm mt-3"><Link href={`/messages?conversation=${report.conversation_id}`} className="underline">Ver conversación reportada</Link></p>
           )}
           {report.email && <p className="text-xs text-gray-500 mt-3">Email del usuario: {report.email}</p>}
         </div>

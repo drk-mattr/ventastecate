@@ -12,6 +12,8 @@ type ConversationListProps = {
   currentUserId: string
   selectedId: string | null
   loadError: boolean
+  /** Step 4: the rail filter, so the empty state says why it is empty. */
+  filter?: 'all' | 'archived'
   onSelect: (conversationId: string) => void
 }
 
@@ -29,6 +31,7 @@ export function ConversationList({
   currentUserId,
   selectedId,
   loadError,
+  filter = 'all',
   onSelect,
 }: ConversationListProps) {
   const t = useTranslations()
@@ -48,9 +51,13 @@ export function ConversationList({
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
           <MessageCircle className="h-7 w-7 text-gray-400" />
         </span>
-        <p className="font-semibold text-gray-900">{f.noConversations}</p>
+        <p className="font-semibold text-gray-900">
+          {filter === 'archived' ? 'No tienes conversaciones archivadas' : f.noConversations}
+        </p>
         <p className="text-sm text-gray-500">
-          Explora anuncios y contacta con un vendedor para empezar.
+          {filter === 'archived'
+            ? 'Las conversaciones que archives aparecerán aquí.'
+            : 'Explora anuncios y contacta con un vendedor para empezar.'}
         </p>
       </div>
     )

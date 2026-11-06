@@ -10,14 +10,18 @@ import { Card } from '@/components/ui/card'
 import { ConversationList } from '@/components/messages/conversation-list'
 import { MessageThread } from '@/components/messages/message-thread'
 import { refreshUnreadCount } from '@/lib/messages/unread-store'
+import {
+  type ConversationEmbedRow,
+} from '@/lib/messages/normalize-conversation'
 import type {
   Conversation,
   ConversationProfile,
   Message,
+  PendingThread,
 } from '@/lib/messages/types'
 
 /**
- * Messaging v2 Step 2 — thin shell. The list, thread and composer
+ * Messaging v2 Step 3 — thin shell. The list, thread and composer
  * live in components/messages/; this page owns auth, the list
  * fetch, the Realtime subscriptions, URL-driven selection and the
  * Contactar (?listing&seller) flow.
@@ -27,6 +31,13 @@ import type {
  * loading /messages?conversation=<id> directly opens that thread.
  * No selection state is kept — the param is the source of truth.
  *
+ * NO EMPTY THREADS (Step 3 rule): tapping Contactar creates
+ * NOTHING. /messages?listing=<id>&seller=<id> resolves to a
+ * *pending* thread — the listing context plus a composer — and the
+ * conversation row is created together with the first message send
+ * (see MessageComposer). If a thread for this listing + seller
+ * already exists, the URL is replaced with ?conversation=<id>.
+ *
  * Realtime (browser client, RLS-scoped to the user's own rows):
  * - messages INSERT on any thread -> list refetch (re-orders via
  *   the Step 1 updated_at trigger); conversations UPDATE -> same.
@@ -35,26 +46,13 @@ import type {
  * No polling fallback.
  */
 
-// Rows from the Contactar embed query (FKs restored by migration
-// 029) lack the route's unread_count/last_message — default them.
-function normalizeConversation(row: {
-  id: string
-  listing_id: string
-  buyer_id: string
-  seller_id: string
-  created_at: string
-  updated_at: string
-  listing: { id: string; title: string } | null
-  buyer: ConversationProfile | null
-  seller: ConversationProfile | null
-}): Conversation {
-  return {
-    ...row,
-    listing: row.listing ? { ...row.listing, image_url: null } : null,
-    unread_count: 0,
-    last_message: null,
-  }
-}
+// The embed columns for the pending-flow existing-thread lookup.
+const CONVERSATION_EMBED = `
+  *,
+  listing:listings(id, title, price, status),
+  buyer:buyer_id(id, username, display_name, avatar_url),
+  seller:seller_id(id, username, display_name, avatar_url)
+`
 
 function MessagesContent() {
   const { user, loading: authLoading } = useAuth()
@@ -74,6 +72,11 @@ function MessagesContent() {
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Pending thread: Contactar was tapped, no row exists yet.
+  const [pending, setPending] = useState<PendingThread | null>(null)
+  // The listing is gone, or the seller does not own it.
+  const [pendingError, setPendingError] = useState(false)
+
   const listingId = searchParams.get('listing')
   const sellerId = searchParams.get('seller')
   const conversationId = searchParams.get('conversation')
@@ -81,6 +84,8 @@ function MessagesContent() {
   const selectedConversation =
     conversations.find((c) => c.id === conversationId) ?? null
   const selectedId = selectedConversation?.id ?? null
+  const showThreadPane =
+    selectedConversation !== null || pending !== null || pendingError
 
   // In-flight guard so the list refetch never stacks: one incoming
   // message fires both the messages INSERT and the conversations
@@ -142,78 +147,108 @@ function MessagesContent() {
   useEffect(() => {
     if (authLoading) return
     if (!user) {
-      router.push('/login?redirect=/messages')
+      // Keep the listing context through login so the buyer lands
+      // back on the pending composer, not a bare /messages.
+      const back =
+        listingId && sellerId
+          ? `/messages?listing=${listingId}&seller=${sellerId}`
+          : '/messages'
+      router.push(`/login?redirect=${encodeURIComponent(back)}`)
       return
     }
     void refreshList()
-  }, [user, authLoading, refreshList, router])
+  }, [user, authLoading, refreshList, router, listingId, sellerId])
 
-  const createOrGetConversation = async (listingIdParam: string, sellerIdParam: string) => {
-    if (!user || user.id === sellerIdParam) return
-
-    // maybeSingle(): the "no existing conversation" case is normal, not an error.
-    const { data: existing } = await supabase
-      .from('conversations')
-      .select(`
-        *,
-        listing:listings(id, title),
-        buyer:buyer_id(id, username, display_name, avatar_url),
-        seller:seller_id(id, username, display_name, avatar_url)
-      `)
-      .eq('listing_id', listingIdParam)
-      .eq('buyer_id', user.id)
-      .eq('seller_id', sellerIdParam)
-      .maybeSingle()
-
-    const openConversation = (conv: Conversation) => {
-      // Make sure the thread is in the list so the URL-driven
-      // selection below finds it even before the refetch lands.
-      setConversations((prev) =>
-        prev.some((c) => c.id === conv.id) ? prev : [conv, ...prev]
-      )
-      router.push(`/messages?conversation=${conv.id}`)
-    }
-
-    if (existing) {
-      openConversation(normalizeConversation(existing))
-      return
-    }
-
-    const { data: newConv, error: insertError } = await supabase
-      .from('conversations')
-      .insert({
-        listing_id: listingIdParam,
-        buyer_id: user.id,
-        seller_id: sellerIdParam,
-      })
-      .select(`
-        *,
-        listing:listings(id, title),
-        buyer:buyer_id(id, username, display_name, avatar_url),
-        seller:seller_id(id, username, display_name, avatar_url)
-      `)
-      .maybeSingle()
-
-    if (insertError) {
-      // A unique-constraint hit means a concurrent run already created it —
-      // recover by re-fetching rather than dropping the user into a dead end.
-      console.error('Failed to start conversation:', insertError.message)
-      await refreshList()
-      return
-    }
-
-    if (newConv) {
-      openConversation(normalizeConversation(newConv))
-      await refreshList()
-    }
-  }
-
+  // Contactar resolution (?listing&seller): look up an existing
+  // thread WITHOUT inserting anything. Found -> replace the URL
+  // with ?conversation=<id>. Not found -> pending composer with
+  // the listing + seller loaded for the thread header. Guarded by
+  // key so a re-render never re-resolves the same pair.
+  const pendingKeyRef = useRef('')
   useEffect(() => {
-    if (listingId && sellerId && user) {
-      void createOrGetConversation(listingId, sellerId)
+    if (!listingId || !sellerId || !user) return
+    if (conversationId) return
+    if (sellerId === user.id) return
+    const key = `${listingId}:${sellerId}`
+    if (pendingKeyRef.current === key) return
+
+    let cancelled = false
+    const resolve = async () => {
+      // maybeSingle(): the "no existing conversation" case is normal.
+      const { data: existing } = await supabase
+        .from('conversations')
+        .select(CONVERSATION_EMBED)
+        .eq('listing_id', listingId)
+        .eq('buyer_id', user.id)
+        .eq('seller_id', sellerId)
+        .maybeSingle()
+
+      if (cancelled) return
+      if (existing) {
+        pendingKeyRef.current = key
+        router.replace(
+          `/messages?conversation=${(existing as ConversationEmbedRow).id}`
+        )
+        return
+      }
+
+      // No thread yet: load the listing (and seller) for the pending
+      // header. The seller must own the listing — the same check the
+      // conversations INSERT policy enforces at send time.
+      const [{ data: listing }, { data: seller }] = await Promise.all([
+        supabase
+          .from('listings')
+          .select('id, title, price, status, user_id')
+          .eq('id', listingId)
+          .single(),
+        supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .eq('id', sellerId)
+          .single(),
+      ])
+      if (cancelled) return
+      pendingKeyRef.current = key
+
+      const typedListing = listing as {
+        id: string
+        title: string
+        price: number | null
+        status: string | null
+        user_id: string
+      } | null
+      if (!typedListing || typedListing.user_id !== sellerId) {
+        setPendingError(true)
+        return
+      }
+
+      const { data: image } = await supabase
+        .from('listing_images')
+        .select('image_url')
+        .eq('listing_id', listingId)
+        .order('order_index', { ascending: true })
+        .limit(1)
+        .single()
+      if (cancelled) return
+
+      setPending({
+        listingId,
+        sellerId,
+        listing: {
+          id: typedListing.id,
+          title: typedListing.title,
+          price: typedListing.price ?? null,
+          status: typedListing.status ?? null,
+          image_url: (image as { image_url?: string | null } | null)?.image_url ?? null,
+        },
+        seller: (seller as ConversationProfile | null) ?? null,
+      })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listingId, sellerId, user])
+    void resolve()
+    return () => {
+      cancelled = true
+    }
+  }, [listingId, sellerId, user, conversationId, supabase, router])
 
   // Messaging v2 Step 1: messages come from the paginated server route
   // (page 1 = the most recent 50). Load-more UI is a later step.
@@ -297,6 +332,18 @@ function MessagesContent() {
     router.push('/messages')
   }
 
+  const handleConversationCreated = useCallback(
+    (conv: Conversation) => {
+      // Make sure the thread is in the list so the URL-driven
+      // selection finds it even before the refetch lands.
+      setConversations((prev) =>
+        prev.some((c) => c.id === conv.id) ? prev : [conv, ...prev]
+      )
+      router.push(`/messages?conversation=${conv.id}`)
+    },
+    [router]
+  )
+
   const handleSent = (message: Message) => {
     setMessages((prev) =>
       prev.some((m) => m.id === message.id) ? prev : [...prev, message]
@@ -338,7 +385,7 @@ function MessagesContent() {
           {/* Conversations List */}
           <Card
             className={`${
-              selectedConversation ? 'hidden md:flex' : 'flex'
+              showThreadPane ? 'hidden md:flex' : 'flex'
             } flex-col md:col-span-1 overflow-hidden`}
           >
             <div className="p-4 border-b">
@@ -358,17 +405,23 @@ function MessagesContent() {
           {/* Chat Area */}
           <Card
             className={`${
-              selectedConversation ? 'flex' : 'hidden md:flex'
+              showThreadPane ? 'flex' : 'hidden md:flex'
             } flex-col md:col-span-2 overflow-hidden`}
           >
-            {selectedConversation ? (
+            {selectedConversation || pending ? (
               <MessageThread
                 conversation={selectedConversation}
+                pending={selectedConversation ? null : pending}
                 currentUserId={user?.id ?? ''}
                 messages={messages}
                 onBack={backToList}
                 onSent={handleSent}
+                onConversationCreated={handleConversationCreated}
               />
+            ) : pendingError ? (
+              <div className="flex-1 flex items-center justify-center text-gray-500 px-6 text-center">
+                Este anuncio ya no está disponible o no se pudo iniciar la conversación.
+              </div>
             ) : (
               <div className="flex-1 flex items-center justify-center text-gray-500">
                 {f.selectConversation}

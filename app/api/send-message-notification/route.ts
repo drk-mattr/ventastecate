@@ -82,7 +82,11 @@ export async function POST(request: NextRequest) {
       to: recipientUser.email,
       recipientName: recipient.display_name,
       senderName: sender?.display_name || 'Un usuario',
-      listingTitle: conversation.listing.title,
+      // The listing embed resolves to null once the listing is
+      // deleted (migration 030, SET NULL) — fall back to the title
+      // snapshot, so this never throws on conversation.listing.title.
+      listingTitle:
+        conversation.listing?.title ?? conversation.listing_title ?? 'Anuncio',
       messagePreview,
       messageUrl,
     })

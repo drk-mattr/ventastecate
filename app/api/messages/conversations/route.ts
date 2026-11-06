@@ -22,6 +22,13 @@ const MAX_LIMIT = 50
  * order_index) as listing.image_url, for the Messenger-style rows.
  * Same plain-query pattern — listing_images is public-read.
  *
+ * Step 3 also returns the listing's price and status (thread
+ * header) and the listing_title snapshot taken at creation, so a
+ * thread stays readable after its listing is deleted (migration
+ * 030, ON DELETE SET NULL). listing_title is read off the row only
+ * when the column exists — pre-030 it is simply absent, and the
+ * route must NOT 500 on a pre-migration database.
+ *
  * NO EMBEDS — read this before adding one back. Production's
  * conversations table is missing the listing_id -> listings foreign
  * key that schema.sql declares (prod was built on a different schema
@@ -75,7 +82,16 @@ export async function GET(request: NextRequest) {
   const conversations = rows.slice(0, limit)
   const ids = conversations.map((c) => c.id)
 
-  const listingById = new Map<string, { id: string; title: string; image_url: string | null }>()
+  const listingById = new Map<
+    string,
+    {
+      id: string
+      title: string
+      price: number | null
+      status: string | null
+      image_url: string | null
+    }
+  >()
   const profileById = new Map<
     string,
     { id: string; username: string; display_name: string; avatar_url: string }
@@ -98,7 +114,7 @@ export async function GET(request: NextRequest) {
       { data: profiles, error: profilesError },
       { data: images, error: imagesError },
     ] = await Promise.all([
-      supabase.from('listings').select('id, title').in('id', listingIds),
+      supabase.from('listings').select('id, title, price, status').in('id', listingIds),
       supabase
         .from('profiles')
         .select('id, username, display_name, avatar_url')
@@ -128,7 +144,10 @@ export async function GET(request: NextRequest) {
       }
       for (const row of listings ?? []) {
         listingById.set(row.id, {
-          ...row,
+          id: row.id,
+          title: row.title,
+          price: row.price ?? null,
+          status: row.status ?? null,
           image_url: imageByListing.get(row.id) ?? null,
         })
       }
@@ -181,7 +200,13 @@ export async function GET(request: NextRequest) {
 
   const shaped = conversations.map((conv) => ({
     ...conv,
-    listing: listingById.get(conv.listing_id) ?? null,
+    // listing_title only exists post-migration-030; pre-030 the key
+    // is absent from the row, so normalize it to null here.
+    listing_title: (conv as { listing_title?: string | null }).listing_title ?? null,
+    // listing_id is null once the listing is deleted (030 SET NULL);
+    // listingById.get(null) is undefined, so listing is null and the
+    // client falls back to listing_title.
+    listing: conv.listing_id ? (listingById.get(conv.listing_id) ?? null) : null,
     buyer: profileById.get(conv.buyer_id) ?? null,
     seller: profileById.get(conv.seller_id) ?? null,
     unread_count: unreadByConversation.get(conv.id) ?? 0,

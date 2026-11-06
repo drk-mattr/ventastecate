@@ -13,6 +13,7 @@ import Image from 'next/image'
 import { MapPin, Calendar, Newspaper, Store, Bed, Droplets, Ruler, Home, Car, Gauge, Settings, Fuel, Palette, DoorOpen, BadgeCheck } from 'lucide-react'
 import { ListingEngagementBar } from '@/components/listings/listing-engagement-bar'
 import { VideoEmbed } from '@/components/listings/video-embed'
+import { ContactSellerButton } from '@/components/messages/contact-seller-button'
 
 // Serialize JSON-LD safely: escape characters that could break out of the
 // <script> tag (prevents stored XSS via user-controlled title/description).
@@ -471,16 +472,18 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 )}
 
                 </div>
-                {!isOwner && listing.status === 'active' && user && (
-                  <Button asChild size="sm" variant="outline" className="shrink-0">
-                    <Link href={`/messages?listing=${listing.id}&seller=${listing.user_id}`}>Contactar</Link>
-                  </Button>
-                )}
-                {!isOwner && listing.status === 'active' && !user && (
-                  <Button asChild size="sm" variant="outline" className="shrink-0">
-                    <Link href="/login">Iniciar sesión para contactar</Link>
-                  </Button>
-                )}
+                <ContactSellerButton
+                  listingId={listing.id}
+                  sellerId={listing.user_id}
+                  sellerWhatsapp={sellerWhatsapp}
+                  listingTitle={listing.title}
+                  isOwner={isOwner}
+                  isActive={listing.status === 'active'}
+                  label="Contactar"
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                />
                 {isOwner && (
                   <Button asChild size="sm" variant="outline" className="shrink-0">
                     <Link href={`/listings/${listing.id}/edit`}>Editar Anuncio</Link>
@@ -710,29 +713,16 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   </div>
                 )}
 
-                {!isOwner && listing.status === 'active' && user && (
-                  <Button asChild className="w-full">
-                    <Link href={`/messages?listing=${listing.id}&seller=${listing.user_id}`}>
-                      {isService ? 'Contactar' : 'Contactar Vendedor'}
-                    </Link>
-                  </Button>
-                )}
-                {!isOwner && listing.status === 'active' && sellerWhatsapp && (
-                  <Button asChild variant="outline" className="w-full mt-2">
-                    <a
-                      href={`https://wa.me/${String(sellerWhatsapp).replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, vi tu anuncio "${listing.title}" en ventasTecate.com y me interesa.`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      WhatsApp al vendedor
-                    </a>
-                  </Button>
-                )}
-                {!isOwner && listing.status === 'active' && !user && (
-                  <Button asChild className="w-full">
-                    <Link href="/login">Iniciar sesión para contactar</Link>
-                  </Button>
-                )}
+                <ContactSellerButton
+                  listingId={listing.id}
+                  sellerId={listing.user_id}
+                  sellerWhatsapp={sellerWhatsapp}
+                  listingTitle={listing.title}
+                  isOwner={isOwner}
+                  isActive={listing.status === 'active'}
+                  label={isService ? 'Contactar' : 'Contactar Vendedor'}
+                  className="w-full"
+                />
                 {isOwner && (
                   <div className="space-y-2">
                     <Button asChild className="w-full" variant="outline">

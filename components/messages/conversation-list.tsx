@@ -51,6 +51,10 @@ export function ConversationList({
         const otherUser = conv.buyer_id === currentUserId ? conv.seller : conv.buyer
         const unread = conv.unread_count ?? 0
         const preview = conv.last_message?.content ?? 'Inicia la conversación'
+        // Live title, else the snapshot taken at creation (Step 3) —
+        // a thread whose listing was deleted still names it.
+        const listingTitle =
+          conv.listing?.title ?? conv.listing_title ?? 'Anuncio no disponible'
 
         return (
           <button
@@ -94,7 +98,7 @@ export function ConversationList({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-gray-400 truncate">{conv.listing?.title}</p>
+              <p className="text-xs text-gray-400 truncate">{listingTitle}</p>
             </div>
             {conv.listing?.image_url && (
               <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-gray-100">

@@ -7,27 +7,122 @@ import { useTranslations } from '@/lib/hooks/use-translations'
 import { messageContentSchema } from '@/lib/validation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import type { Message } from '@/lib/messages/types'
+import {
+  normalizeConversation,
+  type ConversationEmbedRow,
+} from '@/lib/messages/normalize-conversation'
+import type { Conversation, Message } from '@/lib/messages/types'
 
-type MessageComposerProps = {
-  conversationId: string
-  onSent: (message: Message) => void
+/** A thread that does not exist yet — created with the first send. */
+export type PendingConversation = {
+  listingId: string
+  sellerId: string
+  listingTitle: string
 }
 
+type MessageComposerProps = {
+  /** Existing thread. Exactly one of conversationId / pending is set. */
+  conversationId?: string
+  pending?: PendingConversation
+  onSent: (message: Message) => void
+  /** Fired (before onSent) when a pending send created the thread. */
+  onConversationCreated?: (conversation: Conversation) => void
+}
+
+// The embed columns for the get-or-create lookup / insert return.
+const CONVERSATION_EMBED = `
+  *,
+  listing:listings(id, title, price, status),
+  buyer:buyer_id(id, username, display_name, avatar_url),
+  seller:seller_id(id, username, display_name, avatar_url)
+`
+
 /**
- * Messaging v2 Step 2 — the message input, split out of
+ * Messaging v2 Step 3 — the message input, split out of
  * app/messages/page.tsx. Sending is still a client-direct insert
- * into messages (no send route exists yet — Step 3 scope); the
- * inserted row is handed back to the page, which appends it
- * (deduplicated against the Realtime echo), re-orders the list and
- * fires the email notification.
+ * into messages (no send route exists yet).
+ *
+ * Pending mode (Step 3 rule — no empty threads): tapping Contactar
+ * inserts NOTHING. The conversation row is created here, together
+ * with the first message: look up an existing thread for this
+ * listing + buyer + seller (a concurrent send may have made one),
+ * otherwise insert it with the listing_title snapshot, then insert
+ * the message. If the insert fails on a unique-constraint hit, a
+ * concurrent run already created the thread — recover with a fresh
+ * lookup instead of dropping the message.
+ *
+ * listing_title may not exist yet (migration 030 runs by hand after
+ * deploy): if the insert errors on the unknown column, retry
+ * without it. The thread still works — only the snapshot is lost.
  */
-export function MessageComposer({ conversationId, onSent }: MessageComposerProps) {
+export function MessageComposer({
+  conversationId,
+  pending,
+  onSent,
+  onConversationCreated,
+}: MessageComposerProps) {
   const { user } = useAuth()
   const t = useTranslations()
   const f = t.forms
   const [text, setText] = useState('')
   const [sendError, setSendError] = useState('')
+
+  const getOrCreateConversation = async (
+    supabase: ReturnType<typeof createClient>
+  ): Promise<Conversation | null> => {
+    if (!pending || !user) return null
+
+    // maybeSingle(): "no existing conversation" is normal, not an error.
+    const { data: existing } = await supabase
+      .from('conversations')
+      .select(CONVERSATION_EMBED)
+      .eq('listing_id', pending.listingId)
+      .eq('buyer_id', user.id)
+      .eq('seller_id', pending.sellerId)
+      .maybeSingle()
+
+    if (existing) return normalizeConversation(existing as ConversationEmbedRow)
+
+    const insertBase = {
+      listing_id: pending.listingId,
+      buyer_id: user.id,
+      seller_id: pending.sellerId,
+    }
+
+    let { data: created, error: insertError } = await supabase
+      .from('conversations')
+      .insert({ ...insertBase, listing_title: pending.listingTitle })
+      .select(CONVERSATION_EMBED)
+      .maybeSingle()
+
+    if (insertError && /listing_title/.test(insertError.message)) {
+      // Pre-migration-030 database: no listing_title column yet.
+      // Retry without the snapshot rather than failing the send.
+      const retry = await supabase
+        .from('conversations')
+        .insert(insertBase)
+        .select(CONVERSATION_EMBED)
+        .maybeSingle()
+      created = retry.data
+      insertError = retry.error
+    }
+
+    if (!insertError && created) {
+      return normalizeConversation(created as ConversationEmbedRow)
+    }
+
+    // Unique-constraint hit: a concurrent send created it first.
+    // Recover with a fresh lookup; anything else is a real failure.
+    if (insertError) console.error('Failed to start conversation:', insertError.message)
+    const { data: raced } = await supabase
+      .from('conversations')
+      .select(CONVERSATION_EMBED)
+      .eq('listing_id', pending.listingId)
+      .eq('buyer_id', user.id)
+      .eq('seller_id', pending.sellerId)
+      .maybeSingle()
+    return raced ? normalizeConversation(raced as ConversationEmbedRow) : null
+  }
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,10 +136,24 @@ export function MessageComposer({ conversationId, onSent }: MessageComposerProps
     }
 
     const supabase = createClient()
+
+    let targetId = conversationId
+    if (pending) {
+      const conversation = await getOrCreateConversation(supabase)
+      if (!conversation) {
+        setSendError('No se pudo enviar el mensaje. Inténtalo de nuevo.')
+        return
+      }
+      targetId = conversation.id
+      onConversationCreated?.(conversation)
+    }
+
+    if (!targetId) return
+
     const { data, error } = await supabase
       .from('messages')
       .insert({
-        conversation_id: conversationId,
+        conversation_id: targetId,
         sender_id: user.id,
         content: parsed.data,
       })

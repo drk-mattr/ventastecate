@@ -123,19 +123,11 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
     <div className="min-h-screen bg-white">
       <Header />
       <main className="container mx-auto px-4 py-6 max-w-5xl">
-        {/* Photos first: they are the hook. The follow / like actions
-            float over the gallery's top-right corner — free on both the
-            desktop mosaic and the mobile carousel ("Ver todas las fotos"
-            and the 1/N counter both live bottom-right) — in one white
-            pill so they read on any photo. */}
-        <div className="relative">
-          <BusinessPhotoGallery photos={photoUrls} name={business.name} />
-          {photoUrls.length > 0 && (
-            <div className="absolute right-3 top-3 z-10 rounded-full bg-white/95 px-1.5 py-1 shadow-md backdrop-blur-sm">
-              {engagementBar}
-            </div>
-          )}
-        </div>
+        {/* Photos first: they are the hook. The follow / like actions sit
+            in their own row ABOVE the photos — never over the images. */}
+        <div className="mb-4 flex justify-end">{engagementBar}</div>
+
+        <BusinessPhotoGallery photos={photoUrls} name={business.name} />
 
         {/* Identity below the photos: avatar, name, info, links. */}
         <div className="border-b pb-6 mb-6">
@@ -206,9 +198,6 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
                 )}
               </div>
             </div>
-            {photoUrls.length === 0 && (
-              <div className="shrink-0">{engagementBar}</div>
-            )}
           </div>
         </div>
 

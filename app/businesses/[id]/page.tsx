@@ -107,13 +107,38 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
     pendingClaim = Boolean(claim)
   }
 
+  // Follow / like, rendered once and placed either over the gallery
+  // (when there are photos) or in the identity block (when not).
+  const engagementBar = (
+    <BusinessEngagementBar
+      businessId={business.id}
+      initialFollowing={initialFollowing}
+      initialLiked={initialLiked}
+      followersCount={business.followers_count ?? 0}
+      likesCount={business.likes_count ?? 0}
+    />
+  )
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
       <main className="container mx-auto px-4 py-6 max-w-5xl">
-        {/* Identity above the gallery, Airbnb-style: name on the left,
-            follow / followers / like right-aligned in the same row. */}
-        <div className="mb-6">
+        {/* Photos first: they are the hook. The follow / like actions
+            float over the gallery's top-right corner — free on both the
+            desktop mosaic and the mobile carousel ("Ver todas las fotos"
+            and the 1/N counter both live bottom-right) — in one white
+            pill so they read on any photo. */}
+        <div className="relative">
+          <BusinessPhotoGallery photos={photoUrls} name={business.name} />
+          {photoUrls.length > 0 && (
+            <div className="absolute right-3 top-3 z-10 rounded-full bg-white/95 px-1.5 py-1 shadow-md backdrop-blur-sm">
+              {engagementBar}
+            </div>
+          )}
+        </div>
+
+        {/* Identity below the photos: avatar, name, info, links. */}
+        <div className="border-b pb-6 mb-6">
           <div className="flex flex-wrap items-start gap-4">
             {/* The business's main photo is its avatar — the gray Store tile
                 read as "no photo" even with a full gallery below it. Icon
@@ -181,19 +206,11 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
                 )}
               </div>
             </div>
-            <div className="shrink-0">
-              <BusinessEngagementBar
-                businessId={business.id}
-                initialFollowing={initialFollowing}
-                initialLiked={initialLiked}
-                followersCount={business.followers_count ?? 0}
-                likesCount={business.likes_count ?? 0}
-              />
-            </div>
+            {photoUrls.length === 0 && (
+              <div className="shrink-0">{engagementBar}</div>
+            )}
           </div>
         </div>
-
-        <BusinessPhotoGallery photos={photoUrls} name={business.name} />
 
         <h2 className="text-base font-medium mb-4 text-gray-700">Publicaciones que lo mencionan</h2>
         {listings.length > 0 ? (

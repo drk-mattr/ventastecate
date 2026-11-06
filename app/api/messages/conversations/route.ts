@@ -18,6 +18,10 @@ const MAX_LIMIT = 50
  * Auth: the caller's session; RLS + the buyer/seller filter mean a
  * user can only ever list their own threads.
  *
+ * Step 2 also returns the listing's first image (lowest
+ * order_index) as listing.image_url, for the Messenger-style rows.
+ * Same plain-query pattern — listing_images is public-read.
+ *
  * NO EMBEDS — read this before adding one back. Production's
  * conversations table is missing the listing_id -> listings foreign
  * key that schema.sql declares (prod was built on a different schema
@@ -71,7 +75,7 @@ export async function GET(request: NextRequest) {
   const conversations = rows.slice(0, limit)
   const ids = conversations.map((c) => c.id)
 
-  const listingById = new Map<string, { id: string; title: string }>()
+  const listingById = new Map<string, { id: string; title: string; image_url: string | null }>()
   const profileById = new Map<
     string,
     { id: string; username: string; display_name: string; avatar_url: string }
@@ -89,19 +93,45 @@ export async function GET(request: NextRequest) {
       ),
     ]
 
-    const [{ data: listings, error: listingsError }, { data: profiles, error: profilesError }] =
-      await Promise.all([
-        supabase.from('listings').select('id, title').in('id', listingIds),
-        supabase
-          .from('profiles')
-          .select('id, username, display_name, avatar_url')
-          .in('id', userIds),
-      ])
+    const [
+      { data: listings, error: listingsError },
+      { data: profiles, error: profilesError },
+      { data: images, error: imagesError },
+    ] = await Promise.all([
+      supabase.from('listings').select('id, title').in('id', listingIds),
+      supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url')
+        .in('id', userIds),
+      // First image per listing (lowest order_index) for the Step 2
+      // rows. A failure here only costs thumbnails, never the list.
+      supabase
+        .from('listing_images')
+        .select('listing_id, image_url')
+        .in('listing_id', listingIds)
+        .order('order_index', { ascending: true })
+        .limit(500),
+    ])
 
     if (listingsError) {
       console.error('Failed to load conversation listings:', listingsError.message)
     } else {
-      for (const row of listings ?? []) listingById.set(row.id, row)
+      const imageByListing = new Map<string, string>()
+      if (imagesError) {
+        console.error('Failed to load conversation listing images:', imagesError.message)
+      } else {
+        for (const row of images ?? []) {
+          if (row.image_url && !imageByListing.has(row.listing_id)) {
+            imageByListing.set(row.listing_id, row.image_url)
+          }
+        }
+      }
+      for (const row of listings ?? []) {
+        listingById.set(row.id, {
+          ...row,
+          image_url: imageByListing.get(row.id) ?? null,
+        })
+      }
     }
     if (profilesError) {
       console.error('Failed to load conversation profiles:', profilesError.message)

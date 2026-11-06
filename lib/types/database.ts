@@ -5,6 +5,7 @@ export type Profile = {
   avatar_url?: string
   bio?: string
   whatsapp_number?: string | null
+  email_message_notifications?: boolean | null
   created_at: string
   updated_at: string
   is_superadmin?: boolean

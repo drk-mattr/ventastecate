@@ -31,6 +31,12 @@ export default function EditProfilePage() {
   const [success, setSuccess] = useState(false)
   const [facebookLinked, setFacebookLinked] = useState(false)
   const [facebookBusy, setFacebookBusy] = useState(false)
+  // Step 5: email on/off for new-message notifications (migration
+  // 033). Undefined pre-migration reads as enabled — the default
+  // is ON, existing users are never silently unsubscribed.
+  const [emailNotifications, setEmailNotifications] = useState(true)
+  const [emailNotificationsBusy, setEmailNotificationsBusy] = useState(false)
+  const [emailNotificationsError, setEmailNotificationsError] = useState('')
 
   useEffect(() => {
     if (authLoading) return
@@ -47,6 +53,7 @@ export default function EditProfilePage() {
       setDisplayName(profile.display_name || '')
       setBio(profile.bio || '')
       setWhatsappNumber((profile as { whatsapp_number?: string | null }).whatsapp_number || '')
+      setEmailNotifications(profile.email_message_notifications ?? true)
       if (profile.avatar_url) {
         setAvatarPreview(profile.avatar_url)
       }
@@ -92,6 +99,34 @@ export default function EditProfilePage() {
     if (unlinkError) setError(unlinkError.message)
     else setFacebookLinked(false)
     setFacebookBusy(false)
+  }
+
+  // Step 5: flip the email preference immediately (same
+  // client-direct profiles update the rest of this page uses).
+  // Optimistic: revert on error. Before migration 033 is applied,
+  // the column does not exist yet — say so plainly instead of
+  // silently leaving the switch in the wrong state.
+  const handleToggleEmailNotifications = async () => {
+    if (!user || emailNotificationsBusy) return
+    const next = !emailNotifications
+    setEmailNotifications(next)
+    setEmailNotificationsError('')
+    setEmailNotificationsBusy(true)
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ email_message_notifications: next })
+      .eq('id', user.id)
+    if (updateError) {
+      setEmailNotifications(!next)
+      if (String(updateError.message || '').includes('email_message_notifications')) {
+        setEmailNotificationsError('No se pudo guardar todavía: falta aplicar la migración 033_message_email_preference.sql en Supabase.')
+      } else {
+        setEmailNotificationsError(updateError.message || 'Error al guardar la preferencia')
+      }
+    } else {
+      await refreshProfile()
+    }
+    setEmailNotificationsBusy(false)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -310,6 +345,37 @@ export default function EditProfilePage() {
                 </Button>
               </div>
             </form>
+          </CardContent>
+        </Card>
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Notificaciones por correo</CardTitle>
+            <CardDescription>Recibe un correo cuando alguien te escribe un mensaje. Solo afecta los correos — las notificaciones dentro del sitio (la campana) siguen funcionando igual.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm text-gray-600">
+                {emailNotifications ? 'Activadas: te avisamos por correo de cada mensaje nuevo.' : 'Desactivadas: no recibirás correos por mensajes nuevos.'}
+              </p>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={emailNotifications}
+                aria-label="Notificaciones por correo"
+                disabled={emailNotificationsBusy}
+                onClick={handleToggleEmailNotifications}
+                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-50 ${emailNotifications ? 'bg-gray-900' : 'bg-gray-300'}`}
+              >
+                <span
+                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${emailNotifications ? 'left-[22px]' : 'left-0.5'}`}
+                />
+              </button>
+            </div>
+            {emailNotificationsError && (
+              <p className="text-sm text-red-600 bg-red-50 p-3 rounded mt-4">
+                {emailNotificationsError}
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card className="mt-6">

@@ -51,3 +51,29 @@ export function townsForLocation(label: string | null | undefined): string[] | n
 export function isValidLocation(label: string | null | undefined): label is string {
   return !!label && LOCATION_OPTIONS.some((o) => o.label === label)
 }
+
+// Case-insensitive town match for PostgREST .or() filters (homepage feed,
+// search). `ilike` without % wildcards is an exact match that ignores
+// case, so a listing whose city was saved free-typed as "tecate" still
+// matches the "Tecate" town. Existing rows are never re-saved — the
+// match covers them as-is.
+export function townFilterOr(towns: string[]): string {
+  return towns.flatMap((t) => [`city.ilike.${t}`, `location.ilike.${t}`]).join(',')
+}
+
+// Normalize a free-typed city before it is saved: trim, then title-case,
+// matching the canonical spelling of a known town when it matches one
+// case-insensitively ("tecate" -> "Tecate", "valle de guadalupe" ->
+// "Valle de Guadalupe"). Small connector words stay lowercase mid-name.
+const SMALL_TOWN_WORDS = new Set(['de', 'del', 'la', 'el', 'los', 'las', 'y'])
+export function normalizeTownName(value: string | null | undefined): string | null {
+  const trimmed = (value ?? '').trim()
+  if (!trimmed) return null
+  const known = KNOWN_TOWNS.find((t) => t.toLowerCase() === trimmed.toLowerCase())
+  if (known) return known
+  return trimmed
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word, i) => (i > 0 && SMALL_TOWN_WORDS.has(word) ? word : word.charAt(0).toUpperCase() + word.slice(1)))
+    .join(' ')
+}

@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { RealEstateMetadata, AutomotiveMetadata, ListingMetadata, ListingType } from '@/lib/types/database'
 import { firstListingError } from '@/lib/validation'
+import { normalizeTownName } from '@/lib/business-regions'
 import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
 
@@ -278,7 +279,7 @@ export default function EditListingPage() {
           price: finalPrice,
           category,
           location,
-          city: city || null,
+          city: normalizeTownName(city),
           state_region: stateRegion || null,
           country_code: countryCode,
           metadata,

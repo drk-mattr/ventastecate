@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RealEstateMetadata, AutomotiveMetadata, ListingType } from '@/lib/types/database'
 import { firstListingError } from '@/lib/validation'
+import { normalizeTownName } from '@/lib/business-regions'
 import Image from 'next/image'
 import { BusinessTagPicker } from '@/components/listings/business-tag-picker'
 import { ItemTagPicker } from '@/components/listings/item-tag-picker'
@@ -333,7 +334,7 @@ export default function NewListingPage() {
           category: finalCategory,
           location: location || activeStore?.location || '',
           country_code: gpsCountryCode ?? countryCode,
-          city: city || null,
+          city: normalizeTownName(city),
           state_region: stateRegion || null,
           metadata,
           video_url: videoUrl || null,

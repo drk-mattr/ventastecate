@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import { useReportModal } from '@/lib/report/report-modal-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
+import { useUnreadMessages } from '@/lib/hooks/use-unread-messages'
 import { Button } from '@/components/ui/button'
 import { HeaderSearch } from '@/components/search/header-search'
 import { LocationSelector } from '@/components/layout/location-selector'
@@ -30,6 +31,9 @@ export function Header() {
   const pathname = usePathname()
   const t = useTranslations()
   const [menuOpen, setMenuOpen] = useState(false)
+  // Shared unread count (useUnreadMessages): the same value the
+  // mobile bottom-bar Mensajes tab shows, so both badges agree.
+  const unreadMessages = useUnreadMessages()
 
   // Keep the avatar dropdown clean: surface the active store + the most recent
   // few, and push the rest behind a link to the full "Mis Tiendas" page so the
@@ -111,8 +115,15 @@ export function Header() {
               <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex h-8 w-8 text-gray-600 hover:text-gray-900" aria-label={t.nav.myListings} title={t.nav.myListings}>
                 <Link href="/my-listings"><Tag className="h-[18px] w-[18px]" /></Link>
               </Button>
-              <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex h-8 w-8 text-gray-600 hover:text-gray-900" aria-label={t.nav.messages} title={t.nav.messages}>
-                <Link href="/messages"><MessageCircle className="h-[18px] w-[18px]" /></Link>
+              <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex h-8 w-8 text-gray-600 hover:text-gray-900 relative" aria-label={t.nav.messages} title={t.nav.messages}>
+                <Link href="/messages">
+                  <MessageCircle className="h-[18px] w-[18px]" />
+                  {unreadMessages > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-gray-900 text-white text-[10px] font-semibold flex items-center justify-center">
+                      {unreadMessages > 99 ? '99+' : unreadMessages}
+                    </span>
+                  )}
+                </Link>
               </Button>
               <NotificationBell />
               {activeStore && (

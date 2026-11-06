@@ -2,11 +2,11 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useAuthModal } from '@/lib/auth/auth-modal-context'
-import { createClient } from '@/lib/supabase/client'
+import { useUnreadMessages } from '@/lib/hooks/use-unread-messages'
 import { MobileSidebar } from '@/components/layout/mobile-sidebar'
 import { Home, Search, Plus, MessageCircle, Store, User, UserPlus } from 'lucide-react'
 
@@ -18,17 +18,16 @@ import { Home, Search, Plus, MessageCircle, Store, User, UserPlus } from 'lucide
  * Cuenta opens the black left sidebar the avatar and the header
  * hamburger open — it used to link to /my-listings, which is not what
  * "Cuenta" means. Mis anuncios lives inside the sidebar. Mensajes carries an unread count badge like
- * OfferUp's Inbox and the header bell; it counts messages in the user's
- * conversations that are unread and not sent by them (same rule the
- * /messages list uses), refetched whenever the route changes so opening
- * /messages clears it.
+ * OfferUp's Inbox and the header bell; the count comes from the shared
+ * useUnreadMessages hook (same value the header shows on desktop),
+ * refreshed on route changes and Realtime message inserts.
  */
 export function MobileActionBar() {
   const pathname = usePathname()
   const { user, profile, activeStore } = useAuth()
   const { openAuth } = useAuthModal()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [unreadMessages, setUnreadMessages] = useState(0)
+  const unreadMessages = useUnreadMessages()
 
   const getInitials = (name: string) => {
     return name
@@ -38,35 +37,6 @@ export function MobileActionBar() {
       .toUpperCase()
       .slice(0, 2)
   }
-
-  // No setState here for the logged-out case: the badge only renders
-  // on the logged-in branch, and the effect refetches on every user /
-  // route change. (Calling setUnreadMessages(0) synchronously in the
-  // effect body trips the repo's react-hooks/set-state-in-effect
-  // build lint — same gotcha as PR #28.)
-  useEffect(() => {
-    if (!user) return
-    const load = async () => {
-      try {
-        const supabase = createClient()
-        const { data, error } = await supabase
-          .from('conversations')
-          .select('messages(id, read, sender_id)')
-          .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
-        if (error || !data) return
-        let count = 0
-        for (const c of data as { messages?: { read: boolean; sender_id: string }[] }[]) {
-          for (const m of c.messages || []) {
-            if (!m.read && m.sender_id !== user.id) count += 1
-          }
-        }
-        setUnreadMessages(count)
-      } catch {
-        // Badge stays hidden rather than breaking the nav.
-      }
-    }
-    load()
-  }, [user, pathname])
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)

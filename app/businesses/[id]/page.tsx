@@ -10,6 +10,7 @@ import { BusinessOfferings } from '@/components/businesses/business-offerings'
 import { BusinessPhotoGallery } from '@/components/businesses/business-photo-gallery'
 import { ContributionFlag } from '@/components/businesses/contribution-flag'
 import { getRegionForTown } from '@/lib/business-regions'
+import type { Metadata } from 'next'
 
 const CONTRIBUTION_FIELD_LABEL: Record<string, string> = {
   phone: 'Teléfono',
@@ -17,6 +18,72 @@ const CONTRIBUTION_FIELD_LABEL: Record<string, string> = {
   hours: 'Horario',
   category: 'Categoría',
   website: 'Web',
+}
+
+// Per-business share card (Open Graph / Twitter): the business's name,
+// category and town, with its main photo as the share image — the same
+// pattern the listing pages already use. Businesses without photos get
+// the plain card (no image).
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params
+  const supabase = await createClient()
+
+  const { data: business } = await supabase
+    .from('businesses')
+    .select('id, name, category, city, location')
+    .eq('id', id)
+    .single()
+
+  if (!business) {
+    return {
+      title: 'Negocio no encontrado | Ventas Tecate',
+    }
+  }
+
+  const town = business.city || business.location || 'Tecate'
+  const { data: photos } = await supabase
+    .from('business_images')
+    .select('image_url')
+    .eq('business_id', id)
+    .order('order_index', { ascending: true })
+    .limit(1)
+  const primaryImage = photos?.[0]?.image_url ?? null
+  const url = `${process.env.NEXT_PUBLIC_APP_URL || 'https://ventastecate.com'}/businesses/${id}`
+  const description = business.category
+    ? `${business.name} — ${business.category} en ${town}. Descubre qué ofrecen y las publicaciones que lo mencionan en Ventas Tecate.`
+    : `${business.name} en ${town} — Negocio del índice de Ventas Tecate.`
+
+  return {
+    title: `${business.name} · ${town} | Ventas Tecate`,
+    description,
+    openGraph: {
+      title: business.name,
+      description,
+      url,
+      siteName: 'Ventas Tecate',
+      images: primaryImage
+        ? [
+            {
+              url: primaryImage,
+              width: 1200,
+              height: 630,
+              alt: business.name,
+            },
+          ]
+        : [],
+      locale: 'es_MX',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: business.name,
+      description,
+      images: primaryImage ? [primaryImage] : [],
+    },
+    alternates: {
+      canonical: url,
+    },
+  }
 }
 
 export default async function BusinessPage({ params }: { params: Promise<{ id: string }> }) {

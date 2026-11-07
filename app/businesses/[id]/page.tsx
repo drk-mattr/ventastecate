@@ -8,6 +8,9 @@ import { Store, MapPin, BadgeCheck } from 'lucide-react'
 import { BusinessEngagementBar } from '@/components/businesses/business-engagement-bar'
 import { BusinessOfferings } from '@/components/businesses/business-offerings'
 import { BusinessPhotoGallery } from '@/components/businesses/business-photo-gallery'
+import { BusinessReviews } from '@/components/businesses/business-reviews'
+import { ReviewStars } from '@/components/businesses/review-stars'
+import type { BusinessReview } from '@/lib/types/database'
 import { ContributionFlag } from '@/components/businesses/contribution-flag'
 import { getRegionForTown } from '@/lib/business-regions'
 import type { Metadata } from 'next'
@@ -177,6 +180,32 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
     pendingClaim = Boolean(claim)
   }
 
+  // Reviews (migration 042): pre-042 the query fails and the page
+  // renders without the reviews section — never a crash.
+  let reviews: BusinessReview[] = []
+  let reviewsAvailable = true
+  const { data: reviewRows, error: reviewError } = await supabase
+    .from('business_reviews')
+    .select('id, business_id, user_id, rating, body, created_at, updated_at, profile:profiles(username, display_name, avatar_url)')
+    .eq('business_id', id)
+    .order('created_at', { ascending: false })
+    .limit(100)
+  if (reviewError) {
+    reviewsAvailable = false
+  } else {
+    // The profile join can come back as an array in the inferred
+    // type — normalize to the single profile, like getStories does.
+    reviews = ((reviewRows || []) as unknown as Array<Record<string, unknown>>).map((r) => {
+      const rawProfile = r.profile
+      const profile = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile
+      return { ...(r as object), profile } as BusinessReview
+    })
+  }
+  const reviewCount = reviews.length
+  const reviewAverage =
+    reviewCount > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount : 0
+  const isOwner = Boolean(currentUser && claimedBy && claimedBy === currentUser.id)
+
   // Follow / like, rendered once and placed either over the gallery
   // (when there are photos) or in the identity block (when not).
   const engagementBar = (
@@ -231,6 +260,14 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
                 )}
                 <span>{business.mention_count ?? 0} {(business.mention_count ?? 0) === 1 ? 'mención' : 'menciones'}</span>
               </div>
+              {reviewsAvailable && reviewCount > 0 && (
+                <p className="mt-2 flex items-center gap-2 text-sm">
+                  <ReviewStars value={reviewAverage} />
+                  <a href="#opiniones" className="text-gray-600 hover:underline">
+                    {reviewAverage.toFixed(1)} · {reviewCount} {reviewCount === 1 ? 'opinión' : 'opiniones'}
+                  </a>
+                </p>
+              )}
               {business.store ? (
                 <p className="text-sm text-gray-500 mt-2 flex items-center gap-1">
                   <BadgeCheck className="h-4 w-4 text-orange-600" />
@@ -288,6 +325,15 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
           </div>
         ) : (
           <EmptyState surface message="Aún no hay publicaciones que mencionen este negocio" actionLabel="Publicar un anuncio" actionHref="/listings/new" />
+        )}
+
+        {reviewsAvailable && (
+          <BusinessReviews
+            businessId={id}
+            initialReviews={reviews}
+            currentUserId={currentUser?.id ?? null}
+            isOwner={isOwner}
+          />
         )}
       </main>
     </div>

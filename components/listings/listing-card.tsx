@@ -37,10 +37,13 @@ const NEWS_CATEGORY_COLORS: Record<string, string> = {
 
 // Lost posts look like a printed missing-pet poster: "SE BUSCA" in
 // plain red letters above the photo (or title card), the image inset
-// with a white margin on all sides — no banner strip. The frame is
-// kept tight and even (8px top and bottom) and the feed photo is
-// black-and-white (grayscale); the detail-page hero keeps full color,
-// because color matters for actually identifying the animal.
+// with a generous white margin on all sides — no banner strip. The
+// feed photo is black-and-white (grayscale) and bounded to a 4:5
+// frame so a tall portrait cannot stretch the card; the card shows
+// heading + image + title + time only, no description (the full
+// description stays on the detail page). The detail-page hero keeps
+// full color and full bleed, because color matters for actually
+// identifying the animal.
 const SE_BUSCA_HEADING = (
   <p className="shrink-0 px-2.5 pt-2 pb-1 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-red-600">
     Se busca
@@ -119,7 +122,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       return (
         <CardShell id={listing.id}>
           {isLostPost && SE_BUSCA_HEADING}
-          <div className={`relative flex-1 aspect-square ${isLostPost ? 'mx-2.5 mb-2' : ''}`}>
+          <div className={`relative flex-1 aspect-square ${isLostPost ? 'mx-4 mb-2' : ''}`}>
             <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" />
             {listing.status === 'sold' && soldOverlay}
             <div className="absolute bottom-2 left-2 z-[5] bg-black/45 text-white text-[10px] px-2 py-0.5 rounded-full">
@@ -139,9 +142,12 @@ export function ListingCard({ listing }: ListingCardProps) {
              eyebrow — the heading says what it is. */
           <>
             {SE_BUSCA_HEADING}
-            <div className="relative shrink-0 px-2.5">
-              <Image src={primaryImage} alt={listing.title} width={400} height={600} className="w-full h-auto grayscale" />
-              {listing.status === 'sold' && soldOverlay}
+            <div className="relative shrink-0 px-4">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-sm">
+                <Image src={primaryImage} alt={listing.title} fill className="object-cover grayscale"
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
+                {listing.status === 'sold' && soldOverlay}
+              </div>
             </div>
           </>
         ) : (
@@ -162,7 +168,10 @@ export function ListingCard({ listing }: ListingCardProps) {
           <h3 className="font-semibold text-[13px] line-clamp-2 mb-1 group-hover:underline leading-snug">
             {listing.title}
           </h3>
-          {listing.description && (
+          {/* Lost posts show no description on the card — heading +
+              image + title + time only; the full text lives on the
+              detail page. */}
+          {!isLostPost && listing.description && (
             <p className="text-[11px] text-gray-400 line-clamp-2 leading-snug">
               {listing.description.slice(0, 300)}
             </p>
@@ -177,13 +186,14 @@ export function ListingCard({ listing }: ListingCardProps) {
     )
   }
 
-  // ── Event card: full-width natural poster ─────────────────────────────────
+  // ── Event card: photo bounded to a 4:3 frame (object-cover) so a
+  // tall portrait poster cannot stretch the card endlessly.
   if (listingType === 'event' && primaryImage) {
     return (
       <CardShell id={listing.id}>
-        <div className="relative w-full shrink-0">
-          <Image src={primaryImage} alt={listing.title}
-            width={400} height={600} className="w-full h-auto" />
+        <div className="relative aspect-[4/3] shrink-0 overflow-hidden">
+          <Image src={primaryImage} alt={listing.title} fill className="object-cover"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
           {listing.status === 'sold' && soldOverlay}
         </div>
         <div className="px-2.5 py-1.5">

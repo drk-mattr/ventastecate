@@ -55,9 +55,7 @@ export function HeaderSearch() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setQuery(searchParams.get('q') || '')
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpen(false)
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHighlight(-1)
   }, [searchParams, pathname])
 

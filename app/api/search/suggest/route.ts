@@ -23,15 +23,33 @@ export async function GET(request: NextRequest) {
   const towns = townsForLocation((await cookies()).get(LOCATION_COOKIE)?.value)
   const supabase = await createClient()
 
-  let listingsQuery = supabase
-    .from('listings')
-    .select('id, title, price, currency, is_free')
-    .eq('status', 'active')
-    .or(`title.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`)
-  if (towns) listingsQuery = listingsQuery.or(townFilterOr(towns))
-  const { data: listings } = await listingsQuery
-    .order('created_at', { ascending: false })
-    .limit(5)
+  // Listings. Migration 038 (currency / is_free) has not been applied
+  // in prod yet, so the full select 400s with 42703 until the user
+  // runs it — retry without the new columns (every existing listing
+  // is MXN, which formatPrice defaults to). Same 42703-retry pattern
+  // PR #93 uses elsewhere.
+  type ListingRow = {
+    id: string
+    title: string
+    price: number | null
+    currency?: string | null
+    is_free?: boolean | null
+  }
+  const runListingsQuery = async (select: string) => {
+    let query = supabase
+      .from('listings')
+      .select(select)
+      .eq('status', 'active')
+      .or(`title.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`)
+    if (towns) query = query.or(townFilterOr(towns))
+    return query.order('created_at', { ascending: false }).limit(5)
+  }
+  const fullRes = await runListingsQuery('id, title, price, currency, is_free')
+  let listingRows: ListingRow[] = (fullRes.data ?? []) as unknown as ListingRow[]
+  if (fullRes.error) {
+    const retryRes = await runListingsQuery('id, title, price')
+    listingRows = (retryRes.data ?? []) as unknown as ListingRow[]
+  }
 
   let kinds: { slug: string; name: string; parent_name: string | null }[] = []
   const admin = createAdminClient()
@@ -57,7 +75,7 @@ export async function GET(request: NextRequest) {
     .limit(4)
 
   return NextResponse.json({
-    listings: (listings || []).map((l) => ({
+    listings: listingRows.map((l) => ({
       id: l.id,
       title: l.title,
       priceLabel: formatPrice(l.price, l.currency, { isFree: l.is_free }),

@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
-import { useRegion } from '@/lib/region-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
 import { Header } from '@/components/layout/header'
 import { LocationPicker } from '@/components/listings/location-picker'
@@ -14,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RealEstateMetadata, AutomotiveMetadata, ListingType } from '@/lib/types/database'
-import { firstListingError } from '@/lib/validation'
+import { firstListingError, LISTING_TITLE_MAX, LISTING_DESC_MAX } from '@/lib/validation'
 import { normalizeTownName } from '@/lib/business-regions'
 import Image from 'next/image'
 import { BusinessTagPicker } from '@/components/listings/business-tag-picker'
@@ -118,6 +117,13 @@ const TYPE_CONFIG: Record<ListingType, {
   },
 }
 
+function categoriesForType(type: ListingType): string[] {
+  if (type === 'service') return SERVICE_CATEGORIES
+  if (type === 'event') return EVENT_CATEGORIES
+  if (type === 'news') return NEWS_CATEGORIES
+  return PRODUCT_CATEGORIES
+}
+
 export default function NewListingPage() {
   const [listingType, setListingType] = useState<ListingType>('product')
   const [title, setTitle] = useState('')
@@ -186,30 +192,15 @@ export default function NewListingPage() {
   const isRealEstate = storeType === 'real_estate' || REAL_ESTATE_CATEGORIES.includes(category)
   const isAutomotive = storeType === 'automotive' || category === 'Vehículos'
 
-  // Stepped posting: same fields, same submission — only the presentation
-  // changes. Step 1 = type + photos, step 2 = title/price/category/location,
-  // step 3 = only this type's fields + Opciones adicionales, then Publish.
-  // Types never bleed: real-estate and automotive blocks still render only
-  // when isRealEstate / isAutomotive is true, exactly as before.
-  const [step, setStep] = useState(1)
-  const stepTitles = ['¿Qué quieres compartir?', 'Datos del anuncio', 'Detalles y publicar']
-  const validateStep2 = (): string | null => {
+  // Single-page form validation (was the step 2→3 gate in the wizard):
+  // title, description, price-or-consultar, category. Runs at submit.
+  const validateForm = (): string | null => {
     if (!title.trim()) return 'Escribe un título'
     if (!description.trim()) return 'Escribe una descripción'
     if (showPrice && !priceConsultar && !price) return 'Escribe un precio o marca Precio a consultar / Gratis'
     if (storeType === 'general' && !category) return 'Elige una categoría'
     return null
   }
-  const goNext = () => {
-    if (step === 2) {
-      const err = validateStep2()
-      if (err) { setError(err); return }
-    }
-    setError('')
-    setStep(s => Math.min(3, s + 1))
-    window.scrollTo({ top: 0 })
-  }
-  const goBack = () => { setError(''); setStep(s => Math.max(1, s - 1)); window.scrollTo({ top: 0 }) }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -228,9 +219,21 @@ export default function NewListingPage() {
   }
 
   const removeImage = (index: number) => {
+    URL.revokeObjectURL(imagePreviews[index])
     setImages(images.filter((_, i) => i !== index))
     setImagePreviews(imagePreviews.filter((_, i) => i !== index))
   }
+
+  // Revoke preview object URLs on unmount so long posting sessions
+  // don't leak memory (previews are revoked individually on remove).
+  const previewsRef = useRef<string[]>([])
+  previewsRef.current = imagePreviews
+  useEffect(() => {
+    const ref = previewsRef
+    return () => {
+      ref.current.forEach((url) => URL.revokeObjectURL(url))
+    }
+  }, [])
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
@@ -249,6 +252,12 @@ export default function NewListingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
+
+    const formError = validateForm()
+    if (formError) {
+      setError(formError)
+      return
+    }
 
     setLoading(true)
     setError('')
@@ -297,8 +306,8 @@ export default function NewListingPage() {
       const parsedPrice = parseFloat(price)
       const finalPrice = listingType === 'news' ? 0 : priceConsultar ? 0 : (Number.isFinite(parsedPrice) ? parsedPrice : 0)
 
-      // Step validation already ran on Next, but re-check here so a
-      // direct submit can never publish with a missing required field.
+      // Re-check category + automotive required fields so a direct
+      // submit can never publish with a missing required field.
       if (storeType === 'general' && !category) {
         setError('Elige una categoría')
         setLoading(false)
@@ -421,15 +430,12 @@ export default function NewListingPage() {
     }
   }
 
-  const categoriesForType = listingType === 'service' ? SERVICE_CATEGORIES
-    : listingType === 'event' ? EVENT_CATEGORIES
-    : listingType === 'news' ? NEWS_CATEGORIES
-    : PRODUCT_CATEGORIES
+  const categories = categoriesForType(listingType)
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <main className="container mx-auto px-4 py-6 max-w-2xl">
+      <main className="container mx-auto px-4 py-6 pb-24 max-w-2xl">
 
         {/* ── Page header ── */}
         <div className="mb-6">
@@ -446,26 +452,82 @@ export default function NewListingPage() {
           )}
         </div>
 
-        {/* Step indicator */}
-        <div className="mb-5">
-          <div className="flex items-center gap-2">
-            {[1, 2, 3].map((n) => (
-              <div key={n} className="flex items-center gap-2 flex-1">
-                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${step >= n ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-500'}`}>{n}</span>
-                {n < 3 && <span className={`h-px flex-1 ${step > n ? 'bg-gray-900' : 'bg-gray-200'}`} />}
-              </div>
-            ))}
-          </div>
-          <p className="mt-2 text-sm font-medium text-gray-900">{stepTitles[step - 1]}</p>
-          <p className="text-xs text-gray-500">Paso {step} de 3</p>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-0">
 
           {/* ══════════════════════════════════════════════
-              SECTION 1: MEDIA (Visual-first — this is the hook)
+              TYPE — what are you sharing?
               ══════════════════════════════════════════════ */}
-          {step === 1 && (
+          {storeType === 'general' && (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-5">
+            <div className="space-y-2.5">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                ¿Qué quieres compartir?
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {(Object.entries(TYPE_CONFIG) as [ListingType, typeof config][]).map(([type, cfg]) => {
+                  const isActive = listingType === type
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => {
+                        setListingType(type)
+                        // Keep the category when it exists in the new
+                        // type's list; only clear when it doesn't apply.
+                        setCategory((prev) => (prev && categoriesForType(type).includes(prev) ? prev : ''))
+                      }}
+                      className={`
+                        relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all
+                        ${isActive
+                          ? `${cfg.colorBorder} ${cfg.colorBg}`
+                          : 'border-gray-100 bg-white hover:bg-gray-50 hover:border-gray-200'
+                        }
+                      `}
+                    >
+                      <cfg.Icon className={`h-5 w-5 ${isActive ? cfg.color : 'text-gray-400'}`} />
+                      <span className={`text-xs font-medium leading-tight text-center ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
+                        {cfg.label}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Quick shortcuts — popular topics */}
+              <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                <span className="text-[10px] text-gray-400 mr-0.5">Popular:</span>
+                {QUICK_SHORTCUTS.map((shortcut) => {
+                  const isActive = listingType === shortcut.type && category === shortcut.category
+                  return (
+                    <button
+                      key={shortcut.category}
+                      type="button"
+                      onClick={() => {
+                        setListingType(shortcut.type)
+                        setCategory(shortcut.category)
+                      }}
+                      className={`
+                        inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium
+                        border transition-all
+                        ${isActive
+                          ? `${shortcut.accentBg} ${shortcut.accentBorder} ${shortcut.accent}`
+                          : 'border-gray-150 bg-white text-gray-500 hover:bg-gray-50 hover:border-gray-250'
+                        }
+                      `}
+                    >
+                      <shortcut.Icon className={`h-3 w-3 ${isActive ? shortcut.accent : 'text-gray-400'}`} />
+                      {shortcut.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+          )}
+
+          {/* ══════════════════════════════════════════════
+              PHOTOS — visual first
+              ══════════════════════════════════════════════ */}
           <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
             <div
               onDrop={handleDrop}
@@ -486,6 +548,7 @@ export default function NewListingPage() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                capture="environment"
                 multiple
                 onChange={handleImageChange}
                 className="hidden"
@@ -541,80 +604,10 @@ export default function NewListingPage() {
               )}
             </div>
           </div>
-          )}
 
           {/* ══════════════════════════════════════════════
-              SECTION 2: WHAT ARE YOU SHARING? (Type + core info)
+              CORE DETAILS — title, description, price, category
               ══════════════════════════════════════════════ */}
-          {step === 1 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-5">
-
-            {/* Type selector */}
-            {storeType === 'general' && (
-              <div className="space-y-2.5">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  ¿Qué quieres compartir?
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {(Object.entries(TYPE_CONFIG) as [ListingType, typeof config][]).map(([type, cfg]) => {
-                    const isActive = listingType === type
-                    return (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => { setListingType(type); setCategory('') }}
-                        className={`
-                          relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all
-                          ${isActive
-                            ? `${cfg.colorBorder} ${cfg.colorBg}`
-                            : 'border-gray-100 bg-white hover:bg-gray-50 hover:border-gray-200'
-                          }
-                        `}
-                      >
-                        <cfg.Icon className={`h-5 w-5 ${isActive ? cfg.color : 'text-gray-400'}`} />
-                        <span className={`text-xs font-medium leading-tight text-center ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
-                          {cfg.label}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-
-                {/* Quick shortcuts — popular topics */}
-                <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                  <span className="text-[10px] text-gray-400 mr-0.5">Popular:</span>
-                  {QUICK_SHORTCUTS.map((shortcut) => {
-                    const isActive = listingType === shortcut.type && category === shortcut.category
-                    return (
-                      <button
-                        key={shortcut.category}
-                        type="button"
-                        onClick={() => {
-                          setListingType(shortcut.type)
-                          setCategory(shortcut.category)
-                        }}
-                        className={`
-                          inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium
-                          border transition-all
-                          ${isActive
-                            ? `${shortcut.accentBg} ${shortcut.accentBorder} ${shortcut.accent}`
-                            : 'border-gray-150 bg-white text-gray-500 hover:bg-gray-50 hover:border-gray-250'
-                          }
-                        `}
-                      >
-                        <shortcut.Icon className={`h-3 w-3 ${isActive ? shortcut.accent : 'text-gray-400'}`} />
-                        {shortcut.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-          </div>
-          )}
-
-          {step === 2 && (
           <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-5">
             {/* Title */}
             <div className="space-y-1.5">
@@ -626,6 +619,7 @@ export default function NewListingPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
+                maxLength={LISTING_TITLE_MAX}
                 placeholder={config.titlePlaceholder}
                 className="text-base"
               />
@@ -641,6 +635,7 @@ export default function NewListingPage() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 required
+                maxLength={LISTING_DESC_MAX}
                 placeholder={config.descPlaceholder}
                 rows={listingType === 'news' ? 6 : 4}
                 className="resize-none"
@@ -691,7 +686,7 @@ export default function NewListingPage() {
                       <SelectValue placeholder="Elige una categoría" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categoriesForType.map((cat) => (
+                      {categories.map((cat) => (
                         <SelectItem key={cat} value={cat}>
                           {t.categories.find(c => c.value === cat)?.label ?? cat}
                         </SelectItem>
@@ -712,11 +707,37 @@ export default function NewListingPage() {
                 </div>
               ) : null}
             </div>
-
           </div>
-          )}
 
-          {step === 3 && (
+          {/* ══════════════════════════════════════════════
+              LOCATION
+              ══════════════════════════════════════════════ */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-4">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicación</p>
+            <LocationPicker
+              city={city}
+              stateRegion={stateRegion}
+              country={countryCode}
+              onCityChange={setCity}
+              onStateRegionChange={setStateRegion}
+              onCountryChange={setCountryCode}
+              onCountryCodeChange={setGpsCountryCode}
+            />
+            <div className="space-y-1.5">
+              <Label htmlFor="location" className="text-sm">Colonia / Barrio</Label>
+              <Input
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Ej: Centro, La Rumorosa, Col. Libertad"
+              />
+            </div>
+          </div>
+
+          {/* ══════════════════════════════════════════════
+              TYPE-SPECIFIC FIELDS — only when they apply
+              ══════════════════════════════════════════════ */}
+          {(isRealEstate || isAutomotive) && (
           <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-5">
             {/* Real Estate Fields — only for real-estate categories/stores */}
             {isRealEstate && (
@@ -798,42 +819,11 @@ export default function NewListingPage() {
                 </div>
               </>
             )}
-            {!isRealEstate && !isAutomotive && (
-              <p className="text-sm text-gray-500">No hay detalles adicionales para este tipo. Puedes agregar un video o etiquetar un negocio en Opciones adicionales abajo.</p>
-            )}
           </div>
           )}
 
-          {step === 2 && (<>
           {/* ══════════════════════════════════════════════
-              SECTION 3: LOCATION
-              ══════════════════════════════════════════════ */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicación</p>
-            <LocationPicker
-              city={city}
-              stateRegion={stateRegion}
-              country={countryCode}
-              onCityChange={setCity}
-              onStateRegionChange={setStateRegion}
-              onCountryChange={setCountryCode}
-              onCountryCodeChange={setGpsCountryCode}
-            />
-            <div className="space-y-1.5">
-              <Label htmlFor="location" className="text-sm">Colonia / Barrio</Label>
-              <Input
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Ej: Centro, La Rumorosa, Col. Libertad"
-              />
-            </div>
-          </div>
-          </>)}
-
-          {step === 3 && (<>
-          {/* ══════════════════════════════════════════════
-              SECTION 4: EXTRAS (collapsible — reduce overwhelm)
+              EXTRAS (collapsible — reduce overwhelm)
               ══════════════════════════════════════════════ */}
           <div className="bg-white rounded-xl border border-gray-200 mb-4 overflow-hidden">
             <button
@@ -894,37 +884,24 @@ export default function NewListingPage() {
               </div>
             )}
           </div>
-          </>)}
 
           {/* ══════════════════════════════════════════════
-              SECTION 5: NAVIGATION / SUBMIT
+              STICKY PUBLISH BAR — the action is always visible
               ══════════════════════════════════════════════ */}
-          {error && (
-            <div className="text-sm text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl mb-4">
-              {error}
-            </div>
-          )}
-
-          <div className="flex gap-3">
-            {step > 1 && (
-              <Button type="button" variant="outline" onClick={goBack} disabled={loading} className="h-12 px-6 rounded-xl">
-                Atrás
-              </Button>
+          <div className="sticky bottom-0 z-20 -mx-4 px-4 pt-2 pb-3 mt-6 bg-white/95 backdrop-blur border-t border-gray-200">
+            {error && (
+              <div className="text-sm text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl mb-3">
+                {error}
+              </div>
             )}
-            {step < 3 ? (
-              <Button type="button" onClick={goNext} disabled={loading} className="flex-1 h-12 text-base font-medium rounded-xl">
-                Siguiente
+            <div className="flex gap-3">
+              <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading} className="h-12 px-5 rounded-xl">
+                Cancelar
               </Button>
-            ) : (
               <Button type="submit" disabled={loading} className="flex-1 h-12 text-base font-medium rounded-xl">
                 {loading ? 'Publicando...' : 'Publicar'}
               </Button>
-            )}
-            {step === 1 && (
-              <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading} className="h-12 px-6 rounded-xl">
-                Cancelar
-              </Button>
-            )}
+            </div>
           </div>
         </form>
       </main>

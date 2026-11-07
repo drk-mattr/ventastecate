@@ -9,14 +9,13 @@
 // server-side (403). Reporting a review opens a review in
 // /admin/reports; it never hides the review.
 
-import { useState, useTransition } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { UserAvatar } from '@/components/ui/user-avatar'
-import { Textarea } from '@/components/ui/textarea'
 import type { BusinessReview } from '@/lib/types/database'
 import { ReviewStars } from '@/components/businesses/review-stars'
-import { Flag, Star } from 'lucide-react'
+import { ReviewForm } from '@/components/businesses/review-form'
+import { Flag } from 'lucide-react'
 
 const REPORT_REASONS = [
   { value: 'business_review_spam', label: 'Spam' },
@@ -51,57 +50,12 @@ export function BusinessReviews({
   const myReview = currentUserId
     ? reviews.find((r) => r.user_id === currentUserId)
     : undefined
-  const [rating, setRating] = useState(myReview?.rating ?? 0)
-  const [hoverRating, setHoverRating] = useState(0)
-  const [body, setBody] = useState(myReview?.body ?? '')
-  const [error, setError] = useState('')
-  const [saved, setSaved] = useState(false)
-  const [isPending, startTransition] = useTransition()
   const [reportingId, setReportingId] = useState<string | null>(null)
   const [reportedIds, setReportedIds] = useState<Set<string>>(new Set())
 
   const count = reviews.length
   const average =
     count > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / count : 0
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (rating < 1 || rating > 5) {
-      setError('Elige una calificación de 1 a 5 estrellas')
-      return
-    }
-    if (body.length > 1000) {
-      setError('La opinión no puede superar 1000 caracteres')
-      return
-    }
-    setError('')
-
-    startTransition(async () => {
-      const res = await fetch(`/api/businesses/${businessId}/reviews`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating, body: body.trim() || undefined }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(
-          typeof data?.error === 'string' && data.error
-            ? data.error
-            : 'No se pudo guardar tu opinión. Intenta de nuevo.',
-        )
-        return
-      }
-      if (data?.review) {
-        const savedReview = data.review as BusinessReview
-        setReviews((prev) => {
-          const others = prev.filter((r) => r.user_id !== savedReview.user_id)
-          return [savedReview, ...others]
-        })
-        setSaved(true)
-        setTimeout(() => setSaved(false), 2500)
-      }
-    })
-  }
 
   const handleReport = async (reviewId: string, reason: string) => {
     const res = await fetch(`/api/businesses/${businessId}/reviews/${reviewId}/report`, {
@@ -206,55 +160,20 @@ export function BusinessReviews({
         </div>
       )}
 
-      {/* Review form — signed-in only, never the claimed owner. */}
+      {/* Review form — signed-in only, never the claimed owner.
+          The form itself lives in review-form.tsx, shared with the
+          review pop-up; a save here updates this section's list. */}
       {currentUserId && !isOwner && (
-        <form onSubmit={handleSubmit} className="space-y-2">
-          <p className="text-sm font-medium">
-            {myReview ? 'Tu opinión' : 'Escribe tu opinión'}
-          </p>
-          <div
-            className="flex items-center gap-1"
-            onMouseLeave={() => setHoverRating(0)}
-            role="radiogroup"
-            aria-label="Calificación de 1 a 5 estrellas"
-          >
-            {[1, 2, 3, 4, 5].map((n) => {
-              const active = n <= (hoverRating || rating)
-              return (
-                <button
-                  key={n}
-                  type="button"
-                  role="radio"
-                  aria-checked={rating === n}
-                  aria-label={`${n} ${n === 1 ? 'estrella' : 'estrellas'}`}
-                  onMouseEnter={() => setHoverRating(n)}
-                  onClick={() => setRating(n)}
-                  className="p-0.5"
-                >
-                  <Star
-                    className={`h-6 w-6 ${active ? 'text-gray-900' : 'text-gray-300'}`}
-                    fill={active ? 'currentColor' : 'none'}
-                  />
-                </button>
-              )
-            })}
-          </div>
-          <Textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Cuéntales a otros cómo te fue (opcional)..."
-            rows={3}
-            maxLength={1000}
-            disabled={isPending}
-          />
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-400">{body.length}/1000</span>
-            <Button type="submit" size="sm" disabled={isPending || rating < 1}>
-              {isPending ? 'Guardando...' : saved ? 'Guardada' : myReview ? 'Actualizar opinión' : 'Publicar opinión'}
-            </Button>
-          </div>
-          {error && <p className="text-xs text-red-600">{error}</p>}
-        </form>
+        <ReviewForm
+          businessId={businessId}
+          myReview={myReview}
+          onSaved={(savedReview) => {
+            setReviews((prev) => {
+              const others = prev.filter((r) => r.user_id !== savedReview.user_id)
+              return [savedReview, ...others]
+            })
+          }}
+        />
       )}
 
       {currentUserId && isOwner && (

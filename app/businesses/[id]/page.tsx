@@ -9,6 +9,7 @@ import { BusinessEngagementBar } from '@/components/businesses/business-engageme
 import { BusinessOfferings } from '@/components/businesses/business-offerings'
 import { BusinessPhotoGallery } from '@/components/businesses/business-photo-gallery'
 import { BusinessReviews } from '@/components/businesses/business-reviews'
+import { BusinessReviewOpener } from '@/components/businesses/review-opener'
 import { ReviewStars } from '@/components/businesses/review-stars'
 import type { BusinessReview } from '@/lib/types/database'
 import { ContributionFlag } from '@/components/businesses/contribution-flag'
@@ -91,8 +92,17 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   }
 }
 
-export default async function BusinessPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function BusinessPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams?: Promise<{ review?: string }>
+}) {
   const { id } = await params
+  // Deep link: ?review=1 opens the page with the review pop-up open.
+  const sp = (await searchParams) ?? {}
+  const openReview = sp.review === '1'
   const supabase = await createClient()
   const { data: business } = await supabase
     .from('businesses')
@@ -205,6 +215,7 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
   const reviewAverage =
     reviewCount > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount : 0
   const isOwner = Boolean(currentUser && claimedBy && claimedBy === currentUser.id)
+  const myReview = currentUser ? reviews.find((r) => r.user_id === currentUser.id) : undefined
 
   // Follow / like, rendered once and placed either over the gallery
   // (when there are photos) or in the identity block (when not).
@@ -262,13 +273,32 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
                 )}
                 <span>{business.mention_count ?? 0} {(business.mention_count ?? 0) === 1 ? 'mención' : 'menciones'}</span>
               </div>
-              {reviewsAvailable && reviewCount > 0 && (
-                <p className="mt-2 flex items-center gap-2 text-sm">
-                  <ReviewStars value={reviewAverage} />
-                  <a href="#opiniones" className="text-gray-600 hover:underline">
-                    {reviewAverage.toFixed(1)} · {reviewCount} {reviewCount === 1 ? 'opinión' : 'opiniones'}
-                  </a>
-                </p>
+              {/* Reviews aggregate + the visible "Opinar" entry point.
+                  The aggregate alone gave no way in when there were no
+                  reviews yet — the Opiniones section sits at the bottom
+                  of a long page — so the button lives here, next to it,
+                  and ?review=1 opens its pop-up on load. */}
+              {reviewsAvailable && (
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+                  {reviewCount > 0 ? (
+                    <p className="flex items-center gap-2 text-sm">
+                      <ReviewStars value={reviewAverage} />
+                      <a href="#opiniones" className="text-gray-600 hover:underline">
+                        {reviewAverage.toFixed(1)} · {reviewCount} {reviewCount === 1 ? 'opinión' : 'opiniones'}
+                      </a>
+                    </p>
+                  ) : (
+                    <span className="text-sm text-gray-400">Aún no hay opiniones</span>
+                  )}
+                  <BusinessReviewOpener
+                    businessId={id}
+                    businessName={business.name}
+                    currentUserId={currentUser?.id ?? null}
+                    isOwner={isOwner}
+                    myReview={myReview ?? null}
+                    defaultOpen={openReview}
+                  />
+                </div>
               )}
               {business.store ? (
                 <p className="text-sm text-gray-500 mt-2 flex items-center gap-1">

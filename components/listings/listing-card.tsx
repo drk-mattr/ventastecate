@@ -34,12 +34,13 @@ const NEWS_CATEGORY_COLORS: Record<string, string> = {
   'Empleos':               'text-gray-500',
 }
 
-// Lost posts carry a SE BUSCA banner strip across the top of the
-// image/card — the poster treatment the user picked (Spanish-first).
-const SE_BUSCA_BANNER = (
-  <div className="absolute top-0 inset-x-0 z-[5] bg-red-600 px-3 py-1 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-white">
+// Lost posts look like a printed missing-pet poster: "SE BUSCA" in
+// plain red letters above the photo (or title card), the image inset
+// with a white margin on all sides — no banner strip.
+const SE_BUSCA_HEADING = (
+  <p className="shrink-0 px-2.5 pt-2.5 pb-2 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-red-600">
     Se busca
-  </div>
+  </p>
 )
 
 function timeAgo(dateStr: string): string {
@@ -86,15 +87,17 @@ export function ListingCard({ listing }: ListingCardProps) {
     const categoryColor = NEWS_CATEGORY_COLORS[listing.category] || 'text-slate-500'
     const isLostPost = listing.category === 'Objetos Perdidos'
 
-    // Photo-less news: the title card IS the whole card (full poster).
+    // Photo-less news: the title card fills the card (full poster).
     // Meta is a single quiet chip overlaid at the bottom — no white
-    // content area below, no "half poster".
+    // content area below, no "half poster". Lost posts get the
+    // printed-poster treatment instead: red SE BUSCA letters above
+    // and the title card inset with a white margin.
     if (!primaryImage) {
       return (
         <CardShell id={listing.id}>
-          <div className="relative flex-1 aspect-square">
+          {isLostPost && SE_BUSCA_HEADING}
+          <div className={`relative flex-1 aspect-square ${isLostPost ? 'mx-2.5 mb-2.5' : ''}`}>
             <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" />
-            {isLostPost && SE_BUSCA_BANNER}
             {listing.status === 'sold' && soldOverlay}
             <div className="absolute bottom-2 left-2 z-[5] bg-black/45 text-white text-[10px] px-2 py-0.5 rounded-full">
               {timeAgo(listing.created_at)}
@@ -107,14 +110,17 @@ export function ListingCard({ listing }: ListingCardProps) {
     return (
       <CardShell id={listing.id}>
         {isLostPost ? (
-          /* Lost post: full-poster photo (natural ratio, edge-to-edge)
-             with the SE BUSCA banner across the top. No category
-             eyebrow — the banner says what it is. */
-          <div className="relative shrink-0">
-            <Image src={primaryImage} alt={listing.title} width={400} height={600} className="w-full h-auto" />
-            {SE_BUSCA_BANNER}
-            {listing.status === 'sold' && soldOverlay}
-          </div>
+          /* Lost post: a printed-poster look — SE BUSCA in red
+             letters above the photo, the photo inset with a white
+             margin on all sides, natural aspect. No category
+             eyebrow — the heading says what it is. */
+          <>
+            {SE_BUSCA_HEADING}
+            <div className="relative shrink-0 px-2.5">
+              <Image src={primaryImage} alt={listing.title} width={400} height={600} className="w-full h-auto" />
+              {listing.status === 'sold' && soldOverlay}
+            </div>
+          </>
         ) : (
           <div className="px-2.5 pt-2.5 shrink-0">
             <div className="relative aspect-video rounded-sm overflow-hidden">

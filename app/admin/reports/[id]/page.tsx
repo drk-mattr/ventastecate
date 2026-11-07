@@ -16,6 +16,22 @@ const TYPE_LABEL: Record<string, string> = {
   message_other: 'Otro (mensaje)',
   story_spam: 'Historia: spam', story_offensive: 'Historia: contenido ofensivo',
   story_prohibited: 'Historia: contenido prohibido', story_other: 'Historia: otro motivo',
+  item_comment_spam: 'Comentario (artículo): spam', item_comment_offensive: 'Comentario (artículo): contenido ofensivo',
+  item_comment_prohibited: 'Comentario (artículo): contenido prohibido', item_comment_other: 'Comentario (artículo): otro motivo',
+}
+
+async function ItemCommentReportPreview({ commentId }: { commentId: string }) {
+  // Item comments are public-read, so the anon client can see the
+  // reported comment; a deleted comment renders the fallback line.
+  const supabase = await createClient()
+  const { data: comment } = await supabase.from('item_comments').select('id, item_id, body').eq('id', commentId).maybeSingle()
+  if (!comment) return <p className="text-sm mt-3 text-gray-500">Comentario eliminado.</p>
+  return (
+    <div className="mt-3">
+      <p className="text-sm text-gray-800 whitespace-pre-wrap">{comment.body}</p>
+      <p className="text-sm mt-2"><Link href={`/items/${comment.item_id}`} className="underline">Ver artículo comentado</Link></p>
+    </div>
+  )
 }
 
 async function StoryReportPreview({ storyId }: { storyId: string }) {
@@ -61,6 +77,7 @@ export default async function AdminReportDetail({ params }: { params: Promise<{ 
             <p className="text-sm mt-3"><Link href={`/messages?conversation=${report.conversation_id}`} className="underline">Ver conversación reportada</Link></p>
           )}
           {report.story_id && <StoryReportPreview storyId={report.story_id} />}
+          {report.item_comment_id && <ItemCommentReportPreview commentId={report.item_comment_id} />}
           {report.email && <p className="text-xs text-gray-500 mt-3">Email del usuario: {report.email}</p>}
         </div>
         <h2 className="text-lg font-semibold mb-3">Notas y respuestas</h2>

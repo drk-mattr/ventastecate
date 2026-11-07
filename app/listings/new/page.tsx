@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useRef, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
@@ -128,7 +128,7 @@ function categoriesForType(type: ListingType): string[] {
   return PRODUCT_CATEGORIES
 }
 
-export default function NewListingPage() {
+function NewListingForm() {
   const [listingType, setListingType] = useState<ListingType>('product')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -307,6 +307,104 @@ export default function NewListingPage() {
     prefillDoneRef.current = true
     if (city) return
     prefillLocationFromRegion()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [didRestore])
+
+  // Prefill from an item view's "Agrega tu foto" link
+  // (?negocio=<businessId>&item=<itemId>). Runs once, after the
+  // draft decision: a restored draft wins — only what the draft
+  // didn't set gets prefilled. The business is set before the item
+  // tag, because offerings belong to one business.
+  const searchParams = useSearchParams()
+  const prefillItemDoneRef = useRef(false)
+  useEffect(() => {
+    if (!didRestore || prefillItemDoneRef.current) return
+    prefillItemDoneRef.current = true
+    const negocioId = searchParams.get('negocio')
+    const itemId = searchParams.get('item')
+    if (!negocioId && !itemId) return
+    // What the stored draft already set: the business row fetch in
+    // restoreDraft is async, so state may still be null when this
+    // runs — read the stored draft instead of trusting state.
+    let draftBusinessId: string | null = null
+    let draftHasItems = false
+    try {
+      const key = draftKeyForUser(user?.id)
+      const raw = key ? localStorage.getItem(key) : null
+      if (raw) {
+        const parsed = JSON.parse(raw) as { taggedBusinessId?: unknown; selectedItems?: unknown }
+        draftBusinessId =
+          typeof parsed.taggedBusinessId === 'string' ? parsed.taggedBusinessId : null
+        draftHasItems = Array.isArray(parsed.selectedItems) && parsed.selectedItems.length > 0
+      }
+    } catch {
+      // Unreadable draft — prefill proceeds.
+    }
+    const applyItem = (businessId: string) => {
+      if (!itemId || draftHasItems || selectedItems.length > 0) return
+      createClient()
+        .from('items')
+        .select('id, business_id, kind_id, kind:item_kinds(id, name, slug)')
+        .eq('id', itemId)
+        .eq('business_id', businessId)
+        .eq('status', 'visible')
+        .single()
+        .then(({ data }) => {
+          const row = data as {
+            id: string
+            kind_id: string
+            kind?: { name?: string; slug?: string } | null
+          } | null
+          if (row?.kind?.name && row?.kind?.slug) {
+            setSelectedItems([
+              {
+                itemId: row.id,
+                kindId: row.kind_id,
+                kindName: row.kind.name,
+                kindSlug: row.kind.slug,
+              },
+            ])
+          }
+        })
+    }
+    if (negocioId && !draftBusinessId && !taggedBusiness) {
+      createClient()
+        .from('businesses')
+        .select('*')
+        .eq('id', negocioId)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setTaggedBusiness(data as Business)
+            applyItem((data as Business).id)
+          }
+        })
+    } else if (itemId && (draftBusinessId || taggedBusiness)) {
+      applyItem(draftBusinessId ?? taggedBusiness!.id)
+    } else if (itemId) {
+      // No business anywhere yet: learn it from the item, then set both.
+      createClient()
+        .from('items')
+        .select('id, business_id')
+        .eq('id', itemId)
+        .eq('status', 'visible')
+        .single()
+        .then(({ data }) => {
+          const row = data as { id: string; business_id: string } | null
+          if (!row) return
+          createClient()
+            .from('businesses')
+            .select('*')
+            .eq('id', row.business_id)
+            .single()
+            .then(({ data: biz }) => {
+              if (biz) {
+                setTaggedBusiness(biz as Business)
+                applyItem((biz as Business).id)
+              }
+            })
+        })
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [didRestore])
 
@@ -1383,5 +1481,15 @@ export default function NewListingPage() {
         </form>
       </main>
     </div>
+  )
+}
+
+// useSearchParams needs a Suspense boundary (Next 15): the form
+// itself is the inner component, this wrapper is the page.
+export default function NewListingPage() {
+  return (
+    <Suspense>
+      <NewListingForm />
+    </Suspense>
   )
 }

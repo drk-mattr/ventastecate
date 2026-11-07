@@ -175,6 +175,16 @@ export type ListingComment = {
   profile?: Pick<Profile, 'username' | 'display_name' | 'avatar_url'>
 }
 
+/** Item comment (migration 041): a short public note on one offering. */
+export type ItemComment = {
+  id: string
+  item_id: string
+  author_id: string
+  body: string
+  created_at: string
+  profile?: Pick<Profile, 'username' | 'display_name' | 'avatar_url'>
+}
+
 export type Report = {
   id: string
   type: string
@@ -183,6 +193,7 @@ export type Report = {
   listing_id?: string | null
   listing_title?: string | null
   story_id?: string | null
+  item_comment_id?: string | null
   reporter_id?: string | null
   reporter_label?: string | null
   status: 'new' | 'reviewed' | 'resolved'

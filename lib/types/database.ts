@@ -62,6 +62,10 @@ export type Listing = {
   title: string
   description: string
   price: number
+  /** Listing currency (migration 038). Absent pre-038 → treat as MXN. */
+  currency?: 'MXN' | 'USD'
+  /** True when the item is free ("Gratis"); price is 0. Migration 038. */
+  is_free?: boolean
   category: string
   location: string
   country_code?: string | null

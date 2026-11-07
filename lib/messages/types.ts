@@ -17,8 +17,12 @@ export type ConversationProfile = {
 export type ConversationListing = {
   id: string
   title: string
-  /** MXN price; null when the listing has no price. */
+  /** Price; null when the listing has no price. */
   price: number | null
+  /** Listing currency (migration 038). Absent pre-038 → MXN. */
+  currency?: string | null
+  /** True when the item is free ("Gratis"). Migration 038. */
+  is_free?: boolean | null
   /** listings.status: 'active' | 'sold' | 'inactive'. Null when unknown. */
   status: string | null
   /** First listing image (lowest order_index), if the listing has one. */
@@ -73,6 +77,8 @@ export type PendingListing = {
   id: string
   title: string
   price: number | null
+  currency?: string | null
+  is_free?: boolean | null
   status: string | null
   image_url: string | null
 }

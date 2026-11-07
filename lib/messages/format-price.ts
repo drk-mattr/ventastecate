@@ -1,12 +1,14 @@
 /**
- * Messaging v2 Step 3 — MXN price formatting, same rule as the
- * listing detail page: a price of 0 (or missing) means the seller
- * did not set one. Helper lives outside any component (purity lint).
+ * Message-thread price formatting — the strip over a conversation.
+ * Thin wrapper over the shared listing formatter so the thread and
+ * the listing page can never disagree about a price.
  */
-export function formatPrice(price: number | null | undefined): string {
-  if (!price || price <= 0) return 'Consultar precio'
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-  }).format(price)
+import { formatPrice as formatListingPrice } from '@/lib/listings/format-price'
+
+export function formatPrice(
+  price: number | null | undefined,
+  currency?: string | null,
+  opts?: { isFree?: boolean | null },
+): string {
+  return formatListingPrice(price, currency, opts)
 }

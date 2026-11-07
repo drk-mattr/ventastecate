@@ -16,6 +16,7 @@ import { VideoEmbed } from '@/components/listings/video-embed'
 import { ContactSellerButton } from '@/components/messages/contact-seller-button'
 import { MarkSoldButton } from '@/components/listings/mark-sold-button'
 import { getEngagementCounts } from '@/lib/listings/engagement-counts'
+import { formatPrice } from '@/lib/listings/format-price'
 
 // Serialize JSON-LD safely: escape characters that could break out of the
 // <script> tag (prevents stored XSS via user-controlled title/description).
@@ -67,20 +68,24 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     }
   }
 
-  const formattedPrice = new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-  }).format(listing.price)
+  // Price segment only when the listing has a price or is free —
+  // events/news at $0 get no price in the title (no "$0.00").
+  const priceText =
+    listing.price > 0 || listing.is_free
+      ? formatPrice(listing.price, listing.currency, { isFree: listing.is_free })
+      : null
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sortedImages = listing.images?.sort((a: any, b: any) => a.order_index - b.order_index) || []
   const primaryImage = sortedImages[0]?.image_url
 
-  const description = `${listing.title} - ${formattedPrice}. ${listing.description.substring(0, 155)}...`
+  const description = priceText
+    ? `${listing.title} - ${priceText}. ${listing.description.substring(0, 155)}...`
+    : `${listing.title}. ${listing.description.substring(0, 155)}...`
   const url = `${process.env.NEXT_PUBLIC_APP_URL || 'https://ventastecate.com'}/listings/${id}`
 
   return {
-    title: `${listing.title} - ${formattedPrice} | Ventas Tecate`,
+    title: priceText ? `${listing.title} - ${priceText} | Ventas Tecate` : `${listing.title} | Ventas Tecate`,
     description,
     keywords: [
       listing.title,
@@ -207,9 +212,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     taggedBusiness = bizData
   }
 
-  const formattedPrice = listing.price > 0
-    ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(listing.price)
-    : 'Consultar precio'
+  const formattedPrice = formatPrice(listing.price, listing.currency, { isFree: listing.is_free })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sortedImages = listing.images.sort((a: any, b: any) => a.order_index - b.order_index)
@@ -235,7 +238,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       offers: {
         '@type': 'Offer',
         price: listing.price,
-        priceCurrency: 'MXN',
+        priceCurrency: listing.currency === 'USD' ? 'USD' : 'MXN',
         availability: listing.status === 'active' ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
         seller: {
           '@type': 'Person',
@@ -405,7 +408,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               {/* Title, price, meta */}
               <div>
                 <h1 className="text-xl font-semibold mb-1">{listing.title}</h1>
-                {listing.price > 0 && (
+                {(listing.price > 0 || listing.is_free) && (
                   <p className="text-2xl font-semibold text-gray-900 mb-3">{formattedPrice}</p>
                 )}
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 pb-3 border-b">

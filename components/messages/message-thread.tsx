@@ -387,7 +387,7 @@ export function MessageThread({
                 {listing.title}
               </span>
               <span className="block text-xs text-gray-500">
-                {formatPrice(listing.price)}
+                {formatPrice(listing.price, listing.currency, { isFree: listing.is_free })}
                 {listing.status
                   ? ` · ${LISTING_STATUS_LABELS[listing.status] ?? listing.status}`
                   : ''}

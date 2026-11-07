@@ -183,6 +183,7 @@ export type Translations = {
     // Price field
     priceLabel: string
     priceConsultCheckbox: string
+    priceFreeCheckbox: string
     consultPricePlaceholder: string
     // Location
     neighborhoodLabel: string
@@ -319,7 +320,7 @@ const es: Translations = {
     allLocations: 'Todas las ubicaciones',
     nearMe: 'Cerca de mí',
     useMyLocation: 'Usar mi ubicación',
-    price: 'Precio (MXN)',
+    price: 'Precio',
     state: 'Estado / Región',
     city: 'Ciudad',
     sortBy: 'Ordenar por',
@@ -472,8 +473,9 @@ const es: Translations = {
     reportPlaceholder: 'Describe lo que ocurrió con todos los detalles relevantes...',
     categoryLabel: 'Categoría *',
     selectCategoryPlaceholder: 'Selecciona una categoría',
-    priceLabel: 'Precio (MXN)',
+    priceLabel: 'Precio',
     priceConsultCheckbox: 'Precio a consultar',
+    priceFreeCheckbox: 'Gratis',
     consultPricePlaceholder: 'A consultar',
     neighborhoodLabel: 'Colonia / Barrio',
     neighborhoodPlaceholder: 'Ej: Centro, La Rumorosa, Col. Libertad',
@@ -754,6 +756,7 @@ const tl: Translations = {
     selectCategoryPlaceholder: 'Pumili ng kategorya',
     priceLabel: 'Presyo (PHP)',
     priceConsultCheckbox: 'Presyo sa usapan',
+    priceFreeCheckbox: 'Libre',
     consultPricePlaceholder: 'Sa usapan',
     neighborhoodLabel: 'Barangay / Lugar',
     neighborhoodPlaceholder: 'e.g. Sentro, Poblacion',
@@ -1034,6 +1037,7 @@ const en: Translations = {
     selectCategoryPlaceholder: 'Select a category',
     priceLabel: 'Price (USD)',
     priceConsultCheckbox: 'Price on request',
+    priceFreeCheckbox: 'Free',
     consultPricePlaceholder: 'On request',
     neighborhoodLabel: 'Neighborhood / Area',
     neighborhoodPlaceholder: 'e.g. Downtown, Eastside',
@@ -1314,6 +1318,7 @@ const id: Translations = {
     selectCategoryPlaceholder: 'Pilih kategori',
     priceLabel: 'Harga (IDR)',
     priceConsultCheckbox: 'Harga nego',
+    priceFreeCheckbox: 'Gratis',
     consultPricePlaceholder: 'Nego',
     neighborhoodLabel: 'Kelurahan / Kawasan',
     neighborhoodPlaceholder: 'Cth: Pusat Kota, Kec. Gambir',

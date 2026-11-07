@@ -10,7 +10,8 @@ import { CommunityFeed } from '@/components/home/community-feed'
 import { TrendingStrip } from '@/components/home/trending-strip'
 import { TopBusinesses, TopBusiness } from '@/components/businesses/top-businesses'
 import { FirstVisit } from '@/components/home/first-visit'
-import { ListingWithImages } from '@/lib/types/database'
+import { StoriesRail } from '@/components/stories/stories-rail'
+import { ListingWithImages, StoryWithAuthor } from '@/lib/types/database'
 import { getEngagementCounts, attachEngagementCounts } from '@/lib/listings/engagement-counts'
 import { getTranslations } from '@/lib/i18n'
 import { resolveCountry } from '@/lib/mvp-config'
@@ -78,6 +79,27 @@ let topBusinesses: TopBusiness[] = []
   return topBusinesses
 }
 
+// ── Stories: non-expired, newest first. Lives outside the page
+// component for the same purity reason as getTopBusinesses (Date.now()
+// is flagged during render). Pre-040 the table does not exist — the
+// query fails closed and the rail simply stays hidden.
+async function getStories(supabase: Awaited<ReturnType<typeof createClient>>): Promise<StoryWithAuthor[]> {
+  const { data } = await supabase
+    .from('stories')
+    .select('id, image_url, listing_id, business_id, created_at, expires_at, author:profiles(id, username, display_name, avatar_url)')
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(24)
+  const stories: StoryWithAuthor[] = []
+  for (const row of (data || []) as unknown as Array<Record<string, unknown>>) {
+    const rawAuthor = row.author
+    const author = Array.isArray(rawAuthor) ? rawAuthor[0] : rawAuthor
+    if (!author || typeof author !== 'object') continue
+    stories.push({ ...(row as object), author } as StoryWithAuthor)
+  }
+  return stories
+}
+
 export default async function Home({ searchParams }: HomeProps) {
   const supabase = await createClient()
   const { feed: feedParam } = await searchParams
@@ -114,12 +136,15 @@ export default async function Home({ searchParams }: HomeProps) {
     .eq('status', 'active')
   if (townFilter) feedQuery = feedQuery.or(townFilter)
 
+  // One auth lookup for the page: the Siguiendo branch and the stories
+  // rail (add-story affordance) both need to know if someone is signed in.
+  const { data: { user: currentUser } } = await supabase.auth.getUser()
+
   // Following feed: listings from sellers the logged-in user follows,
   // newest first, reusing the same card shell as the main feed.
   let followingIds: string[] = []
   let followedBusinessIds: string[] = []
   if (showFollowing) {
-    const { data: { user: currentUser } } = await supabase.auth.getUser()
     if (currentUser) {
       const { data: follows } = await supabase
         .from('follows')
@@ -179,6 +204,7 @@ export default async function Home({ searchParams }: HomeProps) {
   const { data: trendingRaw } = await trendingQuery.limit(12)
 
   const topBusinesses = await getTopBusinesses(supabase, feedTowns)
+  const stories = await getStories(supabase)
 
   // Real engagement counts for the feed + trending rows, in one call.
   // The `*` select above never carries likes/saves/comments (those
@@ -203,6 +229,10 @@ export default async function Home({ searchParams }: HomeProps) {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       <main className="flex-1">
+        {/* Stories: circles at the top, WhatsApp/Instagram pattern.
+            Renders nothing until a real story exists (or someone is
+            signed in and can add one). */}
+        <StoriesRail stories={stories} signedIn={Boolean(currentUser)} />
         {/* No hero anymore: search lives in the header nav bar, and this
             slim row keeps the type/category shortcuts. The space the
             hero took is now the Top section below. */}

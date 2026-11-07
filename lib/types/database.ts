@@ -182,11 +182,27 @@ export type Report = {
   email?: string | null
   listing_id?: string | null
   listing_title?: string | null
+  story_id?: string | null
   reporter_id?: string | null
   reporter_label?: string | null
   status: 'new' | 'reviewed' | 'resolved'
   created_at: string
   updated_at: string
+}
+
+/** Story (migration 040): a 24h image post. Images only in v1. */
+export type Story = {
+  id: string
+  author_id: string
+  image_url: string
+  listing_id?: string | null
+  business_id?: string | null
+  created_at: string
+  expires_at: string
+}
+
+export type StoryWithAuthor = Story & {
+  author: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url'>
 }
 
 export type ReportNote = {

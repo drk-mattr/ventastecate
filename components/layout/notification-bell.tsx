@@ -31,6 +31,13 @@ function formatTimeAgo(dateStr: string): string {
 // 2026-11-04) with server-side read state. If that table is unavailable
 // it falls back to the original listing_likes / listing_comments /
 // follows queries, so the bell never breaks on a missing migration.
+//
+// Dedupe (2026-11-06): 'message' rows are excluded here. A new message
+// already badges the message-bubble icon via the unread-messages count,
+// so counting it in the bell too was one event, two badges. The bubble
+// owns messages; the bell owns likes, comments, and follows. The
+// notify_message trigger still writes its rows — they are inert now;
+// dropping the trigger is future housekeeping, not this change.
 
 export function NotificationBell() {
   const { user } = useAuth()
@@ -48,6 +55,7 @@ export function NotificationBell() {
         .from('notifications')
         .select('id, type, actor_id, listing_id, read, created_at')
         .eq('recipient_id', user.id)
+        .neq('type', 'message')
         .order('created_at', { ascending: false })
         .limit(30)
       if (!error && notifs) {

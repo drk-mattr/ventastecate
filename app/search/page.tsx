@@ -21,6 +21,7 @@ interface SearchPageProps {
     stateRegion?: string
     minPrice?: string
     maxPrice?: string
+    currency?: string
     sort?: string
     country?: string
     type?: string
@@ -32,7 +33,7 @@ interface SearchPageProps {
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const supabase = await createClient()
-  const { q, category, location, city, stateRegion, minPrice, maxPrice, sort, country, type, bedrooms, bathrooms, m2 } = await searchParams
+  const { q, category, location, city, stateRegion, minPrice, maxPrice, currency, sort, country, type, bedrooms, bathrooms, m2 } = await searchParams
 
   // Language only: resolveCountry() forces es-MX. Search no longer forces an
   // MX filter (soft region) — a user-chosen country param still filters.
@@ -128,19 +129,20 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     query = query.order('created_at', { ascending: false })
   }
 
-  // Category-specific (metadata) facets (recámaras / baños / m²) live in the
-  // listing's jsonb metadata and must be filtered in JS. To avoid the filter
-  // only inspecting the first page, fetch a larger candidate set when such a
-  // facet is active, then trim back to the display limit after filtering.
-  // (At MVP scale active-listing counts are small; move this to a SQL/RPC jsonb
-  // filter when inventory grows large enough that 500 isn't a safe bound.)
+  // Currency filter (migration 038): MXN / USD / all. No conversion —
+  // the filter only narrows rows, so the price sort stays honest.
+  // Applied in JS, not SQL, like the metadata facets below: pre-038
+  // the currency column doesn't exist, and rows without it are MXN
+  // by definition (every listing entered so far was priced in pesos).
+  const hasCurrencyFilter = currency === 'MXN' || currency === 'USD'
   const hasMetadataFilter = Boolean(bedrooms || bathrooms || m2)
   const DISPLAY_LIMIT = 50
-  const { data: listings } = await query.limit(hasMetadataFilter ? 500 : DISPLAY_LIMIT)
+  const { data: listings } = await query.limit(hasMetadataFilter || hasCurrencyFilter ? 500 : DISPLAY_LIMIT)
 
   const listingsWithImages: ListingWithImages[] = (listings || [])
     .filter((l) => {
       const m = (l.metadata ?? {}) as Record<string, unknown>
+      if (hasCurrencyFilter && ((l.currency ?? 'MXN') !== currency)) return false
       if (bedrooms && Number(m.bedrooms ?? 0) < Number(bedrooms)) return false
       if (bathrooms && Number(m.bathrooms ?? 0) < Number(bathrooms)) return false
       if (m2 && Number(m.construction_m2 ?? 0) < Number(m2)) return false
@@ -157,6 +159,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   if (stateRegion) toggleParams.set('stateRegion', stateRegion)
   if (minPrice) toggleParams.set('minPrice', minPrice)
   if (maxPrice) toggleParams.set('maxPrice', maxPrice)
+  if (currency) toggleParams.set('currency', currency)
   if (sort) toggleParams.set('sort', sort)
   if (!isGlobal) toggleParams.set('country', 'all')
   const toggleHref = `/search?${toggleParams.toString()}`
@@ -226,6 +229,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             location={location}
             minPrice={minPrice}
             maxPrice={maxPrice}
+            currency={currency}
             sort={sort}
             country={country}
             bedrooms={bedrooms}

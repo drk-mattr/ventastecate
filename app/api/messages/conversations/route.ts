@@ -119,6 +119,8 @@ export async function GET(request: NextRequest) {
       id: string
       title: string
       price: number | null
+      currency?: string | null
+      is_free?: boolean | null
       status: string | null
       image_url: string | null
     }
@@ -140,12 +142,32 @@ export async function GET(request: NextRequest) {
       ),
     ]
 
+    // Currency + Gratis (migration 038): the select includes the new
+    // columns when they exist; pre-038 it retries without them so the
+    // thread list never breaks over a missing column (42703).
+    let listings: { id: string; title: string; price: number | null; currency?: string | null; is_free?: boolean | null; status: string | null }[] | null = null
+    let listingsError: { message: string; code?: string } | null = null
+    {
+      const first = await supabase
+        .from('listings')
+        .select('id, title, price, currency, is_free, status')
+        .in('id', listingIds)
+      listings = first.data
+      listingsError = first.error
+      if (listingsError && (listingsError.code === '42703' || listingsError.code === 'PGRST204')) {
+        const retry = await supabase
+          .from('listings')
+          .select('id, title, price, status')
+          .in('id', listingIds)
+        listings = retry.data
+        listingsError = retry.error
+      }
+    }
+
     const [
-      { data: listings, error: listingsError },
       { data: profiles, error: profilesError },
       { data: images, error: imagesError },
     ] = await Promise.all([
-      supabase.from('listings').select('id, title, price, status').in('id', listingIds),
       supabase
         .from('profiles')
         .select('id, username, display_name, avatar_url')
@@ -178,6 +200,8 @@ export async function GET(request: NextRequest) {
           id: row.id,
           title: row.title,
           price: row.price ?? null,
+          currency: row.currency ?? null,
+          is_free: row.is_free ?? null,
           status: row.status ?? null,
           image_url: imageByListing.get(row.id) ?? null,
         })

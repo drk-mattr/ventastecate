@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Wrench, Megaphone, Store, Play } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ListingWithImages } from '@/lib/types/database'
+import { formatPrice } from '@/lib/listings/format-price'
 
 interface ListingCardProps {
   listing: ListingWithImages
@@ -61,9 +62,7 @@ export function ListingCard({ listing }: ListingCardProps) {
   const isNews = listingType === 'news'
   const hasVideo = !!listing.video_url
 
-  const formattedPrice = listing.price > 0
-    ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(listing.price)
-    : null
+  const formattedPrice = formatPrice(listing.price, listing.currency, { isFree: listing.is_free })
 
   const soldOverlay = (
     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -123,7 +122,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         <div className="px-2.5 py-1.5">
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-gray-400 truncate">{listing.location}</span>
-            {formattedPrice && (
+            {(listing.price > 0 || listing.is_free) && (
               <span className="text-[11px] font-semibold text-gray-900 shrink-0 ml-1">{formattedPrice}</span>
             )}
           </div>
@@ -175,7 +174,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       <div className="px-2 py-1.5 flex flex-col flex-1">
         {/* Price — the dominant element */}
         <p className="text-[15px] font-bold text-gray-900 leading-tight">
-          {formattedPrice || 'Consultar precio'}
+          {formattedPrice}
         </p>
         {/* Title — secondary, single line */}
         {primaryImage && (

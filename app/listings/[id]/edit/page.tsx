@@ -96,6 +96,9 @@ export default function EditListingPage() {
   const [error, setError] = useState('')
   const [listingType, setListingType] = useState<ListingType>('product')
   const [priceConsultar, setPriceConsultar] = useState(false)
+  // Currency (migration 038) + Gratis as its own state (not consultar).
+  const [currency, setCurrency] = useState<'MXN' | 'USD'>('MXN')
+  const [isFree, setIsFree] = useState(false)
   const [metadataType, setMetadataType] = useState<string | null>(null)
 
   // Real estate metadata
@@ -160,7 +163,9 @@ export default function EditListingPage() {
       setTitle(listing.title)
       setDescription(listing.description)
       setPrice(listing.price > 0 ? String(listing.price) : '')
-      setPriceConsultar(listing.price === 0)
+      setCurrency((listing.currency as 'MXN' | 'USD') || 'MXN')
+      setIsFree(!!listing.is_free)
+      setPriceConsultar(listing.price === 0 && !listing.is_free)
       setCategory(listing.category)
       setLocation(listing.location)
       setCity(listing.city || '')
@@ -233,7 +238,7 @@ export default function EditListingPage() {
     setError('')
 
     try {
-      const finalPrice = priceConsultar ? 0 : parseFloat(price)
+      const finalPrice = (priceConsultar || isFree) ? 0 : parseFloat(price)
 
       // Validate user input before touching the DB.
       const validationError = firstListingError({ title, description, price: finalPrice })
@@ -270,23 +275,33 @@ export default function EditListingPage() {
         } as AutomotiveMetadata
       }
 
-      // Update listing fields
-      const { error: updateError } = await supabase
+      // Update listing fields — currency + Gratis (migration 038),
+      // with the same 42703 retry-without-them fallback the new form
+      // uses: pre-038 the columns don't exist yet.
+      const updateBase = {
+        title,
+        description,
+        price: finalPrice,
+        category,
+        location,
+        city: normalizeTownName(city),
+        state_region: stateRegion || null,
+        country_code: countryCode,
+        metadata,
+        status,
+      }
+      let updateError = (await supabase
         .from('listings')
-        .update({
-          title,
-          description,
-          price: finalPrice,
-          category,
-          location,
-          city: normalizeTownName(city),
-          state_region: stateRegion || null,
-          country_code: countryCode,
-          metadata,
-          status,
-        })
+        .update({ ...updateBase, currency, is_free: isFree })
         .eq('id', id)
-        .eq('user_id', user.id)
+        .eq('user_id', user.id)).error
+      if (updateError && (updateError.code === '42703' || updateError.code === 'PGRST204')) {
+        updateError = (await supabase
+          .from('listings')
+          .update(updateBase)
+          .eq('id', id)
+          .eq('user_id', user.id)).error
+      }
 
       if (updateError) throw updateError
 
@@ -407,28 +422,57 @@ export default function EditListingPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="price">{f.priceLabel} {priceConsultar ? '' : '*'}</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    required={!priceConsultar}
-                    disabled={priceConsultar}
-                    placeholder={priceConsultar ? f.consultPricePlaceholder : '1000.00'}
-                  />
-                  {(listingType === 'service' || listingType === 'event') && (
-                    <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={priceConsultar}
-                        onChange={(e) => { setPriceConsultar(e.target.checked); if (e.target.checked) setPrice('') }}
-                        className="rounded"
+                  <Label htmlFor="price">{f.priceLabel} {(priceConsultar || isFree) ? '' : '*'}</Label>
+                  <div className="flex gap-2">
+                    <div className="min-w-0 flex-1">
+                      <Input
+                        id="price"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        required={!priceConsultar && !isFree}
+                        disabled={priceConsultar || isFree}
+                        placeholder={isFree ? 'Gratis' : priceConsultar ? f.consultPricePlaceholder : '1000.00'}
                       />
-                      {f.priceConsultCheckbox}
-                    </label>
+                    </div>
+                    {/* Currency — MXN default; USD for cars, rent, etc. */}
+                    <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5" role="group" aria-label="Moneda">
+                      {(['MXN', 'USD'] as const).map((cur) => (
+                        <button
+                          key={cur}
+                          type="button"
+                          onClick={() => setCurrency(cur)}
+                          aria-pressed={currency === cur}
+                          className={`px-2.5 py-1.5 rounded-md text-xs font-medium ${currency === cur ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
+                        >
+                          {cur}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {listingType !== 'news' && (
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={priceConsultar}
+                          onChange={(e) => { setPriceConsultar(e.target.checked); if (e.target.checked) { setPrice(''); setIsFree(false) } }}
+                          className="rounded"
+                        />
+                        {f.priceConsultCheckbox}
+                      </label>
+                      <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isFree}
+                          onChange={(e) => { setIsFree(e.target.checked); if (e.target.checked) { setPrice(''); setPriceConsultar(false) } }}
+                          className="rounded"
+                        />
+                        {f.priceFreeCheckbox}
+                      </label>
+                    </div>
                   )}
                 </div>
 
@@ -642,7 +686,7 @@ export default function EditListingPage() {
                   accept="image/*"
                   multiple
                   onChange={handleImageChange}
-                  disabled={totalImages >= 5}
+                  disabled={totalImages >= MAX_LISTING_IMAGES}
                 />
                 {newImagePreviews.length > 0 && (
                   <div className="grid grid-cols-3 gap-4 mt-4">

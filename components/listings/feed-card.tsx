@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { LikeButton } from '@/components/listings/like-button'
 import { SaveButton } from '@/components/listings/save-button'
 import type { ListingWithImages } from '@/lib/types/database'
+import { formatPrice } from '@/lib/listings/format-price'
 
 interface FeedCardProps {
   listing: ListingWithImages
@@ -58,9 +59,7 @@ export function FeedCard({ listing }: FeedCardProps) {
   const isNews = listingType === 'news'
   const isEvent = listingType === 'event'
 
-  const formattedPrice = listing.price > 0
-    ? new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(listing.price)
-    : null
+  const formattedPrice = formatPrice(listing.price, listing.currency, { isFree: listing.is_free })
 
   const newsCatColor = isNews ? (NEWS_CATEGORY_COLORS[listing.category] || 'bg-slate-50 text-slate-600') : ''
 
@@ -125,7 +124,7 @@ export function FeedCard({ listing }: FeedCardProps) {
             {listing.title}
           </h3>
           {/* Price for products/services */}
-          {!isNews && !isEvent && formattedPrice && (
+          {!isNews && !isEvent && (listing.price > 0 || listing.is_free) && (
             <p className="text-lg font-bold text-gray-900 mb-1">{formattedPrice}</p>
           )}
           {/* Description preview */}

@@ -14,6 +14,7 @@ interface Props {
   location?: string
   minPrice?: string
   maxPrice?: string
+  currency?: string
   sort?: string
   country?: string
   bedrooms?: string
@@ -28,7 +29,7 @@ const REAL_ESTATE_CATEGORIES = ['Casas en Renta', 'Casas en Venta']
  * price and location are shown as live inline fields. Scrolls horizontally on
  * small screens. Inline fields apply on Enter; dropdowns apply on select.
  */
-export function SearchFilterBar({ query, category, location, minPrice, maxPrice, sort, country, bedrooms, bathrooms, m2 }: Props) {
+export function SearchFilterBar({ query, category, location, minPrice, maxPrice, currency, sort, country, bedrooms, bathrooms, m2 }: Props) {
   const router = useRouter()
   const t = useTranslations()
 
@@ -51,6 +52,7 @@ export function SearchFilterBar({ query, category, location, minPrice, maxPrice,
       location,
       minPrice,
       maxPrice,
+      currency,
       sort,
       bedrooms,
       bathrooms,
@@ -101,7 +103,7 @@ export function SearchFilterBar({ query, category, location, minPrice, maxPrice,
     : t.search.category
   const sortLabel =
     sort === 'price_asc' ? t.search.priceLowHigh : sort === 'price_desc' ? t.search.priceHighLow : t.search.newest
-  const hasFilters = catActive || !!location || !!minPrice || !!maxPrice || !!sort || !!bedrooms || !!bathrooms || !!m2
+  const hasFilters = catActive || !!location || !!minPrice || !!maxPrice || !!currency || !!sort || !!bedrooms || !!bathrooms || !!m2
 
   const trigger = (active: boolean) =>
     `inline-flex items-center gap-1 h-9 text-sm whitespace-nowrap shrink-0 transition-colors ${
@@ -149,6 +151,28 @@ export function SearchFilterBar({ query, category, location, minPrice, maxPrice,
           <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
           <Input type="number" placeholder="máx" value={max} onChange={(e) => setMax(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && applyPrice()} className="h-9 w-20 sm:w-24 pl-6 text-sm" />
         </div>
+      </div>
+
+      {divider}
+
+      {/* Moneda — no conversion: MXN / USD / Todas only narrows rows,
+          so the price sort stays honest within the filtered set. */}
+      <div className="flex rounded-lg border border-gray-200 bg-gray-50 p-0.5 shrink-0" role="group" aria-label="Moneda">
+        {[
+          { value: undefined, label: 'Todas' },
+          { value: 'MXN', label: 'MXN' },
+          { value: 'USD', label: 'USD' },
+        ].map((opt) => (
+          <button
+            key={opt.label}
+            type="button"
+            onClick={() => go({ currency: opt.value })}
+            aria-pressed={(currency || '') === (opt.value || '')}
+            className={`px-2 py-1 rounded-md text-xs font-medium ${((currency || '') === (opt.value || '')) ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
+          >
+            {opt.label}
+          </button>
+        ))}
       </div>
 
       {divider}
@@ -254,7 +278,7 @@ export function SearchFilterBar({ query, category, location, minPrice, maxPrice,
       {hasFilters && (
         <button
           type="button"
-          onClick={() => go({ category: undefined, location: undefined, minPrice: undefined, maxPrice: undefined, sort: undefined, bedrooms: undefined, bathrooms: undefined, m2: undefined })}
+          onClick={() => go({ category: undefined, location: undefined, minPrice: undefined, maxPrice: undefined, currency: undefined, sort: undefined, bedrooms: undefined, bathrooms: undefined, m2: undefined })}
           className="inline-flex items-center gap-1 h-9 px-1 text-sm text-gray-400 hover:text-gray-700 shrink-0"
         >
           <X className="h-3.5 w-3.5" />

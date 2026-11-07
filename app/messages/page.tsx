@@ -252,12 +252,26 @@ function MessagesContent() {
       // No thread yet: load the listing (and seller) for the pending
       // header. The seller must own the listing — the same check the
       // conversations INSERT policy enforces at send time.
-      const [{ data: listing }, { data: seller }] = await Promise.all([
-        supabase
+      // Currency + Gratis (migration 038): try with the new columns,
+      // retry without them pre-038 so the pending strip never breaks
+      // over a missing column (42703).
+      const fetchPendingListing = async () => {
+        const first = await supabase
           .from('listings')
-          .select('id, title, price, status, user_id')
+          .select('id, title, price, currency, is_free, status, user_id')
           .eq('id', listingId)
-          .single(),
+          .single()
+        if (first.error && (first.error.code === '42703' || first.error.code === 'PGRST204')) {
+          return supabase
+            .from('listings')
+            .select('id, title, price, status, user_id')
+            .eq('id', listingId)
+            .single()
+        }
+        return first
+      }
+      const [{ data: listing }, { data: seller }] = await Promise.all([
+        fetchPendingListing(),
         supabase
           .from('profiles')
           .select('id, username, display_name, avatar_url')
@@ -271,6 +285,8 @@ function MessagesContent() {
         id: string
         title: string
         price: number | null
+        currency?: string | null
+        is_free?: boolean | null
         status: string | null
         user_id: string
       } | null
@@ -295,6 +311,8 @@ function MessagesContent() {
           id: typedListing.id,
           title: typedListing.title,
           price: typedListing.price ?? null,
+          currency: typedListing.currency ?? null,
+          is_free: typedListing.is_free ?? null,
           status: typedListing.status ?? null,
           image_url: (image as { image_url?: string | null } | null)?.image_url ?? null,
         },

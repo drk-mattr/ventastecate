@@ -133,6 +133,10 @@ export default function NewListingPage() {
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
   const [priceConsultar, setPriceConsultar] = useState(false)
+  // Currency (migration 038): MXN default, USD for cars/rent/etc.
+  const [currency, setCurrency] = useState<'MXN' | 'USD'>('MXN')
+  // Gratis is its own state now — not the same checkbox as consultar.
+  const [isFree, setIsFree] = useState(false)
   const [category, setCategory] = useState('')
   const [location, setLocation] = useState('')
   const [city, setCity] = useState('')
@@ -216,7 +220,7 @@ export default function NewListingPage() {
   // localStorage write. Photos are excluded (File objects can't
   // serialize) — the text is what a draft saves.
   const draftValue = {
-    listingType, title, description, price, priceConsultar, category,
+    listingType, title, description, price, priceConsultar, currency, isFree, category,
     location, city, stateRegion, countryCode, videoUrl,
     taggedBusinessId: taggedBusiness?.id ?? null,
     selectedItems,
@@ -230,6 +234,8 @@ export default function NewListingPage() {
     setDescription(d.description || '')
     setPrice(d.price || '')
     setPriceConsultar(!!d.priceConsultar)
+    setCurrency((d.currency as 'MXN' | 'USD') || 'MXN')
+    setIsFree(!!d.isFree)
     setCategory(d.category || '')
     setLocation(d.location || '')
     setCity(d.city || '')
@@ -303,7 +309,7 @@ export default function NewListingPage() {
   const resetForm = () => {
     clearDraft()
     setListingType('product')
-    setTitle(''); setDescription(''); setPrice(''); setPriceConsultar(false)
+    setTitle(''); setDescription(''); setPrice(''); setPriceConsultar(false); setCurrency('MXN'); setIsFree(false)
     setCategory(''); setLocation(''); setCity(''); setStateRegion(''); setCountryCode('MX')
     setGpsCountryCode(null); setVideoUrl(''); setTaggedBusiness(null); setSelectedItems([])
     setPropertyType('casa'); setTransactionType('venta'); setBedrooms(''); setBathrooms('')
@@ -325,7 +331,7 @@ export default function NewListingPage() {
     const errors: Record<string, string> = {}
     if (!title.trim()) errors.title = 'Escribe un título'
     if (!description.trim()) errors.description = 'Escribe una descripción'
-    if (showPrice && !priceConsultar && !price) errors.price = 'Escribe un precio, o marca Precio a consultar / Gratis'
+    if (showPrice && !priceConsultar && !isFree && !price) errors.price = 'Escribe un precio, o marca Precio a consultar / Gratis'
     if (storeType === 'general' && !category) errors.category = 'Elige una categoría'
     const firstId = errors.title
       ? 'title'
@@ -586,7 +592,7 @@ export default function NewListingPage() {
       }
 
       const parsedPrice = parseFloat(price)
-      const finalPrice = listingType === 'news' ? 0 : priceConsultar ? 0 : (Number.isFinite(parsedPrice) ? parsedPrice : 0)
+      const finalPrice = listingType === 'news' ? 0 : (priceConsultar || isFree) ? 0 : (Number.isFinite(parsedPrice) ? parsedPrice : 0)
 
       // Validate user input before touching the DB.
       const validationError = firstListingError({
@@ -601,26 +607,40 @@ export default function NewListingPage() {
         return
       }
 
-      const { data: listing, error: listingError } = await supabase
+      // Currency + Gratis (migration 038): try with the new columns
+      // first; pre-038 the columns don't exist, so retry without them
+      // (same 42703 fallback PR #86 used for sold_at). The price itself
+      // is the core — the currency is a bonus until 038 is applied.
+      const insertBase = {
+        user_id: user.id,
+        store_id: activeStore?.id || null,
+        listing_type: listingType,
+        title, description,
+        price: finalPrice,
+        category: finalCategory,
+        location: location || activeStore?.location || '',
+        country_code: gpsCountryCode ?? countryCode,
+        city: normalizeTownName(city),
+        state_region: stateRegion || null,
+        metadata,
+        video_url: videoUrl || null,
+        tagged_business_id: taggedBusiness?.id || null,
+        status: 'active',
+      }
+      let { data: listing, error: listingError } = await supabase
         .from('listings')
-        .insert({
-          user_id: user.id,
-          store_id: activeStore?.id || null,
-          listing_type: listingType,
-          title, description,
-          price: finalPrice,
-          category: finalCategory,
-          location: location || activeStore?.location || '',
-          country_code: gpsCountryCode ?? countryCode,
-          city: normalizeTownName(city),
-          state_region: stateRegion || null,
-          metadata,
-          video_url: videoUrl || null,
-          tagged_business_id: taggedBusiness?.id || null,
-          status: 'active',
-        })
+        .insert({ ...insertBase, currency, is_free: isFree })
         .select()
         .single()
+      if (listingError && (listingError.code === '42703' || listingError.code === 'PGRST204')) {
+        const retry = await supabase
+          .from('listings')
+          .insert(insertBase)
+          .select()
+          .single()
+        listing = retry.data
+        listingError = retry.error
+      }
 
       if (listingError) throw listingError
 
@@ -945,29 +965,58 @@ export default function NewListingPage() {
               {showPrice && (
                 <div className="space-y-1.5">
                   <Label htmlFor="price" className="text-sm">
-                    Precio (MXN) {!priceConsultar && <span className="text-red-400">*</span>}
+                    Precio {(!priceConsultar && !isFree) && <span className="text-red-400">*</span>}
                   </Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={price}
-                    onChange={(e) => { setPrice(e.target.value); clearFieldError('price') }}
-                    required={!priceConsultar}
-                    disabled={priceConsultar}
-                    placeholder={priceConsultar ? 'A consultar' : '0.00'}
-                  />
+                  <div className="flex gap-2">
+                    <div className="min-w-0 flex-1">
+                      <Input
+                        id="price"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={price}
+                        onChange={(e) => { setPrice(e.target.value); clearFieldError('price') }}
+                        required={!priceConsultar && !isFree}
+                        disabled={priceConsultar || isFree}
+                        placeholder={isFree ? 'Gratis' : priceConsultar ? 'A consultar' : '0.00'}
+                      />
+                    </div>
+                    {/* Currency — MXN default; USD for cars, rent, etc. */}
+                    <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5" role="group" aria-label="Moneda">
+                      {(['MXN', 'USD'] as const).map((cur) => (
+                        <button
+                          key={cur}
+                          type="button"
+                          onClick={() => setCurrency(cur)}
+                          aria-pressed={currency === cur}
+                          className={`px-2.5 py-1.5 rounded-md text-xs font-medium ${currency === cur ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
+                        >
+                          {cur}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   {fieldErrors.price && <p className="text-xs text-red-500">{fieldErrors.price}</p>}
-                  <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={priceConsultar}
-                      onChange={(e) => { setPriceConsultar(e.target.checked); if (e.target.checked) setPrice('') }}
-                      className="rounded border-gray-300"
-                    />
-                    Precio a consultar / Gratis
-                  </label>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={priceConsultar}
+                        onChange={(e) => { setPriceConsultar(e.target.checked); if (e.target.checked) { setPrice(''); setIsFree(false) } }}
+                        className="rounded border-gray-300"
+                      />
+                      Precio a consultar
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={isFree}
+                        onChange={(e) => { setIsFree(e.target.checked); if (e.target.checked) { setPrice(''); setPriceConsultar(false) } }}
+                        className="rounded border-gray-300"
+                      />
+                      Gratis
+                    </label>
+                  </div>
                 </div>
               )}
 

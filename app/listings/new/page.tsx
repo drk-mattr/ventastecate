@@ -949,7 +949,6 @@ function NewListingForm() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 multiple
                 onChange={handleImageChange}
                 className="hidden"

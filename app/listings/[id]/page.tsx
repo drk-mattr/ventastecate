@@ -3,6 +3,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
+import { DetailBackButton } from '@/components/layout/detail-back-button'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { ListingMetadata, RealEstateMetadata, AutomotiveMetadata, ListingType, ListingComment } from '@/lib/types/database'
@@ -182,6 +183,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const isService = listingType === 'service'
   const isEvent = listingType === 'event'
   const isNews = listingType === 'news'
+  const isLostPost = isNews && listing.category === 'Objetos Perdidos'
 
   // Comments live only on news/event listings — product/service
   // conversations happen in DMs (user decision 2026-11-06), so for
@@ -289,12 +291,13 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
         dangerouslySetInnerHTML={{ __html: safeJsonLd(structuredData) }}
       />
       <div className="min-h-screen bg-white">
-        <Header />
-      <main className="container mx-auto px-4 py-6 max-w-7xl">
+        <div className="hidden md:block"><Header /></div>
+        <DetailBackButton />
+      <main className="container mx-auto px-4 pt-0 pb-6 md:py-6 max-w-7xl">
 
         {isNews ? (
           /* ── News / Announcement article layout ── */
-          <article className="max-w-2xl mx-auto">
+          <article className="max-w-2xl mx-auto flex flex-col">
 
             {/* Category badge + breadcrumb */}
             <div className="flex items-center gap-2 mb-4">
@@ -352,20 +355,43 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               )}
             </div>
 
-            {/* Hero image — or the designed title card when a news
-                post has no photo (migration 039). */}
+            {/* Hero FIRST on mobile (order-first) — full-bleed, capped
+                to the first viewport; the badge, title and byline
+                follow below. Desktop keeps the article order (badge,
+                title, byline, hero) via md:order-none. Lost posts get
+                the SE BUSCA banner strip across the top of the hero. */}
             {sortedImages.length > 0 ? (
-              <div className="mb-6 rounded-xl overflow-hidden">
+              <div className="relative order-first md:order-none -mx-4 sm:mx-0 mb-6 rounded-none sm:rounded-xl overflow-hidden">
+                {isLostPost && (
+                  <div className="absolute top-0 inset-x-0 z-[5] bg-red-600 px-3 py-1.5 text-center text-xs font-bold uppercase tracking-[0.2em] text-white">
+                    Se busca
+                  </div>
+                )}
                 <ListingImageGallery
                   images={sortedImages}
                   listingTitle={listing.title}
                   isSold={listing.status === 'sold'}
                   listingType={listingType}
+                  actions={
+                    <div className="md:hidden">
+                      <ListingEngagementBar
+                        listingId={listing.id}
+                        likesCount={likesCount}
+                        savesCount={savesCount}
+                        variant="overlay"
+                      />
+                    </div>
+                  }
                 />
               </div>
             ) : (
-              <div className="mb-6 rounded-xl overflow-hidden">
-                <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="hero" className="aspect-[16/9]" />
+              <div className="relative order-first md:order-none -mx-4 sm:mx-0 mb-6 rounded-none sm:rounded-xl overflow-hidden">
+                {isLostPost && (
+                  <div className="absolute top-0 inset-x-0 z-[5] bg-red-600 px-3 py-1.5 text-center text-xs font-bold uppercase tracking-[0.2em] text-white">
+                    Se busca
+                  </div>
+                )}
+                <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="hero" className="aspect-[16/9] rounded-none sm:rounded-xl" />
               </div>
             )}
 
@@ -386,12 +412,15 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             {/* Tagged business */}
             {taggedBusinessCard}
 
-            {/* Engagement bar */}
-            <ListingEngagementBar
-              listingId={listing.id}
-              likesCount={likesCount}
-              savesCount={savesCount}
-            />
+            {/* Engagement bar — desktop only. On mobile the overlay
+                actions on the hero are the one like control. */}
+            <div className="hidden md:block">
+              <ListingEngagementBar
+                listingId={listing.id}
+                likesCount={likesCount}
+                savesCount={savesCount}
+              />
+            </div>
 
             {/* Comment section */}
             <CommentSection
@@ -412,9 +441,22 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 listingTitle={listing.title}
                 isSold={listing.status === 'sold'}
                 listingType={listingType}
+                fullBleed
+                actions={
+                  <div className="md:hidden">
+                    <ListingEngagementBar
+                      listingId={listing.id}
+                      likesCount={likesCount}
+                      savesCount={savesCount}
+                      variant="overlay"
+                    />
+                  </div>
+                }
               />
             ) : (
-              <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="hero" className="aspect-[16/9] rounded-xl" />
+              <div className="-mx-4 sm:mx-0">
+                <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="hero" className="aspect-[16/9] rounded-none sm:rounded-xl" />
+              </div>
             )}
 
             {/* All event info, stacked below the poster */}
@@ -451,12 +493,15 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">{listing.description}</p>
               </div>
 
-              {/* Like / save / share — was missing entirely on events */}
-              <ListingEngagementBar
-                listingId={listing.id}
-                likesCount={likesCount}
-                savesCount={savesCount}
-              />
+              {/* Like / save / share — desktop only. On mobile the
+                  overlay actions on the poster are the one control. */}
+              <div className="hidden md:block">
+                <ListingEngagementBar
+                  listingId={listing.id}
+                  likesCount={likesCount}
+                  savesCount={savesCount}
+                />
+              </div>
 
               {/* Tagged business */}
               {taggedBusinessCard}
@@ -543,6 +588,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 listingTitle={listing.title}
                 isSold={listing.status === 'sold'}
                 listingType={listingType}
+                fullBleed
                 actions={
                   <ListingEngagementBar
                     listingId={listing.id}
@@ -745,6 +791,43 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           </div>
         )}
       </main>
+
+      {/* Sticky contact bar (mobile only) — replaces the bottom nav
+          on detail pages, so the seller is one tap away from anywhere.
+          Owners get sold/edit actions instead; sold listings hide the
+          bar for non-owners (nothing to contact). */}
+      {(isOwner || listing.status === 'active') && (
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
+          {isOwner ? (
+            <div className="flex items-center gap-2">
+              {isNews ? (
+                <Button asChild variant="outline" className="flex-1">
+                  <Link href={`/listings/${listing.id}/edit`}>Editar</Link>
+                </Button>
+              ) : (
+                <>
+                  <MarkSoldButton listingId={listing.id} initialSold={listing.status === 'sold'} className="flex-1" />
+                  <Button asChild variant="outline" className="shrink-0">
+                    <Link href={`/listings/${listing.id}/edit`}>Editar</Link>
+                  </Button>
+                </>
+              )}
+            </div>
+          ) : (
+            <ContactSellerButton
+              listingId={listing.id}
+              sellerId={listing.user_id}
+              sellerWhatsapp={sellerWhatsapp}
+              listingTitle={listing.title}
+              isOwner={isOwner}
+              isActive={listing.status === 'active'}
+              label="Contactar"
+              compact
+              className="w-full"
+            />
+          )}
+        </div>
+      )}
       </div>
     </>
   )

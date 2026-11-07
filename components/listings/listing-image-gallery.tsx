@@ -14,9 +14,15 @@ interface ListingImageGalleryProps {
   variant?: 'default' | 'side'
   /** Floating actions (like/save/share) rendered over the hero's top-right. */
   actions?: React.ReactNode
+  /** Mobile full-bleed hero: the gallery breaks out of the page
+      container (edge-to-edge) on small screens only. */
+  fullBleed?: boolean
+  /** Optional strip rendered across the top of the hero (e.g. the
+      SE BUSCA banner on lost posts). */
+  banner?: React.ReactNode
 }
 
-export function ListingImageGallery({ images, listingTitle, isSold, listingType = 'product', variant = 'default', actions }: ListingImageGalleryProps) {
+export function ListingImageGallery({ images, listingTitle, isSold, listingType = 'product', variant = 'default', actions, fullBleed = false, banner }: ListingImageGalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [selected, setSelected] = useState(0)
 
@@ -41,7 +47,7 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
   if (isEvent) {
     const posterContent = (
       <>
-        <div className="relative rounded-xl overflow-hidden bg-gray-50 border cursor-pointer" onClick={() => openLightbox(0)}>
+        <div className="relative max-h-[75svh] sm:max-h-none rounded-none sm:rounded-xl overflow-hidden bg-gray-50 border-0 sm:border cursor-pointer" onClick={() => openLightbox(0)}>
           <Image
             src={images[0].image_url}
             alt={listingTitle}
@@ -51,6 +57,12 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
             priority
           />
           {soldOverlay}
+          {banner}
+          {actions && (
+            <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
+              {actions}
+            </div>
+          )}
         </div>
         {images.length > 1 && (
           <div className="flex gap-2 mt-2 overflow-x-auto">
@@ -73,7 +85,7 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
         {variant === 'side' ? (
           <div>{posterContent}</div>
         ) : (
-          <div className="relative mb-6">
+          <div className={`relative mb-6 ${fullBleed ? '-mx-4 sm:mx-0' : ''}`}>
             <div className="max-w-2xl mx-auto">{posterContent}</div>
           </div>
         )}
@@ -90,10 +102,12 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
 
   return (
     <>
-      <div className="mb-6">
-        {/* Hero — full image at natural ratio, letterboxed on a soft blurred fill */}
+      <div className={fullBleed ? '-mx-4 sm:mx-0 mb-6' : 'mb-6'}>
+        {/* Hero — mobile: full-bleed, capped to the first viewport,
+            cropped to fill (object-cover); desktop: 460px box with
+            the image letterboxed, as before. */}
         <div
-          className="relative aspect-square sm:aspect-auto sm:h-[460px] rounded-xl overflow-hidden bg-gray-100 cursor-pointer"
+          className="relative h-[68svh] sm:h-[460px] rounded-none sm:rounded-xl overflow-hidden bg-gray-100 cursor-pointer"
           onClick={() => openLightbox(heroIdx)}
         >
           {/* Blurred backdrop fills the letterbox area */}
@@ -105,15 +119,17 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
             className="object-cover scale-110 blur-2xl opacity-30"
             sizes="(max-width: 1024px) 100vw, 55vw"
           />
-          {/* The actual image — never cropped or stretched */}
+          {/* The actual image — cropped to fill on mobile (the hero
+              is the first viewport), letterboxed on desktop as before. */}
           <Image
             src={hero.image_url}
             alt={listingTitle}
             fill
-            className="object-contain transition-opacity hover:opacity-[0.98]"
+            className="object-cover sm:object-contain transition-opacity hover:opacity-[0.98]"
             sizes="(max-width: 1024px) 100vw, 55vw"
             priority
           />
+          {banner}
           {soldOverlay}
           {actions && (
             <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>

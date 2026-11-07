@@ -6,15 +6,13 @@ import { rateLimit, clientIp } from '@/lib/rate-limit'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 const TYPE_LABELS: Record<string, string> = {
-  bug: '🐛 Bug',
-  suggestion: '💡 Sugerencia',
-  other: '📝 Otro',
+  other: 'Otro',
   // Listing report reasons
-  spam: '🚫 Spam o duplicado',
-  scam: '⚠️ Fraude o estafa',
-  prohibited: '🚷 Artículo prohibido',
-  offensive: '😡 Contenido ofensivo',
-  listing_other: '📝 Otro motivo',
+  spam: 'Spam o duplicado',
+  scam: 'Fraude o estafa',
+  prohibited: 'Artículo prohibido',
+  offensive: 'Contenido ofensivo',
+  listing_other: 'Otro motivo',
 }
 
 export async function POST(request: NextRequest) {
@@ -101,23 +99,23 @@ export async function POST(request: NextRequest) {
     // Send to Discord
     const embed = {
       title: isListingReport
-        ? `🚩 Reporte de anuncio — Ventas Tecate`
-        : `${TYPE_LABELS[type] || type} — Ventas Tecate`,
+        ? `Reporte de anuncio — Ventas Tecate`
+        : `Reporte — Ventas Tecate`,
       description: description ? sanitizeDiscordText(description, 2000) : '—',
-      color: isListingReport ? 0xff4444 : type === 'bug' ? 0xff4444 : type === 'suggestion' ? 0x4488ff : 0x888888,
+      color: isListingReport ? 0xff4444 : 0x888888,
       fields: [
-        ...(reportId ? [{ name: '🗂️ Reporte', value: `${appUrl}/admin/reports/${reportId}`, inline: false }] : []),
+        ...(reportId ? [{ name: 'Reporte', value: `${appUrl}/admin/reports/${reportId}`, inline: false }] : []),
         ...(isListingReport ? [
-          { name: '🏷️ Anuncio',  value: sanitizeDiscordText(listingTitle, 200), inline: false },
-          { name: '🔗 Enlace',   value: listingUrl as string,  inline: false },
-          { name: '🚩 Motivo',   value: TYPE_LABELS[type] || type, inline: true },
+          { name: 'Anuncio',  value: sanitizeDiscordText(listingTitle, 200), inline: false },
+          { name: 'Enlace',   value: listingUrl as string,  inline: false },
+          { name: 'Motivo',   value: TYPE_LABELS[type] || type, inline: true },
         ] : []),
         { name: 'Usuario',       value: sanitizeDiscordText(username, 100), inline: true },
         ...(sanitizeEmailForDisplay(email) ? [{ name: 'Email', value: sanitizeEmailForDisplay(email)!, inline: true }] : []),
-        { name: '📍 Ubicación',  value: locationStr,           inline: false },
-        { name: '🌐 Zona Horaria', value: timezone,            inline: true },
-        { name: '🖥️ IP',         value: `\`${ip}\``,           inline: true },
-        { name: '🔍 User Agent', value: ua.slice(0, 100),      inline: false },
+        { name: 'Ubicación',  value: locationStr,           inline: false },
+        { name: 'Zona horaria', value: timezone,            inline: true },
+        { name: 'IP',         value: `\`${ip}\``,           inline: true },
+        { name: 'User Agent', value: ua.slice(0, 100),      inline: false },
       ],
       timestamp: new Date().toISOString(),
     }

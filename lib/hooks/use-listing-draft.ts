@@ -28,29 +28,34 @@ export function useListingDraft<T extends Record<string, unknown>>(options: {
   const restoredRef = useRef(false)
   const [didRestore, setDidRestore] = useState(false)
   const onRestoreRef = useRef(onRestore)
-  onRestoreRef.current = onRestore
   const valueRef = useRef(value)
-  valueRef.current = value
+  // Refs must not be written during render (react-hooks/refs) — keep
+  // them fresh after every render instead.
+  useEffect(() => {
+    onRestoreRef.current = onRestore
+    valueRef.current = value
+  })
 
   // Restore once, as soon as the key is known. didRestore flips true
   // after the attempt (draft or none) so callers can run follow-ups —
   // e.g. prefilling the city only when the draft left it empty.
+  // The flag is set from a microtask, not synchronously in the effect
+  // body (react-hooks/set-state-in-effect): the restore reads an
+  // external system (localStorage) and the flag only reports that the
+  // read finished.
   useEffect(() => {
     if (!storageKey || restoredRef.current) return
     restoredRef.current = true
     try {
       const raw = localStorage.getItem(storageKey)
-      if (!raw) {
-        setDidRestore(true)
-        return
+      if (raw) {
+        const parsed = JSON.parse(raw) as { version?: number } & T
+        if (parsed.version === DRAFT_VERSION) {
+          onRestoreRef.current(parsed)
+        } else {
+          localStorage.removeItem(storageKey)
+        }
       }
-      const parsed = JSON.parse(raw) as { version?: number } & T
-      if (parsed.version !== DRAFT_VERSION) {
-        localStorage.removeItem(storageKey)
-        setDidRestore(true)
-        return
-      }
-      onRestoreRef.current(parsed)
     } catch {
       // Corrupt draft: drop it rather than breaking the form.
       try {
@@ -59,7 +64,7 @@ export function useListingDraft<T extends Record<string, unknown>>(options: {
         // Storage unavailable — drafts simply don't persist.
       }
     }
-    setDidRestore(true)
+    queueMicrotask(() => setDidRestore(true))
   }, [storageKey])
 
   // Autosave on change, debounced so typing doesn't hammer storage.

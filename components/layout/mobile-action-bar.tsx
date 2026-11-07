@@ -28,6 +28,15 @@ export function MobileActionBar() {
   const { openAuth } = useAuthModal()
   const unreadMessages = useUnreadMessages()
 
+  // Detail pages (one listing / one item) hide the bottom nav — the
+  // detail layout owns the bottom with its sticky action bar (OfferUp
+  // model: a detail page is about one listing, not app navigation).
+  // /listings/new is the posting form, not a detail page.
+  const isDetailPage =
+    (/^\/listings\/[^/]+$/.test(pathname) && pathname !== '/listings/new') ||
+    /^\/items\/[^/]+$/.test(pathname)
+  if (isDetailPage) return null
+
   const getInitials = (name: string) => {
     return name
       .split(' ')

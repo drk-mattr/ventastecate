@@ -17,6 +17,7 @@ import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/header'
+import { DetailBackButton } from '@/components/layout/detail-back-button'
 import { Footer } from '@/components/layout/footer'
 import { CommunityFeed } from '@/components/home/community-feed'
 import { ItemCommentSection } from '@/components/items/item-comment-section'
@@ -187,47 +188,47 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Header />
-      <main className="container mx-auto px-4 py-6 max-w-3xl flex-1">
-        {/* Identity: the kind, from the business it belongs to. */}
-        <p className="text-xs text-gray-400 mb-2">
+      <div className="hidden md:block"><Header /></div>
+      <DetailBackButton />
+      <main className="container mx-auto px-4 pt-14 pb-6 md:py-6 max-w-3xl flex-1">
+        {/* Identity: one title (the kind, linking to its type page),
+            business + evidence on a single quiet line. */}
+        <h1 className="text-xl font-semibold leading-tight">
           <Link href={`/tipos/${item.kind.slug}`} className="hover:underline">
             {item.kind.name}
           </Link>
-        </p>
-        <h1 className="text-xl font-semibold leading-tight">{item.kind.name}</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        </h1>
+        <p className="text-xs text-gray-500 mt-1">
           de{' '}
           <Link href={`/businesses/${business.id}`} className="font-medium text-gray-900 hover:underline">
             {business.name}
           </Link>
           {[business.category, business.city || business.location].filter(Boolean).length > 0 &&
             ` · ${[business.category, business.city || business.location].filter(Boolean).join(' · ')}`}
-        </p>
-        <p className="text-xs text-gray-500 mt-1">
           {ev.contributors > 0
-            ? `Mencionado por ${ev.contributors} ${ev.contributors === 1 ? 'persona' : 'personas'} · ${ev.mentionCount} ${ev.mentionCount === 1 ? 'mención' : 'menciones'}`
+            ? ` · Mencionado por ${ev.contributors} ${ev.contributors === 1 ? 'persona' : 'personas'} · ${ev.mentionCount} ${ev.mentionCount === 1 ? 'mención' : 'menciones'}`
             : ev.mentionCount > 0
-              ? `${ev.mentionCount} ${ev.mentionCount === 1 ? 'mención' : 'menciones'}`
+              ? ` · ${ev.mentionCount} ${ev.mentionCount === 1 ? 'mención' : 'menciones'}`
               : item.origin === 'owner_claim'
-                ? 'Agregado por el dueño · Sin menciones todavía'
-                : 'Agregado por la comunidad · Sin menciones todavía'}
+                ? ' · Agregado por el dueño · Sin menciones todavía'
+                : ' · Agregado por la comunidad · Sin menciones todavía'}
         </p>
 
-        {/* Contribute: add your photo. Links into the posting flow
-            with this business + item pre-tagged (?negocio=&item=) —
-            no separate upload flow. */}
-        <Link
-          href={contributeHref}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-800"
-        >
-          <Camera className="h-4 w-4" />
-          Agrega tu foto
-        </Link>
-
-        {/* All photos of this item, from every user who posted it. */}
+        {/* All photos of this item, from every user who posted it.
+            "Agrega tu foto" is a small link beside the heading now —
+            it links into the posting flow with this business + item
+            pre-tagged (?negocio=&item=), no separate upload flow. */}
         <section className="mt-8">
-          <h2 className="text-base font-semibold mb-3">Fotos</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold">Fotos</h2>
+            <Link
+              href={contributeHref}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:underline"
+            >
+              <Camera className="h-4 w-4" />
+              Agrega tu foto
+            </Link>
+          </div>
           {shownPhotos.length > 0 ? (
             <div className="grid grid-cols-3 gap-2">
               {shownPhotos.map((photo, i) => (

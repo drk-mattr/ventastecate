@@ -34,6 +34,14 @@ const NEWS_CATEGORY_COLORS: Record<string, string> = {
   'Empleos':               'text-gray-500',
 }
 
+// Lost posts carry a SE BUSCA banner strip across the top of the
+// image/card — the poster treatment the user picked (Spanish-first).
+const SE_BUSCA_BANNER = (
+  <div className="absolute top-0 inset-x-0 z-[5] bg-red-600 px-3 py-1 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-white">
+    Se busca
+  </div>
+)
+
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
@@ -76,9 +84,38 @@ export function ListingCard({ listing }: ListingCardProps) {
   // ── News card ──────────────────────────────────────────────────────────────
   if (isNews) {
     const categoryColor = NEWS_CATEGORY_COLORS[listing.category] || 'text-slate-500'
+    const isLostPost = listing.category === 'Objetos Perdidos'
+
+    // Photo-less news: the title card IS the whole card (full poster).
+    // Meta is a single quiet chip overlaid at the bottom — no white
+    // content area below, no "half poster".
+    if (!primaryImage) {
+      return (
+        <CardShell id={listing.id}>
+          <div className="relative flex-1 aspect-square">
+            <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" />
+            {isLostPost && SE_BUSCA_BANNER}
+            {listing.status === 'sold' && soldOverlay}
+            <div className="absolute bottom-2 left-2 z-[5] bg-black/45 text-white text-[10px] px-2 py-0.5 rounded-full">
+              {timeAgo(listing.created_at)}
+            </div>
+          </div>
+        </CardShell>
+      )
+    }
+
     return (
       <CardShell id={listing.id}>
-        {primaryImage ? (
+        {isLostPost ? (
+          /* Lost post: full-poster photo (natural ratio, edge-to-edge)
+             with the SE BUSCA banner across the top. No category
+             eyebrow — the banner says what it is. */
+          <div className="relative shrink-0">
+            <Image src={primaryImage} alt={listing.title} width={400} height={600} className="w-full h-auto" />
+            {SE_BUSCA_BANNER}
+            {listing.status === 'sold' && soldOverlay}
+          </div>
+        ) : (
           <div className="px-2.5 pt-2.5 shrink-0">
             <div className="relative aspect-video rounded-sm overflow-hidden">
               <Image src={primaryImage} alt={listing.title} fill className="object-cover"
@@ -86,25 +123,16 @@ export function ListingCard({ listing }: ListingCardProps) {
               {listing.status === 'sold' && soldOverlay}
             </div>
           </div>
-        ) : (
-          /* Photo-less news: designed title card in the stored color
-             (migration 039). The title lives on the card, so the
-             headline below is skipped to avoid showing it twice. */
-          <div className="px-2.5 pt-2.5 shrink-0">
-            <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="aspect-video rounded-sm" />
-          </div>
         )}
         <div className="flex flex-col flex-1 px-2.5 pt-2 pb-2.5">
-          {listing.category && (
+          {!isLostPost && listing.category && (
             <p className={`text-[9px] font-bold uppercase tracking-wider mb-1 leading-none ${categoryColor}`}>
               {listing.category}
             </p>
           )}
-          {primaryImage && (
-            <h3 className="font-semibold text-[13px] line-clamp-2 mb-1 group-hover:underline leading-snug">
-              {listing.title}
-            </h3>
-          )}
+          <h3 className="font-semibold text-[13px] line-clamp-2 mb-1 group-hover:underline leading-snug">
+            {listing.title}
+          </h3>
           {listing.description && (
             <p className="text-[11px] text-gray-400 line-clamp-2 leading-snug">
               {listing.description.slice(0, 300)}
@@ -141,7 +169,31 @@ export function ListingCard({ listing }: ListingCardProps) {
     )
   }
 
-  // ── Standard card (products, services, no-image events) ───────────────────
+  // ── Photo-less event: the title card IS the whole card (full
+  // poster). Price + time ride as small chips overlaid at the bottom
+  // — no white content block below, no "half poster".
+  if (listingType === 'event' && !primaryImage) {
+    return (
+      <CardShell id={listing.id}>
+        <div className="relative flex-1 aspect-square">
+          <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" />
+          {listing.status === 'sold' && soldOverlay}
+          <div className="absolute bottom-2 inset-x-2 z-[5] flex items-center justify-between gap-2">
+            {(listing.price > 0 || listing.is_free) && (
+              <span className="bg-black/45 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full truncate">
+                {formattedPrice}
+              </span>
+            )}
+            <span className="bg-black/45 text-white text-[10px] px-2 py-0.5 rounded-full shrink-0 ml-auto">
+              {timeAgo(listing.created_at)}
+            </span>
+          </div>
+        </div>
+      </CardShell>
+    )
+  }
+
+  // ── Standard card (products, services) ───────────────────────────
   return (
     <CardShell id={listing.id}>
       {/* Image area */}
@@ -149,11 +201,6 @@ export function ListingCard({ listing }: ListingCardProps) {
         {primaryImage ? (
           <Image src={primaryImage} alt={listing.title} fill className="object-cover"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
-        ) : listingType === 'event' ? (
-          /* Photo-less event: designed title card in the stored color
-             (migration 039). Products/services never get title cards —
-             they require a photo, so they keep the neutral fallback. */
-          <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" />
         ) : (
           <div className={`absolute inset-0 bg-gradient-to-br ${TYPE_STYLES[listingType as keyof typeof TYPE_STYLES]?.gradient || TYPE_STYLES.product.gradient} flex items-center justify-center p-3`}>
             <p className="text-white font-bold text-lg leading-snug text-center line-clamp-3">

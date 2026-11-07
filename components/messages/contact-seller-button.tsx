@@ -19,6 +19,9 @@ type ContactSellerButtonProps = {
   variant?: 'default' | 'outline'
   /** Extra classes for the wrapper (e.g. 'shrink-0', 'w-full'). */
   className?: string
+  /** Compact horizontal layout for the sticky mobile bar: the two
+      contact paths sit side by side in one row instead of stacked. */
+  compact?: boolean
 }
 
 /**
@@ -52,6 +55,7 @@ export function ContactSellerButton({
   size = 'default',
   variant = 'default',
   className = '',
+  compact = false,
 }: ContactSellerButtonProps) {
   const { user } = useAuth()
 
@@ -64,22 +68,22 @@ export function ContactSellerButton({
     : null
 
   return (
-    <div className={`flex flex-col gap-2 ${className}`}>
+    <div className={compact ? `flex flex-row gap-2 ${className}` : `flex flex-col gap-2 ${className}`}>
       {user ? (
-        <Button asChild size={size} variant={variant} className="w-full">
+        <Button asChild size={size} variant={variant} className={compact ? 'flex-1' : 'w-full'}>
           <Link href={`/messages?listing=${listingId}&seller=${sellerId}`}>{label}</Link>
         </Button>
       ) : (
-        <Button asChild size={size} variant={variant} className="w-full">
+        <Button asChild size={size} variant={variant} className={compact ? 'flex-1' : 'w-full'}>
           <Link href={`/login?redirect=${encodeURIComponent(`/listings/${listingId}`)}`}>
-            Iniciar sesión para contactar
+            {compact ? 'Entrar para contactar' : 'Iniciar sesión para contactar'}
           </Link>
         </Button>
       )}
       {whatsappHref && (
-        <Button asChild size={size} variant="outline" className="w-full">
+        <Button asChild size={size} variant="outline" className={compact ? 'flex-1' : 'w-full'}>
           <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
-            WhatsApp al vendedor
+            {compact ? 'WhatsApp' : 'WhatsApp al vendedor'}
           </a>
         </Button>
       )}

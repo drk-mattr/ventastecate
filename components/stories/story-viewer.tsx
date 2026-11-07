@@ -1,0 +1,237 @@
+'use client'
+
+import { useCallback, useEffect, useState } from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
+import { X, Flag, ExternalLink } from 'lucide-react'
+import type { StoryWithAuthor } from '@/lib/types/database'
+
+// One author's stories, newest first — the unit the viewer steps through.
+export type StoryAuthorGroup = {
+  authorId: string
+  displayName: string
+  username: string
+  avatarUrl?: string
+  stories: StoryWithAuthor[]
+}
+
+const STORY_MS = 5000
+
+const REPORT_REASONS = [
+  { id: 'story_spam', label: 'Spam' },
+  { id: 'story_offensive', label: 'Contenido ofensivo' },
+  { id: 'story_prohibited', label: 'Contenido prohibido' },
+  { id: 'story_other', label: 'Otro motivo' },
+] as const
+
+function initials(name: string): string {
+  return name.trim().slice(0, 1).toUpperCase() || '?'
+}
+
+interface StoryViewerProps {
+  groups: StoryAuthorGroup[]
+  startGroup: number
+  onClose: () => void
+}
+
+export function StoryViewer({ groups, startGroup, onClose }: StoryViewerProps) {
+  const [groupIndex, setGroupIndex] = useState(startGroup)
+  const [index, setIndex] = useState(0)
+  const [remaining, setRemaining] = useState<string | null>(null)
+  const [showReport, setShowReport] = useState(false)
+  const [reportSent, setReportSent] = useState(false)
+  const [reportError, setReportError] = useState<string | null>(null)
+
+  const group = groups[groupIndex]
+  const story = group?.stories[index]
+
+  const advance = useCallback(() => {
+    if (!group) return
+    if (index + 1 < group.stories.length) {
+      setIndex(index + 1)
+    } else if (groupIndex + 1 < groups.length) {
+      setGroupIndex(groupIndex + 1)
+      setIndex(0)
+    } else {
+      onClose()
+    }
+  }, [group, index, groupIndex, groups.length, onClose])
+
+  const goBack = useCallback(() => {
+    if (index > 0) setIndex(index - 1)
+    else if (groupIndex > 0) {
+      setGroupIndex(groupIndex - 1)
+      setIndex(groups[groupIndex - 1].stories.length - 1)
+    }
+  }, [index, groupIndex, groups])
+
+  // Auto-advance every 5s, like WhatsApp/Instagram.
+  useEffect(() => {
+    if (showReport) return
+    const t = setTimeout(advance, STORY_MS)
+    return () => clearTimeout(t)
+  }, [advance, showReport])
+
+  // Time remaining, refreshed every minute (computed in an effect,
+  // never during render).
+  useEffect(() => {
+    if (!story) return
+    const update = () => {
+      const ms = new Date(story.expires_at).getTime() - Date.now()
+      if (ms <= 0) { setRemaining('Expirada'); return }
+      const mins = Math.floor(ms / 60000)
+      if (mins < 60) setRemaining(`Quedan ${mins}m`)
+      else setRemaining(`Quedan ${Math.floor(mins / 60)}h ${mins % 60}m`)
+    }
+    update()
+    const t = setInterval(update, 60000)
+    return () => clearInterval(t)
+  }, [story])
+
+  // Escape closes; lock body scroll while open.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [onClose])
+
+  if (!group || !story) return null
+
+  const report = async (reason: string) => {
+    setReportError(null)
+    try {
+      const res = await fetch(`/api/stories/${story.id}/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        setReportError(data?.error || 'No se pudo enviar el reporte')
+        return
+      }
+      setReportSent(true)
+    } catch {
+      setReportError('No se pudo enviar el reporte')
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black flex flex-col" role="dialog" aria-label="Historia">
+      {/* Progress segments */}
+      <div className="flex gap-1 px-3 pt-3 relative z-10">
+        {group.stories.map((s, i) => (
+          <div key={s.id} className="h-0.5 flex-1 rounded-full bg-white/30 overflow-hidden">
+            {i < index && <div className="h-full w-full bg-white" />}
+            {i === index && (
+              <div
+                key={s.id}
+                className="h-full bg-white"
+                style={{ animation: `story-progress ${STORY_MS}ms linear forwards` }}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Author header */}
+      <div className="flex items-center gap-2.5 px-3 py-2.5 relative z-10">
+        <div className="h-9 w-9 rounded-full bg-gray-700 flex items-center justify-center text-sm font-semibold text-white overflow-hidden shrink-0">
+          {group.avatarUrl ? (
+            <Image src={group.avatarUrl} alt={group.displayName} width={36} height={36} className="h-full w-full object-cover" />
+          ) : (
+            initials(group.displayName)
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-white truncate">{group.displayName}</p>
+          <p className="text-[11px] text-white/60">{remaining ?? ''}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          className="h-9 w-9 rounded-full flex items-center justify-center text-white hover:bg-white/10"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Image — tap right to advance, left to go back */}
+      <div className="relative flex-1 min-h-0">
+        <Image
+          src={story.image_url}
+          alt={`Historia de ${group.displayName}`}
+          fill
+          className="object-contain"
+          sizes="100vw"
+          priority
+        />
+        <button type="button" aria-label="Anterior" onClick={goBack} className="absolute inset-y-0 left-0 w-1/3" />
+        <button type="button" aria-label="Siguiente" onClick={advance} className="absolute inset-y-0 right-0 w-2/3" />
+      </div>
+
+      {/* Link chip + report */}
+      <div className="flex items-center gap-2 px-3 py-3 relative z-10">
+        {story.listing_id ? (
+          <Link
+            href={`/listings/${story.listing_id}`}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-white text-gray-900 text-sm font-semibold py-2.5"
+          >
+            Ver anuncio <ExternalLink className="h-4 w-4" />
+          </Link>
+        ) : story.business_id ? (
+          <Link
+            href={`/businesses/${story.business_id}`}
+            className="flex-1 flex items-center justify-center gap-1.5 rounded-full bg-white text-gray-900 text-sm font-semibold py-2.5"
+          >
+            Ver negocio <ExternalLink className="h-4 w-4" />
+          </Link>
+        ) : (
+          <div className="flex-1" />
+        )}
+        <button
+          type="button"
+          onClick={() => { setShowReport((v) => !v); setReportSent(false); setReportError(null) }}
+          className="h-10 w-10 rounded-full bg-white/10 text-white flex items-center justify-center shrink-0"
+          aria-label="Reportar historia"
+        >
+          <Flag className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Report panel — a report opens a review, it never hides the story */}
+      {showReport && (
+        <div className="px-3 pb-4 relative z-10">
+          <div className="rounded-xl bg-white p-3">
+            {reportSent ? (
+              <p className="text-sm text-gray-900">Gracias, revisaremos esta historia.</p>
+            ) : (
+              <>
+                <p className="text-sm font-semibold text-gray-900 mb-2">¿Por qué reportas esta historia?</p>
+                <div className="flex flex-wrap gap-2">
+                  {REPORT_REASONS.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => report(r.id)}
+                      className="px-3 py-1.5 rounded-full border text-xs font-medium text-gray-700 hover:border-gray-900"
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+                {reportError && <p className="text-xs text-red-600 mt-2">{reportError}</p>}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

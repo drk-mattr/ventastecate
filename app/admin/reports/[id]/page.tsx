@@ -14,6 +14,24 @@ const TYPE_LABEL: Record<string, string> = {
   message_spam: 'Spam (mensaje)', message_harassment: 'Acoso (mensaje)',
   message_scam: 'Fraude (mensaje)', message_offensive: 'Ofensivo (mensaje)',
   message_other: 'Otro (mensaje)',
+  story_spam: 'Historia: spam', story_offensive: 'Historia: contenido ofensivo',
+  story_prohibited: 'Historia: contenido prohibido', story_other: 'Historia: otro motivo',
+}
+
+async function StoryReportPreview({ storyId }: { storyId: string }) {
+  // Expired stories are invisible to the public read policy, so an
+  // expired story renders the fallback line instead of its image.
+  const supabase = await createClient()
+  const { data: story } = await supabase.from('stories').select('id, image_url, listing_id, business_id').eq('id', storyId).maybeSingle()
+  if (!story) return <p className="text-sm mt-3 text-gray-500">Historia expirada o eliminada.</p>
+  return (
+    <div className="mt-3">
+      {/* Plain img: the story may already be expired by review time. */}
+      <img src={story.image_url} alt="Historia reportada" className="max-h-64 rounded-lg object-contain bg-gray-100" />
+      {story.listing_id && <p className="text-sm mt-2"><Link href={`/listings/${story.listing_id}`} className="underline">Ver anuncio enlazado</Link></p>}
+      {story.business_id && <p className="text-sm mt-2"><Link href={`/businesses/${story.business_id}`} className="underline">Ver negocio enlazado</Link></p>}
+    </div>
+  )
 }
 
 export default async function AdminReportDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -42,6 +60,7 @@ export default async function AdminReportDetail({ params }: { params: Promise<{ 
           {report.conversation_id && (
             <p className="text-sm mt-3"><Link href={`/messages?conversation=${report.conversation_id}`} className="underline">Ver conversación reportada</Link></p>
           )}
+          {report.story_id && <StoryReportPreview storyId={report.story_id} />}
           {report.email && <p className="text-xs text-gray-500 mt-3">Email del usuario: {report.email}</p>}
         </div>
         <h2 className="text-lg font-semibold mb-3">Notas y respuestas</h2>

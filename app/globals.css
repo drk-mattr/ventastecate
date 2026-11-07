@@ -125,3 +125,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Stories viewer: progress segment fill (5s per story). */
+@keyframes story-progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}

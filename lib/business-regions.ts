@@ -42,6 +42,25 @@ export const LOCATION_OPTIONS: { label: string; towns: string[] | null }[] = [
   { label: 'Todas', towns: null },
 ]
 export const LOCATION_COOKIE = 'vt_region'
+
+// Trending-strip heading follows the viewer's selected location — the
+// same label the header selector stores in the vt_region cookie, so a
+// Tijuana viewer reads "En Tijuana ahora" and the mixed view reads the
+// placeless "Tendencias ahora". Unknown/missing labels fall back to the
+// default Tecate view. 'Ensenada' is not a selector option (it rides
+// with Valle de Guadalupe) but maps here so a future option or a
+// ?region= override still reads right.
+export function trendingHeadingForLocation(label: string | null | undefined): string {
+  switch (label) {
+    case 'Tijuana': return 'En Tijuana ahora'
+    case 'Valle de Guadalupe': return 'En Valle de Guadalupe ahora'
+    case 'Ensenada': return 'En Ensenada ahora'
+    case 'San Diego': return 'En San Diego ahora'
+    case 'Alrededores': return 'En los alrededores ahora'
+    case 'Todas': return 'Tendencias ahora'
+    default: return 'En Tecate ahora'
+  }
+}
 export function townsForLocation(label: string | null | undefined): string[] | null {
   if (!label) return ['Tecate']
   const option = LOCATION_OPTIONS.find((o) => o.label === label)

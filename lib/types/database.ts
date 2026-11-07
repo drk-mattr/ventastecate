@@ -148,6 +148,8 @@ export type ListingSave = {
 export type Conversation = {
   id: string
   listing_id: string
+  /** Set for business threads; absent pre-migration-044. */
+  business_id?: string | null
   buyer_id: string
   seller_id: string
   created_at: string

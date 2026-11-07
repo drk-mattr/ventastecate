@@ -97,6 +97,21 @@ export async function POST(request: NextRequest) {
 
     const messageUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://ventastecate.com'}/messages?conversation=${conversationId}`
 
+    // Business threads (migration 044): the email names the
+    // business, not an "Anuncio" fallback. Plain query, only when
+    // the thread carries a business_id — pre-044 the column is
+    // absent and this is skipped entirely.
+    let businessName: string | null = null
+    const businessId = (conversation as { business_id?: string | null }).business_id ?? null
+    if (businessId) {
+      const { data: business } = await supabase
+        .from('businesses')
+        .select('name')
+        .eq('id', businessId)
+        .single()
+      businessName = (business as { name?: string | null } | null)?.name ?? null
+    }
+
     const result = await sendMessageNotification({
       to: recipientUser.email,
       recipientName: recipient.display_name,
@@ -104,7 +119,9 @@ export async function POST(request: NextRequest) {
       // The listing embed resolves to null once the listing is
       // deleted (migration 030, SET NULL) — fall back to the title
       // snapshot, so this never throws on conversation.listing.title.
+      // Business threads use the business name instead.
       listingTitle:
+        businessName ??
         conversation.listing?.title ?? conversation.listing_title ?? 'Anuncio',
       messagePreview,
       messageUrl,

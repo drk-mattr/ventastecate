@@ -16,9 +16,14 @@ import type { Conversation, Message } from '@/lib/messages/types'
 
 /** A thread that does not exist yet — created with the first send. */
 export type PendingConversation = {
-  listingId: string
+  /** Null for business threads. */
+  listingId: string | null
   sellerId: string
-  listingTitle: string
+  /** Null for business threads. */
+  listingTitle: string | null
+  /** Set for business threads (migration 044). */
+  businessId?: string | null
+  businessName?: string | null
 }
 
 type MessageComposerProps = {
@@ -56,6 +61,13 @@ const CONVERSATION_EMBED = `
  * deploy): if the insert errors on the unknown column, retry
  * without it. The thread still works — only the snapshot is lost.
  *
+ * Business threads (migration 044) fail soft pre-044 the same way:
+ * the business_id lookup and insert error on the unknown column,
+ * the composer recovers to "no thread", and the send shows the
+ * generic retry message instead of crashing. No business is
+ * claimed before 044 is applied, so the path is unreachable
+ * until then anyway.
+ *
  * Step 4 — server-side enforcement lives in the database, not
  * here: BEFORE INSERT triggers (migration 031) refuse the send
  * when either participant blocked the other, or when the sender
@@ -80,26 +92,52 @@ export function MessageComposer({
   ): Promise<Conversation | null> => {
     if (!pending || !user) return null
 
+    // Business threads (migration 044) look up by business_id;
+    // listing threads by listing_id, as before. The business the
+    // pending thread is about, for the normalized row — the client
+    // queries carry no business embed, so they work pre-044.
+    const isBusiness = Boolean(pending.businessId)
+    const business = isBusiness
+      ? { id: pending.businessId as string, name: pending.businessName ?? '' }
+      : null
+
     // maybeSingle(): "no existing conversation" is normal, not an error.
-    const { data: existing } = await supabase
-      .from('conversations')
-      .select(CONVERSATION_EMBED)
-      .eq('listing_id', pending.listingId)
-      .eq('buyer_id', user.id)
-      .eq('seller_id', pending.sellerId)
-      .maybeSingle()
-
-    if (existing) return normalizeConversation(existing as ConversationEmbedRow)
-
-    const insertBase = {
-      listing_id: pending.listingId,
-      buyer_id: user.id,
-      seller_id: pending.sellerId,
+    // Pre-044 the business_id lookup errors (unknown column) and
+    // returns no row — the send below then fails soft the same way.
+    const lookup = async () => {
+      const q = supabase
+        .from('conversations')
+        .select(CONVERSATION_EMBED)
+        .eq('buyer_id', user.id)
+        .eq('seller_id', pending.sellerId)
+      if (isBusiness) q.eq('business_id', pending.businessId as string)
+      else q.eq('listing_id', pending.listingId as string)
+      return q.maybeSingle()
     }
+    const { data: existing } = await lookup()
+
+    if (existing) return normalizeConversation(existing as ConversationEmbedRow, business)
+
+    const insertBase = isBusiness
+      ? {
+          listing_id: null,
+          business_id: pending.businessId as string,
+          buyer_id: user.id,
+          seller_id: pending.sellerId,
+        }
+      : {
+          listing_id: pending.listingId as string,
+          buyer_id: user.id,
+          seller_id: pending.sellerId,
+        }
 
     let { data: created, error: insertError } = await supabase
       .from('conversations')
-      .insert({ ...insertBase, listing_title: pending.listingTitle })
+      .insert(
+        isBusiness
+          ? insertBase
+          : { ...insertBase, listing_title: pending.listingTitle }
+      )
       .select(CONVERSATION_EMBED)
       .maybeSingle()
 
@@ -116,7 +154,7 @@ export function MessageComposer({
     }
 
     if (!insertError && created) {
-      return normalizeConversation(created as ConversationEmbedRow)
+      return normalizeConversation(created as ConversationEmbedRow, business)
     }
 
     if (insertError && /CONVERSATION_BLOCKED|MESSAGE_BLOCKED/.test(insertError.message)) {
@@ -129,14 +167,8 @@ export function MessageComposer({
     // Unique-constraint hit: a concurrent send created it first.
     // Recover with a fresh lookup; anything else is a real failure.
     if (insertError) console.error('Failed to start conversation:', insertError.message)
-    const { data: raced } = await supabase
-      .from('conversations')
-      .select(CONVERSATION_EMBED)
-      .eq('listing_id', pending.listingId)
-      .eq('buyer_id', user.id)
-      .eq('seller_id', pending.sellerId)
-      .maybeSingle()
-    return raced ? normalizeConversation(raced as ConversationEmbedRow) : null
+    const { data: raced } = await lookup()
+    return raced ? normalizeConversation(raced as ConversationEmbedRow, business) : null
   }
 
   const sendMessage = async (e: React.FormEvent) => {

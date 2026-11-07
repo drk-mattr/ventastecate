@@ -29,6 +29,11 @@ export type ConversationListing = {
   image_url: string | null
 }
 
+export type ConversationBusiness = {
+  id: string
+  name: string
+}
+
 export type LastMessage = {
   content: string
   created_at: string
@@ -38,6 +43,8 @@ export type Conversation = {
   id: string
   /** Null once the listing is deleted (migration 030, ON DELETE SET NULL). */
   listing_id: string | null
+  /** Null for listing threads; set for business threads (migration 044). */
+  business_id: string | null
   buyer_id: string
   seller_id: string
   created_at: string
@@ -51,6 +58,8 @@ export type Conversation = {
   archived_by_buyer: boolean
   archived_by_seller: boolean
   listing: ConversationListing | null
+  /** The business this thread is about; null for listing threads. */
+  business: ConversationBusiness | null
   /**
    * Title snapshot taken when the conversation was created, so a
    * thread stays readable after its listing is deleted. Null for
@@ -83,10 +92,20 @@ export type PendingListing = {
   image_url: string | null
 }
 
+/** A business thread that does not exist yet. */
+export type PendingBusiness = {
+  id: string
+  name: string
+}
+
 export type PendingThread = {
-  listingId: string
+  /** Null for business threads. */
+  listingId: string | null
   sellerId: string
-  listing: PendingListing
+  /** Null for business threads. */
+  listing: PendingListing | null
+  /** Null for listing threads. */
+  business: PendingBusiness | null
   seller: ConversationProfile | null
 }
 

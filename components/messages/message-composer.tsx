@@ -208,27 +208,29 @@ export function MessageComposer({
   }
 
   return (
-    <form onSubmit={sendMessage} className="shrink-0 border-t px-3 py-3">
-      {sendError && <p className="text-xs text-red-600 mb-2 px-1">{sendError}</p>}
-      <div className="flex items-end gap-2">
-        <Input
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value)
-            if (sendError) setSendError('')
-          }}
-          placeholder={f.messagePlaceholder}
-          className="h-11 flex-1 rounded-full border-gray-200 bg-gray-100 px-4 text-[15px] focus-visible:ring-gray-900"
-        />
-        <Button
-          type="submit"
-          size="icon"
-          disabled={!text.trim()}
-          aria-label={f.sendMessage}
-          className="h-11 w-11 shrink-0 rounded-full bg-gray-900 text-white hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400"
-        >
-          <SendHorizontal className="h-5 w-5" />
-        </Button>
+    <form onSubmit={sendMessage} className="shrink-0 border-t px-4 py-3">
+      <div className="mx-auto w-full max-w-2xl">
+        {sendError && <p className="text-xs text-red-600 mb-2 px-1">{sendError}</p>}
+        <div className="flex items-end gap-2">
+          <Input
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value)
+              if (sendError) setSendError('')
+            }}
+            placeholder={f.messagePlaceholder}
+            className="h-11 flex-1 rounded-full border-gray-200 bg-gray-100 px-4 text-[15px] focus-visible:ring-gray-900"
+          />
+          <Button
+            type="submit"
+            size="icon"
+            disabled={!text.trim()}
+            aria-label={f.sendMessage}
+            className="h-11 w-11 shrink-0 rounded-full bg-gray-900 text-white hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400"
+          >
+            <SendHorizontal className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
     </form>
   )

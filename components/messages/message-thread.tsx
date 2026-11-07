@@ -262,146 +262,148 @@ export function MessageThread({
   return (
     <>
       <div className="shrink-0 border-b px-4 py-3">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBack}
-            className="md:hidden -ml-1 p-1 text-gray-500 hover:text-gray-900"
-            aria-label="Volver a conversaciones"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <Avatar className="h-10 w-10">
-            {headerUser?.avatar_url && (
-              <AvatarImage src={headerUser.avatar_url} alt={headerUser.display_name} />
-            )}
-            <AvatarFallback>
-              {headerUser?.display_name?.[0]?.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold truncate">{headerUser?.display_name}</p>
-            {pending && (
-              <p className="text-sm text-gray-500 truncate">
-                Escribe tu primer mensaje para iniciar la conversación
-              </p>
-            )}
-          </div>
+        <div className="mx-auto w-full max-w-2xl">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onBack}
+              className="md:hidden -ml-1 p-1 text-gray-500 hover:text-gray-900"
+              aria-label="Volver a conversaciones"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <Avatar className="h-10 w-10">
+              {headerUser?.avatar_url && (
+                <AvatarImage src={headerUser.avatar_url} alt={headerUser.display_name} />
+              )}
+              <AvatarFallback>
+                {headerUser?.display_name?.[0]?.toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold truncate">{headerUser?.display_name}</p>
+              {pending && (
+                <p className="text-sm text-gray-500 truncate">
+                  Escribe tu primer mensaje para iniciar la conversación
+                </p>
+              )}
+            </div>
 
-          {/* Step 4 menu: archivar, bloquear, reportar. A pending
-              thread has no row to archive or report, so it only
-              offers blocking the seller. */}
-          {headerUser && (
-            <div className="relative ml-auto shrink-0">
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen((v) => !v)
-                  setActionError('')
-                }}
-                aria-label="Más opciones"
-                className="p-2 text-gray-500 hover:text-gray-900"
-              >
-                <MoreVertical className="h-5 w-5" />
-              </button>
-              {menuOpen && (
-                <>
-                  <button
-                    type="button"
-                    aria-label="Cerrar menú"
-                    onClick={() => setMenuOpen(false)}
-                    className="fixed inset-0 z-10 cursor-default"
-                  />
-                  <div className="absolute right-0 z-20 mt-1 w-56 rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
-                    {conversation && (
-                      <button
-                        type="button"
-                        onClick={() => void handleArchive()}
-                        disabled={actionBusy}
-                        className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                      >
-                        {isArchivedFor(conversation, currentUserId) ? (
-                          <>
-                            <ArchiveRestore className="h-4 w-4 shrink-0" />
-                            Desarchivar conversación
-                          </>
-                        ) : (
-                          <>
-                            <Archive className="h-4 w-4 shrink-0" />
-                            Archivar conversación
-                          </>
-                        )}
-                      </button>
-                    )}
+            {/* Step 4 menu: archivar, bloquear, reportar. A pending
+                thread has no row to archive or report, so it only
+                offers blocking the seller. */}
+            {headerUser && (
+              <div className="relative ml-auto shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen((v) => !v)
+                    setActionError('')
+                  }}
+                  aria-label="Más opciones"
+                  className="p-2 text-gray-500 hover:text-gray-900"
+                >
+                  <MoreVertical className="h-5 w-5" />
+                </button>
+                {menuOpen && (
+                  <>
                     <button
                       type="button"
-                      onClick={() => {
-                        setMenuOpen(false)
-                        setShowReportForm(false)
-                        setShowBlockConfirm(true)
-                      }}
-                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
-                    >
-                      <Ban className="h-4 w-4 shrink-0" />
-                      Bloquear a {headerUser.display_name}
-                    </button>
-                    {conversation && (
+                      aria-label="Cerrar menú"
+                      onClick={() => setMenuOpen(false)}
+                      className="fixed inset-0 z-10 cursor-default"
+                    />
+                    <div className="absolute right-0 z-20 mt-1 w-56 rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+                      {conversation && (
+                        <button
+                          type="button"
+                          onClick={() => void handleArchive()}
+                          disabled={actionBusy}
+                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                        >
+                          {isArchivedFor(conversation, currentUserId) ? (
+                            <>
+                              <ArchiveRestore className="h-4 w-4 shrink-0" />
+                              Desarchivar conversación
+                            </>
+                          ) : (
+                            <>
+                              <Archive className="h-4 w-4 shrink-0" />
+                              Archivar conversación
+                            </>
+                          )}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => {
                           setMenuOpen(false)
-                          setShowBlockConfirm(false)
-                          setShowReportForm(true)
+                          setShowReportForm(false)
+                          setShowBlockConfirm(true)
                         }}
                         className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
                       >
-                        <Flag className="h-4 w-4 shrink-0" />
-                        Reportar conversación
+                        <Ban className="h-4 w-4 shrink-0" />
+                        Bloquear a {headerUser.display_name}
                       </button>
-                    )}
-                  </div>
-                </>
+                      {conversation && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMenuOpen(false)
+                            setShowBlockConfirm(false)
+                            setShowReportForm(true)
+                          }}
+                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          <Flag className="h-4 w-4 shrink-0" />
+                          Reportar conversación
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Listing strip */}
+          {listing ? (
+            <Link
+              href={`/listings/${listing.id}`}
+              className="mt-3 flex items-center gap-3 rounded-xl bg-gray-50 p-2 hover:bg-gray-100"
+            >
+              {listing.image_url && (
+                <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                  <Image
+                    src={listing.image_url}
+                    alt={listing.title}
+                    fill
+                    className="object-cover"
+                  />
+                </span>
               )}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-gray-900">
+                  {listing.title}
+                </span>
+                <span className="block text-xs text-gray-500">
+                  {formatPrice(listing.price, listing.currency, { isFree: listing.is_free })}
+                  {listing.status
+                    ? ` · ${LISTING_STATUS_LABELS[listing.status] ?? listing.status}`
+                    : ''}
+                </span>
+              </span>
+            </Link>
+          ) : (
+            <div className="mt-3 rounded-xl bg-gray-50 p-3">
+              <p className="truncate text-sm font-medium text-gray-900">
+                {listingTitle ?? 'Anuncio no disponible'}
+              </p>
+              <p className="text-xs text-gray-500">Este anuncio ya no está disponible</p>
             </div>
           )}
         </div>
-
-        {/* Listing strip */}
-        {listing ? (
-          <Link
-            href={`/listings/${listing.id}`}
-            className="mt-3 flex items-center gap-3 rounded-xl bg-gray-50 p-2 hover:bg-gray-100"
-          >
-            {listing.image_url && (
-              <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-gray-100">
-                <Image
-                  src={listing.image_url}
-                  alt={listing.title}
-                  fill
-                  className="object-cover"
-                />
-              </span>
-            )}
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium text-gray-900">
-                {listing.title}
-              </span>
-              <span className="block text-xs text-gray-500">
-                {formatPrice(listing.price, listing.currency, { isFree: listing.is_free })}
-                {listing.status
-                  ? ` · ${LISTING_STATUS_LABELS[listing.status] ?? listing.status}`
-                  : ''}
-              </span>
-            </span>
-          </Link>
-        ) : (
-          <div className="mt-3 rounded-xl bg-gray-50 p-3">
-            <p className="truncate text-sm font-medium text-gray-900">
-              {listingTitle ?? 'Anuncio no disponible'}
-            </p>
-            <p className="text-xs text-gray-500">Este anuncio ya no está disponible</p>
-          </div>
-        )}
       </div>
 
       {/* Step 4 inline panels: block confirm and report form. They
@@ -409,101 +411,107 @@ export function MessageThread({
           them; reporting never hides the thread. */}
       {showBlockConfirm && headerUser && (
         <div className="shrink-0 border-b bg-gray-50 px-4 py-3">
-          <p className="text-sm font-medium text-gray-900">
-            ¿Bloquear a {headerUser.display_name}?
-          </p>
-          <p className="mt-1 text-sm text-gray-500">
-            No podrán enviarte mensajes y la conversación se ocultará.
-            Puedes desbloquearlo cuando quieras desde la lista de bloqueados.
-          </p>
-          <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              onClick={() => void handleBlock()}
-              disabled={actionBusy}
-              className="rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-            >
-              Bloquear
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowBlockConfirm(false)}
-              className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white"
-            >
-              Cancelar
-            </button>
+          <div className="mx-auto w-full max-w-2xl">
+            <p className="text-sm font-medium text-gray-900">
+              ¿Bloquear a {headerUser.display_name}?
+            </p>
+            <p className="mt-1 text-sm text-gray-500">
+              No podrán enviarte mensajes y la conversación se ocultará.
+              Puedes desbloquearlo cuando quieras desde la lista de bloqueados.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => void handleBlock()}
+                disabled={actionBusy}
+                className="rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+              >
+                Bloquear
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowBlockConfirm(false)}
+                className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {showReportForm && conversation && (
         <div className="shrink-0 border-b bg-gray-50 px-4 py-3">
-          {reportDone ? (
-            <>
-              <p className="text-sm font-medium text-gray-900">Reporte enviado.</p>
-              <p className="mt-1 text-sm text-gray-500">
-                Gracias — lo revisaremos pronto. La conversación sigue disponible.
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowReportForm(false)}
-                className="mt-3 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white"
-              >
-                Cerrar
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="text-sm font-medium text-gray-900">Reportar conversación</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {REPORT_REASONS.map((reason) => (
-                  <button
-                    key={reason.value}
-                    type="button"
-                    onClick={() => setReportReason(reason.value)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
-                      reportReason === reason.value
-                        ? 'border-gray-900 bg-gray-900 text-white'
-                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    {reason.label}
-                  </button>
-                ))}
-              </div>
-              <textarea
-                value={reportDescription}
-                onChange={(e) => setReportDescription(e.target.value)}
-                placeholder="Cuéntanos qué pasó (opcional)"
-                rows={3}
-                maxLength={1000}
-                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-gray-400"
-              />
-              <div className="mt-3 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => void handleReport()}
-                  disabled={actionBusy}
-                  className="rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-                >
-                  Enviar reporte
-                </button>
+          <div className="mx-auto w-full max-w-2xl">
+            {reportDone ? (
+              <>
+                <p className="text-sm font-medium text-gray-900">Reporte enviado.</p>
+                <p className="mt-1 text-sm text-gray-500">
+                  Gracias — lo revisaremos pronto. La conversación sigue disponible.
+                </p>
                 <button
                   type="button"
                   onClick={() => setShowReportForm(false)}
-                  className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white"
+                  className="mt-3 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white"
                 >
-                  Cancelar
+                  Cerrar
                 </button>
-              </div>
-            </>
-          )}
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-gray-900">Reportar conversación</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {REPORT_REASONS.map((reason) => (
+                    <button
+                      key={reason.value}
+                      type="button"
+                      onClick={() => setReportReason(reason.value)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
+                        reportReason === reason.value
+                          ? 'border-gray-900 bg-gray-900 text-white'
+                          : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {reason.label}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  value={reportDescription}
+                  onChange={(e) => setReportDescription(e.target.value)}
+                  placeholder="Cuéntanos qué pasó (opcional)"
+                  rows={3}
+                  maxLength={1000}
+                  className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-gray-400"
+                />
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleReport()}
+                    disabled={actionBusy}
+                    className="rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                  >
+                    Enviar reporte
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowReportForm(false)}
+                    className="rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
 
       {actionError && (
         <div className="shrink-0 border-b bg-red-50 px-4 py-2">
-          <p className="text-xs text-red-600">{actionError}</p>
+          <div className="mx-auto w-full max-w-2xl">
+            <p className="text-xs text-red-600">{actionError}</p>
+          </div>
         </div>
       )}
 

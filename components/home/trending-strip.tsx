@@ -12,6 +12,10 @@ interface TrendingStripProps {
   // Label from the vt_region cookie (LOCATION_OPTIONS label, 'Tecate'
   // default) — the heading names the place being browsed, not always Tecate.
   locationLabel?: string | null
+  // Primary item mention per listing id, keyed by listing id (kind wins
+  // over category for the # chip) — fetched in the page, empty at cold
+  // start when no post has a mention yet.
+  primaryKinds?: Record<string, { name: string; slug: string }>
 }
 
 const TYPE_ICON = {
@@ -21,7 +25,14 @@ const TYPE_ICON = {
   event:   { icon: AlertTriangle },
 } as const
 
-export function TrendingStrip({ items, locationLabel }: TrendingStripProps) {
+// Hashtag-style label from an existing category/kind name: spaces
+// stripped, words joined — "Objetos Perdidos" -> "#ObjetosPerdidos".
+// No new taxonomy: only existing categories/kinds are ever surfaced.
+function hashtag(label: string): string {
+  return `#${label.trim().replace(/\s+/g, '')}`
+}
+
+export function TrendingStrip({ items, locationLabel, primaryKinds }: TrendingStripProps) {
   if (!items.length) return null
 
   return (
@@ -44,39 +55,61 @@ export function TrendingStrip({ items, locationLabel }: TrendingStripProps) {
             const Icon = config.icon
             const primaryImage = item.images?.[0]?.image_url
 
+            // # chip: the primary item kind wins when the post mentions
+            // one (more specific), otherwise the listing's category.
+            // Either is a real destination — kind page, or search
+            // filtered by that category. Neither -> no chip, never empty.
+            const kind = primaryKinds?.[item.id]
+            const category = item.category?.trim()
+            const chip = kind
+              ? { label: hashtag(kind.name), href: `/tipos/${kind.slug}` }
+              : category
+                ? { label: hashtag(category), href: `/search?category=${encodeURIComponent(category)}` }
+                : null
+
             return (
-              <Link
-                key={item.id}
-                href={`/listings/${item.id}`}
-                className="flex-none w-28"
-              >
-                {primaryImage ? (
-                  <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
-                    <Image
-                      src={primaryImage}
-                      alt={item.title}
-                      fill
-                      className="object-cover"
-                      sizes="144px"
+              <div key={item.id} className="relative flex-none w-28">
+                <Link
+                  href={`/listings/${item.id}`}
+                  className="block"
+                >
+                  {primaryImage ? (
+                    <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                      <Image
+                        src={primaryImage}
+                        alt={item.title}
+                        fill
+                        className="object-cover"
+                        sizes="144px"
+                      />
+                    </div>
+                  ) : (listingType === 'news' || listingType === 'event') ? (
+                    /* Photo-less news/event: designed title card in the
+                       stored color, square. */
+                    <ListingTitleCard
+                      title={item.title}
+                      cardColor={item.card_color}
+                      size="card"
+                      className="aspect-square rounded-lg"
                     />
-                  </div>
-                ) : (listingType === 'news' || listingType === 'event') ? (
-                  /* Photo-less news/event: designed title card in the
-                     stored color, square. */
-                  <ListingTitleCard
-                    title={item.title}
-                    cardColor={item.card_color}
-                    size="card"
-                    className="aspect-square rounded-lg"
-                  />
-                ) : (
-                  /* Photo-less product/service: neutral gradient + icon,
-                     square. */
-                  <div className="aspect-square rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                    <Icon className="h-5 w-5 text-gray-400" />
-                  </div>
+                  ) : (
+                    /* Photo-less product/service: neutral gradient + icon,
+                       square. */
+                    <div className="aspect-square rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                      <Icon className="h-5 w-5 text-gray-400" />
+                    </div>
+                  )}
+                </Link>
+                {chip && (
+                  <Link
+                    href={chip.href}
+                    title={chip.label}
+                    className="absolute bottom-1.5 left-1.5 z-10 max-w-[calc(100%-12px)] truncate rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-semibold text-white"
+                  >
+                    {chip.label}
+                  </Link>
                 )}
-              </Link>
+              </div>
             )
           })}
         </div>

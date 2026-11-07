@@ -36,9 +36,12 @@ const NEWS_CATEGORY_COLORS: Record<string, string> = {
 
 // Lost posts look like a printed missing-pet poster: "SE BUSCA" in
 // plain red letters above the photo (or title card), the image inset
-// with a white margin on all sides — no banner strip.
+// with a white margin on all sides — no banner strip. The frame is
+// kept tight and even (8px top and bottom) and the feed photo is
+// black-and-white (grayscale); the detail-page hero keeps full color,
+// because color matters for actually identifying the animal.
 const SE_BUSCA_HEADING = (
-  <p className="shrink-0 px-2.5 pt-2.5 pb-2 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-red-600">
+  <p className="shrink-0 px-2.5 pt-2 pb-1 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-red-600">
     Se busca
   </p>
 )
@@ -96,7 +99,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       return (
         <CardShell id={listing.id}>
           {isLostPost && SE_BUSCA_HEADING}
-          <div className={`relative flex-1 aspect-square ${isLostPost ? 'mx-2.5 mb-2.5' : ''}`}>
+          <div className={`relative flex-1 aspect-square ${isLostPost ? 'mx-2.5 mb-2' : ''}`}>
             <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" />
             {listing.status === 'sold' && soldOverlay}
             <div className="absolute bottom-2 left-2 z-[5] bg-black/45 text-white text-[10px] px-2 py-0.5 rounded-full">
@@ -117,7 +120,7 @@ export function ListingCard({ listing }: ListingCardProps) {
           <>
             {SE_BUSCA_HEADING}
             <div className="relative shrink-0 px-2.5">
-              <Image src={primaryImage} alt={listing.title} width={400} height={600} className="w-full h-auto" />
+              <Image src={primaryImage} alt={listing.title} width={400} height={600} className="w-full h-auto grayscale" />
               {listing.status === 'sold' && soldOverlay}
             </div>
           </>
@@ -130,7 +133,7 @@ export function ListingCard({ listing }: ListingCardProps) {
             </div>
           </div>
         )}
-        <div className="flex flex-col flex-1 px-2.5 pt-2 pb-2.5">
+        <div className="flex flex-col flex-1 px-2.5 pt-1.5 pb-2">
           {!isLostPost && listing.category && (
             <p className={`text-[9px] font-bold uppercase tracking-wider mb-1 leading-none ${categoryColor}`}>
               {listing.category}
@@ -146,7 +149,7 @@ export function ListingCard({ listing }: ListingCardProps) {
           )}
           {/* Meta footer — like/save live on the detail page now, not on
               grid cards (OfferUp shows no buttons on its cards either). */}
-          <div className="flex items-center gap-2 mt-auto pt-1.5">
+          <div className="flex items-center gap-2 mt-auto pt-1">
             <span className="text-[10px] text-gray-400">{timeAgo(listing.created_at)}</span>
           </div>
         </div>

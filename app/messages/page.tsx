@@ -104,11 +104,14 @@ function MessagesContent() {
 
   // Pending thread: Contactar was tapped, no row exists yet.
   const [pending, setPending] = useState<PendingThread | null>(null)
-  // The listing is gone, or the seller does not own it.
-  const [pendingError, setPendingError] = useState(false)
+  // The listing is gone, the seller does not own it, or a business
+  // thread cannot start (not claimed by the seller in the URL).
+  const [pendingError, setPendingError] = useState<string | null>(null)
 
   const listingId = searchParams.get('listing')
   const sellerId = searchParams.get('seller')
+  // Business threads (migration 044): ?business=<id>&seller=<owner>.
+  const businessId = searchParams.get('business')
   const conversationId = searchParams.get('conversation')
 
   const selectedConversation =
@@ -197,17 +200,19 @@ function MessagesContent() {
   useEffect(() => {
     if (authLoading) return
     if (!user) {
-      // Keep the listing context through login so the buyer lands
-      // back on the pending composer, not a bare /messages.
+      // Keep the listing or business context through login so the
+      // buyer lands back on the pending composer, not a bare /messages.
       const back =
         listingId && sellerId
           ? `/messages?listing=${listingId}&seller=${sellerId}`
-          : '/messages'
+          : businessId && sellerId
+            ? `/messages?business=${businessId}&seller=${sellerId}`
+            : '/messages'
       router.push(`/login?redirect=${encodeURIComponent(back)}`)
       return
     }
     void refreshList()
-  }, [user, authLoading, refreshList, router, listingId, sellerId])
+  }, [user, authLoading, refreshList, router, listingId, sellerId, businessId])
 
   // Step 4: switching the rail filter reloads the matching view
   // (default list, archived threads, or blocked users).
@@ -216,21 +221,91 @@ function MessagesContent() {
     void refreshList()
   }, [listFilter, user, refreshList])
 
-  // Contactar resolution (?listing&seller): look up an existing
-  // thread WITHOUT inserting anything. Found -> replace the URL
-  // with ?conversation=<id>. Not found -> pending composer with
-  // the listing + seller loaded for the thread header. Guarded by
-  // key so a re-render never re-resolves the same pair.
+  // Contactar resolution (?listing&seller, or ?business&seller for
+  // a claimed business): look up an existing thread WITHOUT
+  // inserting anything. Found -> replace the URL with
+  // ?conversation=<id>. Not found -> pending composer with the
+  // listing/business + seller loaded for the thread header.
+  // Guarded by key so a re-render never re-resolves the same pair.
   const pendingKeyRef = useRef('')
   useEffect(() => {
-    if (!listingId || !sellerId || !user) return
+    if ((!listingId && !businessId) || !sellerId || !user) return
     if (conversationId) return
     if (sellerId === user.id) return
-    const key = `${listingId}:${sellerId}`
+    const key = businessId
+      ? `business:${businessId}:${sellerId}`
+      : `${listingId}:${sellerId}`
     if (pendingKeyRef.current === key) return
 
     let cancelled = false
+
+    // Business threads (migration 044): the seller in the URL must
+    // be the business's claimed owner — the same check the
+    // conversations INSERT policy enforces at send time. Pre-044
+    // the business_id lookup errors (unknown column) and falls
+    // through to pending, which then fails soft on send.
+    const resolveBusiness = async () => {
+      const { data: existing } = await supabase
+        .from('conversations')
+        .select(CONVERSATION_EMBED)
+        .eq('business_id', businessId as string)
+        .eq('buyer_id', user.id)
+        .eq('seller_id', sellerId)
+        .maybeSingle()
+
+      if (cancelled) return
+      if (existing) {
+        pendingKeyRef.current = key
+        router.replace(
+          `/messages?conversation=${(existing as ConversationEmbedRow).id}`
+        )
+        return
+      }
+
+      const [{ data: business }, { data: seller }] = await Promise.all([
+        supabase
+          .from('businesses')
+          .select('id, name, claimed_by')
+          .eq('id', businessId as string)
+          .single(),
+        supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .eq('id', sellerId)
+          .single(),
+      ])
+      if (cancelled) return
+      pendingKeyRef.current = key
+
+      const typedBusiness = business as {
+        id: string
+        name: string
+        claimed_by?: string | null
+      } | null
+      if (!typedBusiness || typedBusiness.claimed_by !== sellerId) {
+        setPendingError('Este negocio ya no se puede contactar por aquí.')
+        return
+      }
+
+      setPending({
+        listingId: null,
+        sellerId,
+        listing: null,
+        business: { id: typedBusiness.id, name: typedBusiness.name },
+        seller: (seller as ConversationProfile | null) ?? null,
+      })
+    }
+
+    if (businessId) {
+      void resolveBusiness()
+      return () => {
+        cancelled = true
+      }
+    }
+
     const resolve = async () => {
+      // Business mode returned early above, so listingId is set here.
+      if (!listingId) return
       // maybeSingle(): the "no existing conversation" case is normal.
       const { data: existing } = await supabase
         .from('conversations')
@@ -291,7 +366,7 @@ function MessagesContent() {
         user_id: string
       } | null
       if (!typedListing || typedListing.user_id !== sellerId) {
-        setPendingError(true)
+        setPendingError('Este anuncio ya no está disponible o no se pudo iniciar la conversación.')
         return
       }
 
@@ -316,6 +391,7 @@ function MessagesContent() {
           status: typedListing.status ?? null,
           image_url: (image as { image_url?: string | null } | null)?.image_url ?? null,
         },
+        business: null,
         seller: (seller as ConversationProfile | null) ?? null,
       })
     }
@@ -323,7 +399,7 @@ function MessagesContent() {
     return () => {
       cancelled = true
     }
-  }, [listingId, sellerId, user, conversationId, supabase, router])
+  }, [listingId, sellerId, businessId, user, conversationId, supabase, router])
 
   // Messaging v2 Step 1: messages come from the paginated server route
   // (page 1 = the most recent 50). Load-more UI is a later step.
@@ -539,7 +615,7 @@ function MessagesContent() {
               // Key-based remount per thread: the menu, block
               // confirm and report form reset when the thread
               // changes, without syncing state in an effect.
-              key={selectedConversation?.id ?? `pending-${pending?.listingId ?? 'none'}`}
+              key={selectedConversation?.id ?? `pending-${pending?.listingId ?? pending?.business?.id ?? 'none'}`}
               conversation={selectedConversation}
               pending={selectedConversation ? null : pending}
               currentUserId={user?.id ?? ''}
@@ -556,7 +632,7 @@ function MessagesContent() {
                 <MessageCircle className="h-7 w-7 text-gray-400" />
               </span>
               <p className="font-semibold text-gray-900">
-                Este anuncio ya no está disponible o no se pudo iniciar la conversación.
+                {pendingError}
               </p>
             </div>
           ) : (

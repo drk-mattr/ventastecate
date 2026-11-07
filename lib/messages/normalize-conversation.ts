@@ -1,4 +1,4 @@
-import type { Conversation, ConversationProfile } from './types'
+import type { Conversation, ConversationBusiness, ConversationProfile } from './types'
 
 /**
  * Messaging v2 Step 3 — shared shaping for conversation rows that
@@ -17,6 +17,8 @@ import type { Conversation, ConversationProfile } from './types'
 export type ConversationEmbedRow = {
   id: string
   listing_id: string | null
+  /** Set for business threads (migration 044); absent pre-044. */
+  business_id?: string | null
   buyer_id: string
   seller_id: string
   created_at: string
@@ -35,10 +37,17 @@ export type ConversationEmbedRow = {
   seller: ConversationProfile | null
 }
 
-export function normalizeConversation(row: ConversationEmbedRow): Conversation {
+export function normalizeConversation(
+  row: ConversationEmbedRow,
+  // Business threads carry no business embed (the client queries
+  // stay embed-free for businesses so they work pre-044); the
+  // caller passes the business it already loaded, if any.
+  business?: ConversationBusiness | null
+): Conversation {
   return {
     id: row.id,
     listing_id: row.listing_id,
+    business_id: row.business_id ?? business?.id ?? null,
     buyer_id: row.buyer_id,
     seller_id: row.seller_id,
     created_at: row.created_at,
@@ -52,6 +61,7 @@ export function normalizeConversation(row: ConversationEmbedRow): Conversation {
           image_url: null,
         }
       : null,
+    business: business ?? null,
     listing_title: row.listing_title ?? null,
     archived_by_buyer: row.archived_by_buyer ?? false,
     archived_by_seller: row.archived_by_seller ?? false,

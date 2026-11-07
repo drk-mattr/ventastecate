@@ -15,6 +15,7 @@ import {
 import {
   isArchivedFor,
   type Conversation,
+  type ConversationBusiness,
   type ConversationListing,
   type Message,
   type PendingThread,
@@ -91,6 +92,10 @@ function groupMessages(messages: Message[]): MessageGroup[] {
  * NULL), the strip shows the title snapshot plus "Este anuncio ya
  * no está disponible" and the thread stays readable.
  *
+ * Business strip (migration 044): a business thread shows the
+ * business name as a link to its page instead of the listing
+ * strip, with "Negocio" as the quiet subline.
+ *
  * Pending mode: Contactar opened /messages?listing&seller without
  * creating a thread. The composer creates it with the first send.
  *
@@ -149,7 +154,17 @@ export function MessageThread({
   const listing: ConversationListing | null =
     conversation?.listing ?? pending?.listing ?? null
   const listingTitle =
-    listing?.title ?? conversation?.listing_title ?? pending?.listing.title ?? null
+    listing?.title ?? conversation?.listing_title ?? pending?.listing?.title ?? null
+
+  // The business, for business threads (migration 044): the live
+  // business from the list route, or the pending business loaded
+  // from the ?business&seller resolution. Businesses are never
+  // deleted, so there is no snapshot fallback here.
+  const business: ConversationBusiness | null =
+    conversation?.business ?? pending?.business ?? null
+  const isBusinessThread = Boolean(
+    conversation?.business_id ?? pending?.business
+  )
 
   // Step 4 menu state.
   const [menuOpen, setMenuOpen] = useState(false)
@@ -270,7 +285,7 @@ export function MessageThread({
 
   useEffect(() => {
     firstLoadRef.current = true
-  }, [conversation?.id, pending?.listingId])
+  }, [conversation?.id, pending?.listingId, pending?.business?.id])
 
   useEffect(() => {
     const el = scrollRef.current
@@ -387,8 +402,21 @@ export function MessageThread({
             )}
           </div>
 
-          {/* Listing strip */}
-          {listing ? (
+          {/* Business strip (migration 044): the business name as
+              a link to its page, instead of the listing strip. */}
+          {business ? (
+            <Link
+              href={`/businesses/${business.id}`}
+              className="mt-3 flex items-center gap-3 rounded-xl bg-gray-50 p-2 hover:bg-gray-100"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-gray-900">
+                  {business.name}
+                </span>
+                <span className="block text-xs text-gray-500">Negocio</span>
+              </span>
+            </Link>
+          ) : listing ? (
             <Link
               href={`/listings/${listing.id}`}
               className="mt-3 flex items-center gap-3 rounded-xl bg-gray-50 p-2 hover:bg-gray-100"
@@ -418,9 +446,15 @@ export function MessageThread({
           ) : (
             <div className="mt-3 rounded-xl bg-gray-50 p-3">
               <p className="truncate text-sm font-medium text-gray-900">
-                {listingTitle ?? 'Anuncio no disponible'}
+                {isBusinessThread
+                  ? 'Negocio no disponible'
+                  : (listingTitle ?? 'Anuncio no disponible')}
               </p>
-              <p className="text-xs text-gray-500">Este anuncio ya no está disponible</p>
+              <p className="text-xs text-gray-500">
+                {isBusinessThread
+                  ? 'Este negocio ya no se puede contactar por aquí'
+                  : 'Este anuncio ya no está disponible'}
+              </p>
             </div>
           )}
         </div>
@@ -618,7 +652,9 @@ export function MessageThread({
             ? {
                 listingId: pending.listingId,
                 sellerId: pending.sellerId,
-                listingTitle: pending.listing.title,
+                listingTitle: pending.listing?.title ?? null,
+                businessId: pending.business?.id ?? null,
+                businessName: pending.business?.name ?? null,
               }
             : undefined
         }

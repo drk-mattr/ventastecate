@@ -40,6 +40,11 @@ const MAX_LIMIT = 50
  * the user_blocks table do not exist yet: the columns normalize to
  * false and a failed blocks lookup means "nobody blocked".
  *
+ * Business threads (migration 044) carry business_id instead of
+ * listing_id. The route attaches the business (id, name) by plain
+ * query, same as listings, and normalizes business_id to null
+ * pre-044 so the list works on the old schema too.
+ *
  * NO EMBEDS — read this before adding one back. Production's
  * conversations table is missing the listing_id -> listings foreign
  * key that schema.sql declares (prod was built on a different schema
@@ -125,6 +130,9 @@ export async function GET(request: NextRequest) {
       image_url: string | null
     }
   >()
+  // Business threads (migration 044): the business name for the
+  // row + thread header, fetched by plain query like listings.
+  const businessById = new Map<string, { id: string; name: string }>()
   const profileById = new Map<
     string,
     { id: string; username: string; display_name: string; avatar_url: string }
@@ -136,6 +144,13 @@ export async function GET(request: NextRequest) {
 
   if (ids.length > 0) {
     const listingIds = [...new Set(conversations.map((c) => c.listing_id).filter(Boolean))]
+    const businessIds = [
+      ...new Set(
+        conversations
+          .map((c) => (c as { business_id?: string | null }).business_id)
+          .filter(Boolean)
+      ),
+    ] as string[]
     const userIds = [
       ...new Set(
         conversations.flatMap((c) => [c.buyer_id, c.seller_id]).filter(Boolean)
@@ -213,6 +228,22 @@ export async function GET(request: NextRequest) {
       for (const row of profiles ?? []) profileById.set(row.id, row)
     }
 
+    // Business names for business threads. Pre-044 businessIds is
+    // empty and this never runs, so the route works on the old
+    // schema too. A failure here only costs the business name,
+    // never the list.
+    if (businessIds.length > 0) {
+      const { data: businesses, error: businessesError } = await supabase
+        .from('businesses')
+        .select('id, name')
+        .in('id', businessIds)
+      if (businessesError) {
+        console.error('Failed to load conversation businesses:', businessesError.message)
+      } else {
+        for (const row of businesses ?? []) businessById.set(row.id, row)
+      }
+    }
+
     const { data: unread, error: unreadError } = await supabase
       .from('messages')
       .select('conversation_id')
@@ -253,24 +284,31 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const shaped = conversations.map((conv) => ({
-    ...conv,
-    // listing_title only exists post-migration-030; pre-030 the key
+  const shaped = conversations.map((conv) => {
+    // business_id only exists post-migration-044; pre-044 the key
     // is absent from the row, so normalize it to null here.
-    listing_title: (conv as { listing_title?: string | null }).listing_title ?? null,
-    // Step 4 archive flags, same pre-migration pattern as
-    // listing_title: absent columns normalize to false.
-    archived_by_buyer: (conv as { archived_by_buyer?: boolean | null }).archived_by_buyer ?? false,
-    archived_by_seller: (conv as { archived_by_seller?: boolean | null }).archived_by_seller ?? false,
-    // listing_id is null once the listing is deleted (030 SET NULL);
-    // listingById.get(null) is undefined, so listing is null and the
-    // client falls back to listing_title.
-    listing: conv.listing_id ? (listingById.get(conv.listing_id) ?? null) : null,
-    buyer: profileById.get(conv.buyer_id) ?? null,
-    seller: profileById.get(conv.seller_id) ?? null,
-    unread_count: unreadByConversation.get(conv.id) ?? 0,
-    last_message: lastByConversation.get(conv.id) ?? null,
-  }))
+    const businessId = (conv as { business_id?: string | null }).business_id ?? null
+    return {
+      ...conv,
+      // listing_title only exists post-migration-030; pre-030 the key
+      // is absent from the row, so normalize it to null here.
+      listing_title: (conv as { listing_title?: string | null }).listing_title ?? null,
+      // Step 4 archive flags, same pre-migration pattern as
+      // listing_title: absent columns normalize to false.
+      archived_by_buyer: (conv as { archived_by_buyer?: boolean | null }).archived_by_buyer ?? false,
+      archived_by_seller: (conv as { archived_by_seller?: boolean | null }).archived_by_seller ?? false,
+      // listing_id is null once the listing is deleted (030 SET NULL);
+      // listingById.get(null) is undefined, so listing is null and the
+      // client falls back to listing_title.
+      listing: conv.listing_id ? (listingById.get(conv.listing_id) ?? null) : null,
+      business_id: businessId,
+      business: businessId ? (businessById.get(businessId) ?? null) : null,
+      buyer: profileById.get(conv.buyer_id) ?? null,
+      seller: profileById.get(conv.seller_id) ?? null,
+      unread_count: unreadByConversation.get(conv.id) ?? 0,
+      last_message: lastByConversation.get(conv.id) ?? null,
+    }
+  })
 
   return NextResponse.json({
     conversations: shaped,

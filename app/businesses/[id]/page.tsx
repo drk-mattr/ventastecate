@@ -217,6 +217,8 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
       initialLiked={initialLiked}
       followersCount={business.followers_count ?? 0}
       likesCount={business.likes_count ?? 0}
+      claimedBy={claimedBy}
+      isOwner={isOwner}
     />
   )
 

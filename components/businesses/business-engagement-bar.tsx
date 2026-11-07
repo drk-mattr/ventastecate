@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
 import { Heart } from 'lucide-react'
 import { BusinessQrDialog } from '@/components/businesses/business-qr-dialog'
+import { ContactBusinessButton } from '@/components/messages/contact-business-button'
 
 interface Props {
   businessId: string
@@ -15,9 +16,13 @@ interface Props {
   initialLiked: boolean
   followersCount: number
   likesCount: number
+  /** businesses.claimed_by — null while the business is unclaimed. */
+  claimedBy: string | null
+  /** The viewer is the claimed owner. */
+  isOwner: boolean
 }
 
-export function BusinessEngagementBar({ businessId, businessName, businessTown, initialFollowing, initialLiked, followersCount, likesCount }: Props) {
+export function BusinessEngagementBar({ businessId, businessName, businessTown, initialFollowing, initialLiked, followersCount, likesCount, claimedBy, isOwner }: Props) {
   const { user } = useAuth()
   const router = useRouter()
   const [following, setFollowing] = useState(initialFollowing)
@@ -36,27 +41,35 @@ export function BusinessEngagementBar({ businessId, businessName, businessTown, 
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <BusinessQrDialog businessId={businessId} businessName={businessName} businessTown={businessTown} />
-      <button
-        onClick={() => toggle('business_follows', following, setFollowing, setFollowers)}
-        className={`h-7 px-3 rounded-full text-xs font-medium transition-colors ${
-          following
-            ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
-        }`}
-      >
-        {following ? 'Siguiendo' : 'Seguir'}
-      </button>
-      <span className="text-xs text-gray-500">{followers} {followers === 1 ? 'seguidor' : 'seguidores'}</span>
-      <button
-        onClick={() => toggle('business_likes', liked, setLiked, setLikes)}
-        className={`flex items-center gap-1.5 rounded-full px-2 py-1.5 text-sm transition-colors ${liked ? 'text-gray-900' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'}`}
-        aria-label={liked ? 'Quitar me gusta' : 'Me gusta'}
-      >
-        <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} />
-        {likes > 0 && <span className="tabular-nums">{likes}</span>}
-      </button>
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex items-center gap-3">
+        <BusinessQrDialog businessId={businessId} businessName={businessName} businessTown={businessTown} />
+        <ContactBusinessButton businessId={businessId} businessName={businessName} claimedBy={claimedBy} isOwner={isOwner} />
+        <button
+          onClick={() => toggle('business_follows', following, setFollowing, setFollowers)}
+          className={`h-7 px-3 rounded-full text-xs font-medium transition-colors ${
+            following
+              ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              : 'bg-white text-gray-700 border border-gray-300 hover:border-gray-400'
+          }`}
+        >
+          {following ? 'Siguiendo' : 'Seguir'}
+        </button>
+        <span className="text-xs text-gray-500">{followers} {followers === 1 ? 'seguidor' : 'seguidores'}</span>
+        <button
+          onClick={() => toggle('business_likes', liked, setLiked, setLikes)}
+          className={`flex items-center gap-1.5 rounded-full px-2 py-1.5 text-sm transition-colors ${liked ? 'text-gray-900' : 'text-gray-400 hover:text-gray-900 hover:bg-gray-100'}`}
+          aria-label={liked ? 'Quitar me gusta' : 'Me gusta'}
+        >
+          <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} />
+          {likes > 0 && <span className="tabular-nums">{likes}</span>}
+        </button>
+      </div>
+      {!claimedBy && (
+        <p className="text-xs text-gray-400">
+          Este negocio aún no ha reclamado su página, por eso no se le puede escribir por aquí.
+        </p>
+      )}
     </div>
   )
 }

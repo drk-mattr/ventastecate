@@ -263,10 +263,6 @@ export type Translations = {
     // Report page
     reportTitle: string
     reportDesc: string
-    reportTypeBug: string
-    reportTypeSuggestion: string
-    reportTypeOther: string
-    reportTypeLabel: string
     reportDescLabel: string
     reportDescPlaceholder: string
     reportEmailLabel: string
@@ -543,20 +539,16 @@ const es: Translations = {
     creating: 'Creando...',
     saving: 'Guardando...',
     loadingListing: 'Cargando anuncio...',
-    reportTitle: 'Contacto y Reportes',
+    reportTitle: 'Reportar un problema',
     reportDesc: '¿Encontraste un problema o tienes una sugerencia? Cuéntanos.',
-    reportTypeBug: 'Reportar un problema',
-    reportTypeSuggestion: 'Sugerencia',
-    reportTypeOther: 'Otro',
-    reportTypeLabel: 'Tipo',
-    reportDescLabel: 'Descripción *',
-    reportDescPlaceholder: 'Describe el problema o tu sugerencia...',
+    reportDescLabel: '¿Qué pasó?',
+    reportDescPlaceholder: 'Cuéntanos qué pasó, con el detalle que puedas…',
     reportEmailLabel: 'Email para seguimiento (opcional)',
     reportSubmitting: 'Enviando...',
-    reportSubmit: 'Enviar Reporte',
-    reportThankYou: '¡Gracias por tu reporte!',
-    reportReceived: 'Hemos recibido tu mensaje y lo revisaremos pronto.',
-    reportSendAnother: 'Enviar otro reporte',
+    reportSubmit: 'Enviar reporte',
+    reportThankYou: 'Gracias por avisar.',
+    reportReceived: 'Lo revisaremos pronto.',
+    reportSendAnother: 'Enviar otro',
     messagesTitle: 'Mensajes',
     conversationsTitle: 'Conversaciones',
     noConversations: 'No tienes conversaciones',
@@ -826,10 +818,6 @@ const tl: Translations = {
     loadingListing: 'Loading listing...',
     reportTitle: 'Contact & Mag-report',
     reportDesc: 'May nakitang problema o may suggestion ka? Sabihin mo sa amin.',
-    reportTypeBug: 'Mag-report ng bug',
-    reportTypeSuggestion: 'Suggestion',
-    reportTypeOther: 'Iba pa',
-    reportTypeLabel: 'Type',
     reportDescLabel: 'Description *',
     reportDescPlaceholder: 'I-describe ang problema o suggestion mo...',
     reportEmailLabel: 'Email para sa follow-up (optional)',
@@ -1107,10 +1095,6 @@ const en: Translations = {
     loadingListing: 'Loading listing...',
     reportTitle: 'Contact & Reports',
     reportDesc: 'Found a problem or have a suggestion? Let us know.',
-    reportTypeBug: 'Report a problem',
-    reportTypeSuggestion: 'Suggestion',
-    reportTypeOther: 'Other',
-    reportTypeLabel: 'Type',
     reportDescLabel: 'Description *',
     reportDescPlaceholder: 'Describe the problem or your suggestion...',
     reportEmailLabel: 'Email for follow-up (optional)',
@@ -1388,10 +1372,6 @@ const id: Translations = {
     loadingListing: 'Memuat iklan...',
     reportTitle: 'Kontak & Laporan',
     reportDesc: 'Menemukan masalah atau punya saran? Beritahu kami.',
-    reportTypeBug: 'Laporkan masalah',
-    reportTypeSuggestion: 'Saran',
-    reportTypeOther: 'Lainnya',
-    reportTypeLabel: 'Jenis',
     reportDescLabel: 'Deskripsi *',
     reportDescPlaceholder: 'Ceritakan masalah atau saran kamu...',
     reportEmailLabel: 'Email untuk tindak lanjut (opsional)',

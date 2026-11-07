@@ -4,10 +4,14 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Flame, Newspaper, AlertTriangle, Heart, Tag } from 'lucide-react'
 import type { ListingWithImages } from '@/lib/types/database'
+import { trendingHeadingForLocation } from '@/lib/business-regions'
 import { ListingTitleCard } from '@/components/listings/listing-title-card'
 
 interface TrendingStripProps {
   items: ListingWithImages[]
+  // Label from the vt_region cookie (LOCATION_OPTIONS label, 'Tecate'
+  // default) — the heading names the place being browsed, not always Tecate.
+  locationLabel?: string | null
 }
 
 const TYPE_ICON = {
@@ -17,7 +21,7 @@ const TYPE_ICON = {
   event:   { icon: AlertTriangle },
 } as const
 
-export function TrendingStrip({ items }: TrendingStripProps) {
+export function TrendingStrip({ items, locationLabel }: TrendingStripProps) {
   if (!items.length) return null
 
   return (
@@ -27,7 +31,7 @@ export function TrendingStrip({ items }: TrendingStripProps) {
         <div className="flex items-center gap-1.5 mb-2.5">
           <Flame className="h-3.5 w-3.5 text-gray-900" />
           <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-            En Tecate ahora
+            {trendingHeadingForLocation(locationLabel)}
           </span>
         </div>
 

@@ -255,7 +255,7 @@ export default async function Home({ searchParams }: HomeProps) {
         </Suspense>
 
         {/* Trending: only when engagement exists, so it never shows an empty row */}
-        {trending.length > 0 && <TrendingStrip items={trending} />}
+        {trending.length > 0 && <TrendingStrip items={trending} locationLabel={cookieStore.get(LOCATION_COOKIE)?.value || 'Tecate'} />}
         {/* Trending items: only when the §11.3 gate passes, so it never shows an empty row */}
         {trendingItems.cards.length > 0 && <ItemCarousel items={trendingItems.cards} />}
         <TopBusinesses items={topBusinesses} />

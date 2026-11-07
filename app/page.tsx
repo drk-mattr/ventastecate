@@ -3,11 +3,14 @@ import { Suspense } from 'react'
 import { headers, cookies } from 'next/headers'
 import { LOCATION_COOKIE, townsForLocation, townFilterOr } from '@/lib/business-regions'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { TypeShortcuts } from '@/components/home/type-shortcuts'
 import { CommunityFeed } from '@/components/home/community-feed'
 import { TrendingStrip } from '@/components/home/trending-strip'
+import { ItemCarousel } from '@/components/items/item-carousel'
+import { fetchTrendingItems } from '@/lib/items/carousel'
 import { TopBusinesses, TopBusiness } from '@/components/businesses/top-businesses'
 import { FirstVisit } from '@/components/home/first-visit'
 import { StoriesRail } from '@/components/stories/stories-rail'
@@ -206,6 +209,15 @@ export default async function Home({ searchParams }: HomeProps) {
   const topBusinesses = await getTopBusinesses(supabase, feedTowns)
   const stories = await getStories(supabase)
 
+  // ── Trending items: the cross-kind "En tendencia" carousel
+  // (034D activity ordering + §11.3 gate, same as the type pages).
+  // Renders nothing until the gate passes — at cold start (0
+  // mentions) the row simply does not exist.
+  const admin = createAdminClient()
+  const trendingItems = admin
+    ? await fetchTrendingItems(admin, feedTowns, cookieStore.get(LOCATION_COOKIE)?.value || 'Tecate')
+    : { cards: [], available: false }
+
   // Real engagement counts for the feed + trending rows, in one call.
   // The `*` select above never carries likes/saves/comments (those
   // columns don't exist on prod), so without this the trending gate
@@ -244,6 +256,8 @@ export default async function Home({ searchParams }: HomeProps) {
 
         {/* Trending: only when engagement exists, so it never shows an empty row */}
         {trending.length > 0 && <TrendingStrip items={trending} />}
+        {/* Trending items: only when the §11.3 gate passes, so it never shows an empty row */}
+        {trendingItems.cards.length > 0 && <ItemCarousel items={trendingItems.cards} />}
         <TopBusinesses items={topBusinesses} />
 
         {/* Main grid */}

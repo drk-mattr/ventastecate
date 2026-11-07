@@ -15,6 +15,8 @@ const TYPE_LABEL: Record<string, string> = {
   message_other: 'Otro (mensaje)',
   story_spam: 'Historia: spam', story_offensive: 'Historia: contenido ofensivo',
   story_prohibited: 'Historia: contenido prohibido', story_other: 'Historia: otro motivo',
+  item_comment_spam: 'Comentario (artículo): spam', item_comment_offensive: 'Comentario (artículo): contenido ofensivo',
+  item_comment_prohibited: 'Comentario (artículo): contenido prohibido', item_comment_other: 'Comentario (artículo): otro motivo',
 }
 
 export default async function AdminReportsPage({ searchParams }: { searchParams: Promise<{ status?: string; type?: string }> }) {
@@ -22,7 +24,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
   if (!admin) redirect('/login')
   const sp = await searchParams
   const supabase = await createClient()
-  let q = supabase.from('reports').select('id, type, description, email, listing_id, listing_title, conversation_id, story_id, reporter_label, status, created_at').order('created_at', { ascending: false })
+  let q = supabase.from('reports').select('id, type, description, email, listing_id, listing_title, conversation_id, story_id, item_comment_id, reporter_label, status, created_at').order('created_at', { ascending: false })
   if (sp.status) q = q.eq('status', sp.status)
   if (sp.type) q = q.eq('type', sp.type)
   const { data: reports } = await q
@@ -54,7 +56,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
                   <span className={`text-[11px] px-2 py-0.5 rounded-full ${r.status === 'new' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}`}>{STATUS_LABEL[r.status] || r.status}</span>
                   <span className="text-xs text-gray-400 ml-auto">{new Date(r.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 </div>
-                <p className="text-sm text-gray-700 mt-2 line-clamp-2">{r.description || r.listing_title || (r.story_id ? 'Historia reportada' : 'Sin descripción')}</p>
+                <p className="text-sm text-gray-700 mt-2 line-clamp-2">{r.description || r.listing_title || (r.story_id ? 'Historia reportada' : r.item_comment_id ? 'Comentario de artículo reportado' : 'Sin descripción')}</p>
                 <p className="text-xs text-gray-400 mt-1">{r.reporter_label || 'Anónimo'}{r.listing_title ? ` · ${r.listing_title}` : ''}{r.email ? ` · ${r.email}` : ''}</p>
               </Link>
             ))}

@@ -62,6 +62,13 @@ export function MobileActionBar() {
           <span>Inicio</span>
         </Link>
 
+        {/* Negocios balances the bar to five tabs so the orange
+            Publicar CTA sits exactly in the middle. */}
+        <Link href="/businesses" className={itemClass('/businesses')} aria-label="Negocios">
+          <Store className="h-5 w-5" />
+          <span>Negocios</span>
+        </Link>
+
         {/* Prominent primary CTA */}
         <Link
           href="/listings/new"

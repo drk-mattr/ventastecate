@@ -143,7 +143,7 @@ export function ListingCard({ listing }: ListingCardProps) {
           <>
             {SE_BUSCA_HEADING}
             <div className="relative shrink-0 px-4">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-sm">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-none">
                 <Image src={primaryImage} alt={listing.title} fill className="object-cover grayscale"
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
                 {listing.status === 'sold' && soldOverlay}

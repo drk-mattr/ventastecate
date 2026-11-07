@@ -11,23 +11,35 @@ import {
 // selected pill filled. The old version was plain text links with no
 // selected state — it read as a website nav, not an app filter row.
 // Same 9 destinations as before; nothing was removed, only restyled.
-// Rendered on the homepage only; on /search the same pills would read
-// their active state from the URL params.
+// Rendered on the homepage AND on /search. A pill changes only its
+// own axis (type or category) and keeps everything else in the URL —
+// so switching to Productos while searching "mesita" keeps the query
+// and the other filters instead of dropping them.
 const SHORTCUTS = [
-  { label: 'Todo', href: '/search', icon: LayoutGrid, match: () => true },
-  { label: 'Productos', href: '/search?type=product', icon: Tag, match: (p: URLSearchParams) => p.get('type') === 'product' },
-  { label: 'Servicios', href: '/search?type=service', icon: Wrench, match: (p: URLSearchParams) => p.get('type') === 'service' },
-  { label: 'Eventos', href: '/search?type=event', icon: Megaphone, match: (p: URLSearchParams) => p.get('type') === 'event' },
-  { label: 'Noticias', href: '/search?type=news', icon: Newspaper, match: (p: URLSearchParams) => p.get('type') === 'news' },
-  { label: 'Comida', href: '/search?category=Comida', icon: UtensilsCrossed, match: (p: URLSearchParams) => p.get('category') === 'Comida' },
-  { label: 'Casas: Renta', href: '/search?category=Casas%20en%20Renta', icon: KeyRound, match: (p: URLSearchParams) => p.get('category') === 'Casas en Renta' },
-  { label: 'Casas: Venta', href: '/search?category=Casas%20en%20Venta', icon: Home, match: (p: URLSearchParams) => p.get('category') === 'Casas en Venta' },
-  { label: 'Terrenos', href: '/search?category=Terrenos', icon: LandPlot, match: (p: URLSearchParams) => p.get('category') === 'Terrenos' },
+  { label: 'Todo', icon: LayoutGrid, match: () => true, set: { type: null, category: null } },
+  { label: 'Productos', icon: Tag, match: (p: URLSearchParams) => p.get('type') === 'product', set: { type: 'product', category: null } },
+  { label: 'Servicios', icon: Wrench, match: (p: URLSearchParams) => p.get('type') === 'service', set: { type: 'service', category: null } },
+  { label: 'Eventos', icon: Megaphone, match: (p: URLSearchParams) => p.get('type') === 'event', set: { type: 'event', category: null } },
+  { label: 'Noticias', icon: Newspaper, match: (p: URLSearchParams) => p.get('type') === 'news', set: { type: 'news', category: null } },
+  { label: 'Comida', icon: UtensilsCrossed, match: (p: URLSearchParams) => p.get('category') === 'Comida', set: { type: null, category: 'Comida' } },
+  { label: 'Casas: Renta', icon: KeyRound, match: (p: URLSearchParams) => p.get('category') === 'Casas en Renta', set: { type: null, category: 'Casas en Renta' } },
+  { label: 'Casas: Venta', icon: Home, match: (p: URLSearchParams) => p.get('category') === 'Casas en Venta', set: { type: null, category: 'Casas en Venta' } },
+  { label: 'Terrenos', icon: LandPlot, match: (p: URLSearchParams) => p.get('category') === 'Terrenos', set: { type: null, category: 'Terrenos' } },
 ]
 
 export function TypeShortcuts() {
   const params = useSearchParams()
   const hasFilter = params.get('type') || params.get('category')
+
+  const hrefFor = (set: { type: string | null; category: string | null }) => {
+    const next = new URLSearchParams(params.toString())
+    if (set.type) next.set('type', set.type)
+    else next.delete('type')
+    if (set.category) next.set('category', set.category)
+    else next.delete('category')
+    const qs = next.toString()
+    return qs ? `/search?${qs}` : '/search'
+  }
 
   return (
     <div className="border-b bg-white">
@@ -39,7 +51,7 @@ export function TypeShortcuts() {
           return (
             <Link
               key={s.label}
-              href={s.href}
+              href={hrefFor(s.set)}
               aria-current={active ? 'true' : undefined}
               className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 h-9 text-xs font-medium transition-colors ${
                 active

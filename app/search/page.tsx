@@ -1,11 +1,15 @@
+import { Suspense } from 'react'
 import { headers, cookies } from 'next/headers'
-import { LOCATION_COOKIE, townsForLocation, townFilterOr } from '@/lib/business-regions'
+import { LOCATION_COOKIE, isValidLocation, townsForLocation, townFilterOr } from '@/lib/business-regions'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { searchKinds, type KindSearchHit } from '@/lib/items/kind-search'
 import { Header } from '@/components/layout/header'
 import { CommunityFeed } from '@/components/home/community-feed'
-import { SearchFilterBar } from '@/components/search/search-filter-bar'
+import { TypeShortcuts } from '@/components/home/type-shortcuts'
+import { MobileFilters } from '@/components/search/mobile-filters'
+import { SearchFilters } from '@/components/search/search-filters'
+import { SearchChips } from '@/components/search/search-chips'
 import { ListingWithImages } from '@/lib/types/database'
 import { getTranslations } from '@/lib/i18n'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -206,6 +210,55 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const resultCount = listingsWithImages.length
   const resultLabel = resultCount === 1 ? t.listings.result : t.listings.results
 
+  // The scope the results actually show under: the site-wide region
+  // from the cookie, unless the user typed an explicit location (which
+  // overrides it — the chips below say so out loud). "Todas" means no
+  // town scope at all.
+  const regionCookie = (await cookies()).get(LOCATION_COOKIE)?.value
+  const regionLabel = isValidLocation(regionCookie) ? regionCookie : 'Tecate'
+  const locationOverride = location || city || stateRegion || ''
+
+  // Active-filter count for the Filtros button badge.
+  const activeFilterCount = [
+    type && type !== 'all' ? type : '',
+    category || '',
+    locationOverride,
+    minPrice || '',
+    maxPrice || '',
+    currency || '',
+    sort && sort !== 'newest' ? sort : '',
+    bedrooms || '',
+    bathrooms || '',
+    m2 || '',
+  ].filter(Boolean).length
+
+  // Params the filter panel does not own — carried through untouched
+  // when filters are applied (city/stateRegion are the legacy location
+  // params; country is the explicit worldwide scope).
+  const preserveParams: Record<string, string | undefined> = {
+    country: country || undefined,
+    city: city || undefined,
+    stateRegion: stateRegion || undefined,
+  }
+
+  const filterProps = {
+    initialQuery: q,
+    initialType: type,
+    initialCategory: category,
+    initialLocation: location,
+    initialCity: city,
+    initialStateRegion: stateRegion,
+    initialMinPrice: minPrice,
+    initialMaxPrice: maxPrice,
+    initialCurrency: currency,
+    initialSort: sort,
+    initialBedrooms: bedrooms,
+    initialBathrooms: bathrooms,
+    initialM2: m2,
+    regionLabel,
+    preserveParams,
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
@@ -217,27 +270,51 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           </h1>
           <p className="text-xs text-gray-500">
             {resultCount} {resultLabel}
-            {(location || city || stateRegion) && ` ${t.listings.in} ${location || city || stateRegion}`}
+            {locationOverride && ` ${t.listings.in} ${locationOverride}`}
           </p>
         </div>
 
-        {/* Sticky horizontal filter bar */}
-        <div className="sticky top-24 sm:top-14 z-30 bg-white -mx-4 px-4 py-2 mb-4 border-b border-gray-100">
-          <SearchFilterBar
-            query={q}
-            category={category}
-            location={location}
-            minPrice={minPrice}
-            maxPrice={maxPrice}
-            currency={currency}
-            sort={sort}
-            country={country}
-            bedrooms={bedrooms}
-            bathrooms={bathrooms}
-            m2={m2}
+        {/* Type pills — same row as the homepage, reading their active
+            state from the URL. Type was homepage-only before; now it is
+            changeable from the results page itself. */}
+        <Suspense>
+          <TypeShortcuts />
+        </Suspense>
+
+        {/* Filters entry + active filters. On phones the Filtros button
+            opens the one filter sheet (bottom sheet); on desktop the
+            same panel sits in the sidebar below. */}
+        <div className="mt-3 mb-4">
+          <MobileFilters {...filterProps} activeCount={activeFilterCount} />
+          <SearchChips
+            values={{
+              q,
+              type,
+              category,
+              location,
+              city,
+              stateRegion,
+              minPrice,
+              maxPrice,
+              currency,
+              sort,
+              country,
+              bedrooms,
+              bathrooms,
+              m2,
+            }}
+            regionLabel={regionLabel}
           />
         </div>
 
+        <div className="lg:flex lg:gap-8">
+          {/* Desktop filter sidebar — the same panel as the mobile
+              sheet, inline instead of in a dialog. */}
+          <aside className="hidden lg:block w-72 shrink-0">
+            <SearchFilters {...filterProps} />
+          </aside>
+
+          <div className="flex-1 min-w-0">
         {/* Kinds matching the term, so "tacos" finds the type itself —
             with its parent breadcrumb — and leads to its /tipos page. */}
         {matchingKinds.length > 0 && (
@@ -292,6 +369,8 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             )}
           </EmptyState>
         )}
+          </div>
+        </div>
       </main>
     </div>
   )

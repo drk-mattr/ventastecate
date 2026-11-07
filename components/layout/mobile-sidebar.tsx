@@ -9,14 +9,14 @@ import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import { useReportModal } from '@/lib/report/report-modal-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
 import {
-  Check, Flag, Home, LogOut, MessageCircle, PenLine, Search, Settings,
+  Check, Flag, Home, LogOut, MessageCircle, PenLine, Settings,
   Store, Tag, TrendingUp, User, UserCircle, X,
 } from 'lucide-react'
 
 // Mobile sidebar, in the style of the Muse app's own sidebar: a black
 // panel sliding in from the left, small-caps section labels, icon rows,
-// the current page as a filled pill, and a bottom bar with settings,
-// a Search pill and an orange compose button.
+// the current page as a filled pill, and a bottom bar with settings
+// and an orange compose button.
 //
 // It replaces the old white right-side drawer (MobileMenuDrawer +
 // AccountMenuContent, deleted with this change). The push-and-scale
@@ -140,9 +140,6 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
           <Link href="/businesses" onClick={onClose} className={rowClass('/businesses')}>
             <Store className="h-5 w-5 text-zinc-400" />Negocios
           </Link>
-          <Link href="/search" onClick={onClose} className={rowClass('/search')}>
-            <Search className="h-5 w-5 text-zinc-400" />Buscar
-          </Link>
           {user && (
             <Link href="/messages" onClick={onClose} className={rowClass('/messages')}>
               <MessageCircle className="h-5 w-5 text-zinc-400" />Mensajes
@@ -251,7 +248,10 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
           </Link>
         </nav>
 
-        {/* Bottom bar, like the Muse app: settings, Search pill, compose */}
+        {/* Bottom bar, like the Muse app: settings, compose. The Search
+            pill used to live here — it went to the same bare /search as
+            the bottom-nav tab and the sidebar row, so it was deleted
+            with them (2026-11-06 search rebuild). */}
         <div className="flex shrink-0 items-center gap-3 border-t border-white/10 bg-black p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           {user && (
             <Link
@@ -263,13 +263,7 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
               <Settings className="h-5 w-5" />
             </Link>
           )}
-          <Link
-            href="/search"
-            onClick={onClose}
-            className="flex h-10 flex-1 items-center gap-2 rounded-full bg-white/10 px-4 text-sm text-zinc-400 hover:text-zinc-200"
-          >
-            <Search className="h-4 w-4" />Buscar
-          </Link>
+          <div className="flex-1" />
           <Link
             href="/listings/new"
             onClick={onClose}

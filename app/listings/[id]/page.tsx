@@ -305,8 +305,11 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               </span>
             </div>
 
-            {/* Headline */}
-            <h1 className="text-2xl font-semibold leading-tight mb-4">{listing.title}</h1>
+            {/* Headline — skipped when the hero is a title card, which
+                already carries the title (otherwise it shows twice). */}
+            {sortedImages.length > 0 && (
+              <h1 className="text-2xl font-semibold leading-tight mb-4">{listing.title}</h1>
+            )}
 
             {/* Byline */}
             <div className="flex items-center gap-3 pb-4 border-b mb-6">
@@ -416,9 +419,12 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
             {/* All event info, stacked below the poster */}
             <div className="space-y-4">
-              {/* Title, price, meta */}
+              {/* Title, price, meta — the title is skipped when the hero
+                  is a title card, which already carries it. */}
               <div>
-                <h1 className="text-xl font-semibold mb-1">{listing.title}</h1>
+                {sortedImages.length > 0 && (
+                  <h1 className="text-xl font-semibold mb-1">{listing.title}</h1>
+                )}
                 {(listing.price > 0 || listing.is_free) && (
                   <p className="text-2xl font-semibold text-gray-900 mb-3">{formattedPrice}</p>
                 )}

@@ -469,8 +469,11 @@ function MessagesContent() {
   }
 
   // Design overhaul: a messaging app, not two cards on gray. The
-  // rail (~340px) holds the conversation list; the thread fills the
-  // rest. The surface is exactly the visible viewport height — the
+  // rail (360px, 400px on xl) holds the conversation list; the
+  // thread fills the rest of a shell capped at 1600px, so the
+  // conversation never sprawls across a huge desktop. The message
+  // column itself is max-w-2xl, centered — header, listing strip
+  // and composer share that column.
   // 4rem subtraction is the fixed mobile bottom bar, which the body
   // reserves with pb-16 (see app/layout.tsx); desktop has no bar.
   // On mobile only one pane shows at a time: list full-screen, then
@@ -478,12 +481,12 @@ function MessagesContent() {
   return (
     <div className="flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-white md:h-dvh">
       <Header />
-      <main className="flex min-h-0 flex-1">
+      <main className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1">
         {/* Conversation rail */}
         <section
           className={`${
             showThreadPane ? 'hidden md:flex' : 'flex'
-          } w-full flex-col border-r border-gray-200 md:w-[340px] md:shrink-0`}
+          } w-full flex-col border-r border-gray-200 md:w-[360px] md:shrink-0 xl:w-[400px]`}
         >
           <div className="shrink-0 border-b px-4 py-3">
             <h2 className="font-semibold">{f.conversationsTitle}</h2>
@@ -548,7 +551,7 @@ function MessagesContent() {
               onBlocked={handleThreadLeft}
             />
           ) : pendingError ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+            <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
               <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
                 <MessageCircle className="h-7 w-7 text-gray-400" />
               </span>
@@ -557,7 +560,7 @@ function MessagesContent() {
               </p>
             </div>
           ) : (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+            <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
               <span className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
                 <MessageCircle className="h-8 w-8 text-gray-400" />
               </span>

@@ -9,7 +9,7 @@ import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import { useReportModal } from '@/lib/report/report-modal-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
 import {
-  Check, Flag, Home, LogOut, MessageCircle, PenLine, Settings,
+  Check, CircleUserRound, Flag, Home, LogOut, MessageCircle, PenLine, Settings,
   Store, Tag, TrendingUp, User, UserCircle, X,
 } from 'lucide-react'
 
@@ -150,6 +150,9 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
             <>
               <div className="mx-4 my-3 border-t border-white/10" />
               <p className="px-4 pt-1 pb-1 text-[11px] uppercase tracking-wider text-zinc-500 font-medium">Mi cuenta</p>
+              <Link href="/cuenta" onClick={onClose} className={rowClass('/cuenta')}>
+                <CircleUserRound className="h-5 w-5 text-zinc-400" />Mi cuenta
+              </Link>
               <Link href={`/users/${profile?.username}`} onClick={onClose} className={rowClass(`/users/${profile?.username}`)}>
                 <UserCircle className="h-5 w-5 text-zinc-400" />{t.nav.myProfile}
               </Link>

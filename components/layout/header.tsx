@@ -22,7 +22,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Check, Store, User, Menu, UserCircle, Tag, MessageCircle } from 'lucide-react'
+import { Check, CircleUserRound, Store, User, Menu, UserCircle, Tag, MessageCircle } from 'lucide-react'
 
 export function Header() {
   const { user, profile, stores, activeStore, setActiveStore, signOut, loading, recentStoreIds } = useAuth()
@@ -176,6 +176,15 @@ export function Header() {
                     </p>
                   </div>
                   <DropdownMenuSeparator />
+
+                  {/* Mi cuenta is the private hub; Mi perfil is the
+                      public page — the OfferUp split, not two entries
+                      to the same place. */}
+                  <DropdownMenuItem asChild className="text-xs">
+                    <Link href="/cuenta" className="flex items-center gap-2">
+                      <CircleUserRound className="h-3.5 w-3.5 text-gray-400" />Mi cuenta
+                    </Link>
+                  </DropdownMenuItem>
 
                   <DropdownMenuItem asChild className="text-xs">
                     <Link href={`/users/${profile?.username}`} className="flex items-center gap-2">

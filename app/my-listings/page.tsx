@@ -11,7 +11,11 @@ import { getTranslations } from '@/lib/i18n'
 import { Bookmark } from 'lucide-react'
 import type { ListingWithImages } from '@/lib/types/database'
 
-export default async function MyListingsPage() {
+export default async function MyListingsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ tab?: string }>
+}) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -19,6 +23,13 @@ export default async function MyListingsPage() {
   if (!user) {
     redirect('/login?redirect=/my-listings')
   }
+
+  // The /cuenta hub links straight to the Guardados tab
+  // (/my-listings?tab=saved); anything else falls back to Activos.
+  const params = await searchParams
+  const validTabs = ['active', 'sold', 'inactive', 'saved']
+  const defaultTab =
+    params?.tab && validTabs.includes(params.tab) ? params.tab : 'active'
 
   const headersList = await headers()
   const userCountry = headersList.get('cf-ipcountry') ?? null
@@ -100,7 +111,7 @@ export default async function MyListingsPage() {
           </Button>
         </div>
 
-        <Tabs defaultValue="active" className="space-y-6">
+        <Tabs defaultValue={defaultTab} className="space-y-6">
           <TabsList>
             <TabsTrigger value="active">
               {f.activeTab} ({activeListings.length})

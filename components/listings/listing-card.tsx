@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { Wrench, Megaphone, Store, Play } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ListingWithImages } from '@/lib/types/database'
@@ -70,10 +71,29 @@ function CardShell({ id, children }: { id: string; children: React.ReactNode }) 
 }
 
 export function ListingCard({ listing }: ListingCardProps) {
+  const router = useRouter()
   const primaryImage = listing.images?.length ? listing.images[0].image_url : null
   const listingType = listing.listing_type || 'product'
   const isNews = listingType === 'news'
   const hasVideo = !!listing.video_url
+
+  // The seller shown on the card — a store name goes to the store
+  // page, a personal name to the public profile. The whole card is
+  // itself a link to the listing, so the name navigates with the
+  // router instead of a nested <a> (invalid HTML), stopping the
+  // card's own navigation like the like/save buttons do.
+  const sellerName = listing.store?.name || listing.profile?.display_name || null
+  const sellerHref = listing.store
+    ? `/stores/${listing.store.slug}`
+    : listing.profile?.username
+      ? `/users/${listing.profile.username}`
+      : null
+  const goToSeller = (e: React.MouseEvent) => {
+    if (!sellerHref) return
+    e.preventDefault()
+    e.stopPropagation()
+    router.push(sellerHref)
+  }
 
   const formattedPrice = formatPrice(listing.price, listing.currency, { isFree: listing.is_free })
 
@@ -256,13 +276,28 @@ export function ListingCard({ listing }: ListingCardProps) {
             {listing.title}
           </h3>
         )}
-        {/* Meta + engagement on one compact row */}
+        {/* Meta + engagement on one compact row — the seller name
+            links to their profile (or store page), so a buyer can
+            reach the seller without opening the listing first. */}
         <div className="flex items-center justify-between gap-1.5 mt-auto pt-1">
           <span className="text-xs text-gray-500 truncate flex items-center gap-1 min-w-0">
             {listing.store && <Store className="h-2.5 w-2.5 shrink-0" />}
-            <span className="truncate">
-              {[listing.store?.name || listing.profile?.display_name || listing.location, timeAgo(listing.created_at)].filter(Boolean).join(' · ')}
-            </span>
+            {sellerName ? (
+              <span
+                role="link"
+                tabIndex={0}
+                onClick={goToSeller}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && sellerHref) router.push(sellerHref)
+                }}
+                className="truncate hover:underline cursor-pointer"
+              >
+                {sellerName}
+              </span>
+            ) : (
+              <span className="truncate">{listing.location}</span>
+            )}
+            <span className="shrink-0">· {timeAgo(listing.created_at)}</span>
           </span>
         </div>
       </div>

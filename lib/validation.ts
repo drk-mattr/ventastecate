@@ -9,6 +9,11 @@ import { z } from 'zod'
 
 export const LISTING_TITLE_MAX = 120
 export const LISTING_DESC_MAX = 5000
+// Photos per listing — the Facebook / OfferUp standard. Client-side
+// compression (lib/images/compress.ts) keeps 10 affordable on slow
+// connections. Single source of truth: the new form, the edit form and
+// the internal community-post route all read this constant.
+export const MAX_LISTING_IMAGES = 10
 
 export const listingInputSchema = z.object({
   title: z

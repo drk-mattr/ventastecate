@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCategoriesForType } from '@/lib/categories'
+import { MAX_LISTING_IMAGES } from '@/lib/validation'
 
 function authorized(request: NextRequest): boolean {
   const expected = process.env.INTERNAL_POST_TOKEN
@@ -84,10 +85,10 @@ export async function POST(request: NextRequest) {
     if (insertError || !listing) {
       return NextResponse.json({ error: 'Failed to create listing' }, { status: 500 })
     }
-    // Optional images (max 5, https URLs only): stored in listing_images so
+    // Optional images (max 10, https URLs only): stored in listing_images so
     // the detail page gallery / event poster layout can show them.
     const rawImages: unknown[] = Array.isArray(body.image_urls) ? body.image_urls : []
-    const imageUrls = rawImages.filter((u): u is string => typeof u === 'string' && /^https?:\/\//.test(u)).slice(0, 5)
+    const imageUrls = rawImages.filter((u): u is string => typeof u === 'string' && /^https?:\/\//.test(u)).slice(0, MAX_LISTING_IMAGES)
     if (imageUrls.length) {
       const { error: imgError } = await admin.from('listing_images').insert(
         imageUrls.map((image_url, i) => ({ listing_id: listing.id, image_url, order_index: i }))

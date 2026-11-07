@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { RealEstateMetadata, AutomotiveMetadata, ListingMetadata, ListingType } from '@/lib/types/database'
-import { firstListingError } from '@/lib/validation'
+import { firstListingError, MAX_LISTING_IMAGES } from '@/lib/validation'
 import { normalizeTownName } from '@/lib/business-regions'
 import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
@@ -206,7 +206,7 @@ export default function EditListingPage() {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    if (files.length + totalImages > 5) {
+    if (files.length + totalImages > MAX_LISTING_IMAGES) {
       setError(f.maxImagesError)
       return
     }

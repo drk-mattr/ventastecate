@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RealEstateMetadata, AutomotiveMetadata, ListingType } from '@/lib/types/database'
-import { firstListingError, LISTING_TITLE_MAX, LISTING_DESC_MAX } from '@/lib/validation'
+import { firstListingError, LISTING_TITLE_MAX, LISTING_DESC_MAX, MAX_LISTING_IMAGES } from '@/lib/validation'
 import { normalizeTownName, LOCATION_COOKIE, TOWN_REGIONS, townsForLocation } from '@/lib/business-regions'
 import { compressImage } from '@/lib/images/compress'
 import { humanizePostError } from '@/lib/errors'
@@ -359,7 +359,7 @@ export default function NewListingPage() {
 
   const addImages = async (files: File[]) => {
     const imageFiles = files.filter(f => f.type.startsWith('image/'))
-    if (imageFiles.length + images.length > 5) {
+    if (imageFiles.length + images.length > MAX_LISTING_IMAGES) {
       setError(f.maxImagesError)
       return
     }
@@ -810,7 +810,7 @@ export default function NewListingPage() {
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
-              onClick={() => images.length < 5 && fileInputRef.current?.click()}
+              onClick={() => images.length < MAX_LISTING_IMAGES && fileInputRef.current?.click()}
               className={`
                 relative rounded-xl border-2 border-dashed transition-all cursor-pointer
                 ${isDragging
@@ -841,7 +841,7 @@ export default function NewListingPage() {
                     Agrega fotos
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
-                    Arrastra aquí o toca para seleccionar (máx. 5)
+                    Arrastra aquí o toca para seleccionar (máx. 10)
                   </p>
                 </div>
               ) : (
@@ -870,10 +870,10 @@ export default function NewListingPage() {
                       </div>
                     ))}
                     {/* Add more slot */}
-                    {images.length < 5 && (
+                    {images.length < MAX_LISTING_IMAGES && (
                       <div className="aspect-square rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition">
                         <ImagePlus className="h-5 w-5 text-gray-300" />
-                        <span className="text-[10px] text-gray-400 mt-1">{5 - images.length} más</span>
+                        <span className="text-[10px] text-gray-400 mt-1">{MAX_LISTING_IMAGES - images.length} más</span>
                       </div>
                     )}
                   </div>

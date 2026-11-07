@@ -13,8 +13,11 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RealEstateMetadata, AutomotiveMetadata, ListingType } from '@/lib/types/database'
-import { firstListingError, LISTING_TITLE_MAX, LISTING_DESC_MAX } from '@/lib/validation'
-import { normalizeTownName } from '@/lib/business-regions'
+import { firstListingError, LISTING_TITLE_MAX, LISTING_DESC_MAX, MAX_LISTING_IMAGES } from '@/lib/validation'
+import { normalizeTownName, LOCATION_COOKIE, TOWN_REGIONS, townsForLocation } from '@/lib/business-regions'
+import { compressImage } from '@/lib/images/compress'
+import { humanizePostError } from '@/lib/errors'
+import { useListingDraft, draftKeyForUser } from '@/lib/hooks/use-listing-draft'
 import Image from 'next/image'
 import { BusinessTagPicker } from '@/components/listings/business-tag-picker'
 import { ItemTagPicker } from '@/components/listings/item-tag-picker'
@@ -155,8 +158,24 @@ export default function NewListingPage() {
   }
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // Inline per-field errors (shown under the offending field) + the id
+  // of the first one, so submit can scroll to it.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  // Image upload progress: { done, total } while uploading, null otherwise.
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
+  const [compressing, setCompressing] = useState(false)
+  // When the listing is already live but photos/tags failed, the form
+  // switches to "published" mode: no re-submit, just retry + view links.
+  const [publishedListingId, setPublishedListingId] = useState<string | null>(null)
+  const [failedImages, setFailedImages] = useState<File[]>([])
+  const [tagWarning, setTagWarning] = useState<'business' | 'items' | null>(null)
+  // WhatsApp opt-in at posting time (P1-6) — only when the seller has
+  // no number on their profile yet.
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false)
+  const [whatsappNumber, setWhatsappNumber] = useState('')
+  const [draftRestored, setDraftRestored] = useState(false)
 
   // Real estate metadata
   const [propertyType, setPropertyType] = useState('casa')
@@ -179,7 +198,7 @@ export default function NewListingPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
-  const { user, activeStore } = useAuth()
+  const { user, profile, activeStore } = useAuth()
   const t = useTranslations()
   const f = t.forms
   const storeType = activeStore?.store_type || 'general'
@@ -192,14 +211,145 @@ export default function NewListingPage() {
   const isRealEstate = storeType === 'real_estate' || REAL_ESTATE_CATEGORIES.includes(category)
   const isAutomotive = storeType === 'automotive' || category === 'Vehículos'
 
-  // Single-page form validation (was the step 2→3 gate in the wizard):
-  // title, description, price-or-consultar, category. Runs at submit.
-  const validateForm = (): string | null => {
-    if (!title.trim()) return 'Escribe un título'
-    if (!description.trim()) return 'Escribe una descripción'
-    if (showPrice && !priceConsultar && !price) return 'Escribe un precio o marca Precio a consultar / Gratis'
-    if (storeType === 'general' && !category) return 'Elige una categoría'
-    return null
+  // ── Device draft (P0-1) ──
+  // The draft value is the whole form; the hook debounces the
+  // localStorage write. Photos are excluded (File objects can't
+  // serialize) — the text is what a draft saves.
+  const draftValue = {
+    listingType, title, description, price, priceConsultar, category,
+    location, city, stateRegion, countryCode, videoUrl,
+    taggedBusinessId: taggedBusiness?.id ?? null,
+    selectedItems,
+    propertyType, transactionType, bedrooms, bathrooms, constructionM2,
+    lotM2, parkingSpots, make, model, year, mileageKm, transmission,
+    fuelType, color, doors, whatsappOptIn, whatsappNumber, showAdvanced,
+  }
+  const restoreDraft = (d: typeof draftValue) => {
+    setListingType((d.listingType as ListingType) || 'product')
+    setTitle(d.title || '')
+    setDescription(d.description || '')
+    setPrice(d.price || '')
+    setPriceConsultar(!!d.priceConsultar)
+    setCategory(d.category || '')
+    setLocation(d.location || '')
+    setCity(d.city || '')
+    setStateRegion(d.stateRegion || '')
+    setCountryCode(d.countryCode || 'MX')
+    setVideoUrl(d.videoUrl || '')
+    setSelectedItems((d.selectedItems as SelectedItemTag[]) || [])
+    setPropertyType(d.propertyType || 'casa')
+    setTransactionType(d.transactionType || 'venta')
+    setBedrooms(d.bedrooms || '')
+    setBathrooms(d.bathrooms || '')
+    setConstructionM2(d.constructionM2 || '')
+    setLotM2(d.lotM2 || '')
+    setParkingSpots(d.parkingSpots || '')
+    setMake(d.make || '')
+    setModel(d.model || '')
+    setYear(d.year || '')
+    setMileageKm(d.mileageKm || '')
+    setTransmission(d.transmission || 'automatica')
+    setFuelType(d.fuelType || 'gasolina')
+    setColor(d.color || '')
+    setDoors(d.doors || '4')
+    setWhatsappOptIn(!!d.whatsappOptIn)
+    setWhatsappNumber(d.whatsappNumber || '')
+    setShowAdvanced(!!d.showAdvanced)
+    if (d.taggedBusinessId) {
+      // Restore the full business row so the picker has a real object.
+      createClient().from('businesses').select('*').eq('id', d.taggedBusinessId).single()
+        .then(({ data }) => { if (data) setTaggedBusiness(data as Business) })
+    }
+    setDraftRestored(true)
+  }
+  const { clearDraft, didRestore } = useListingDraft({
+    storageKey: draftKeyForUser(user?.id),
+    value: draftValue,
+    onRestore: restoreDraft,
+  })
+
+  // Prefill city/state/country from the site region (P0-3). Runs once,
+  // after the draft decision: a restored draft's city wins; only an
+  // empty city gets the region's first town. GPS detect stays as an
+  // override afterwards.
+  const prefillDoneRef = useRef(false)
+  const prefillLocationFromRegion = () => {
+    try {
+      const match = document.cookie
+        .split('; ')
+        .find((c) => c.startsWith(`${LOCATION_COOKIE}=`))
+      const label = match ? decodeURIComponent(match.split('=')[1] ?? '') : null
+      const towns = townsForLocation(label)
+      const town = towns?.[0] ?? 'Tecate'
+      const info = TOWN_REGIONS[town]
+      setCity(town)
+      if (info) {
+        setStateRegion(info.state)
+        setCountryCode(info.country)
+      }
+    } catch {
+      // Cookie unreadable — the fields stay blank as before.
+    }
+  }
+  useEffect(() => {
+    if (!didRestore || prefillDoneRef.current) return
+    prefillDoneRef.current = true
+    if (city) return
+    prefillLocationFromRegion()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [didRestore])
+
+  // Reset the whole form (used by "Descartar" on a restored draft).
+  const resetForm = () => {
+    clearDraft()
+    setListingType('product')
+    setTitle(''); setDescription(''); setPrice(''); setPriceConsultar(false)
+    setCategory(''); setLocation(''); setCity(''); setStateRegion(''); setCountryCode('MX')
+    setGpsCountryCode(null); setVideoUrl(''); setTaggedBusiness(null); setSelectedItems([])
+    setPropertyType('casa'); setTransactionType('venta'); setBedrooms(''); setBathrooms('')
+    setConstructionM2(''); setLotM2(''); setParkingSpots('')
+    setMake(''); setModel(''); setYear(''); setMileageKm(''); setTransmission('automatica')
+    setFuelType('gasolina'); setColor(''); setDoors('4')
+    setWhatsappOptIn(false); setWhatsappNumber('')
+    imagePreviews.forEach((u) => URL.revokeObjectURL(u))
+    setImages([]); setImagePreviews([])
+    setFieldErrors({}); setError(''); setDraftRestored(false)
+    setPublishedListingId(null); setFailedImages([]); setTagWarning(null)
+    setUploadProgress(null)
+    prefillLocationFromRegion()
+  }
+
+  // Single-page form validation: returns per-field errors + the id of
+  // the first offending field, so submit can scroll to it.
+  const validateForm = (): { errors: Record<string, string>; firstId: string | null } => {
+    const errors: Record<string, string> = {}
+    if (!title.trim()) errors.title = 'Escribe un título'
+    if (!description.trim()) errors.description = 'Escribe una descripción'
+    if (showPrice && !priceConsultar && !price) errors.price = 'Escribe un precio, o marca Precio a consultar / Gratis'
+    if (storeType === 'general' && !category) errors.category = 'Elige una categoría'
+    const firstId = errors.title
+      ? 'title'
+      : errors.description
+        ? 'description'
+        : errors.price
+          ? 'price'
+          : errors.category
+            ? 'category-field'
+            : null
+    return { errors, firstId }
+  }
+
+  const scrollToField = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  const clearFieldError = (key: string) => {
+    setFieldErrors((prev) => {
+      if (!(key in prev)) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -207,15 +357,24 @@ export default function NewListingPage() {
     addImages(files)
   }
 
-  const addImages = (files: File[]) => {
+  const addImages = async (files: File[]) => {
     const imageFiles = files.filter(f => f.type.startsWith('image/'))
-    if (imageFiles.length + images.length > 5) {
+    if (imageFiles.length + images.length > MAX_LISTING_IMAGES) {
       setError(f.maxImagesError)
       return
     }
-    setImages(prev => [...prev, ...imageFiles])
-    const newPreviews = imageFiles.map(file => URL.createObjectURL(file))
-    setImagePreviews(prev => [...prev, ...newPreviews])
+    // Compress on-device before anything else (P0-2): a phone photo
+    // is 3-8 MB raw; the compressed file is what gets previewed and
+    // uploaded. A compression failure keeps the original file.
+    setCompressing(true)
+    try {
+      const compressed = await Promise.all(imageFiles.map((file) => compressImage(file)))
+      setImages(prev => [...prev, ...compressed])
+      const newPreviews = compressed.map(file => URL.createObjectURL(file))
+      setImagePreviews(prev => [...prev, ...newPreviews])
+    } finally {
+      setCompressing(false)
+    }
   }
 
   const removeImage = (index: number) => {
@@ -249,18 +408,141 @@ export default function NewListingPage() {
 
   const handleDragLeave = () => setIsDragging(false)
 
+  // Upload files one at a time, in order, reporting progress. Returns
+  // the files that failed (empty when all succeeded). A failure stops
+  // the loop — the caller keeps the listing and offers a retry for the
+  // failed photos only (P0-1: never delete the listing and wipe the
+  // form over an upload failure).
+  const uploadImagesSequential = async (
+    listingId: string,
+    files: File[],
+    startOrder: number,
+  ): Promise<{ failed: File[]; uploaded: number }> => {
+    let uploaded = 0
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      try {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${user?.id}/${listingId}/${Date.now()}-${startOrder + i}.${fileExt}`
+        const { error: uploadError } = await supabase.storage.from('listing-images').upload(fileName, file)
+        if (uploadError) throw uploadError
+        const { data: { publicUrl } } = supabase.storage.from('listing-images').getPublicUrl(fileName)
+        const { error: imgInsertError } = await supabase
+          .from('listing_images')
+          .insert({ listing_id: listingId, image_url: publicUrl, order_index: startOrder + i })
+        if (imgInsertError) throw imgInsertError
+        uploaded += 1
+        setUploadProgress((prev) => (prev ? { done: prev.done + 1, total: prev.total } : null))
+      } catch (imgErr) {
+        console.error('image upload failed:', imgErr)
+        return { failed: files.slice(i), uploaded }
+      }
+    }
+    return { failed: [], uploaded }
+  }
+
+  // Tag the listing's offerings through the server route. Returns true
+  // on success; a failure is the caller's to surface, not to swallow.
+  const postItemTags = async (listingId: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/listings/${listingId}/item-tags`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: selectedItems.map((s) =>
+            s.itemId
+              ? { item_id: s.itemId }
+              : s.kindId
+                ? { kind_id: s.kindId }
+                : { kind_name: s.kindName },
+          ),
+        }),
+      })
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null
+        console.error('item-tags failed:', data?.error || res.status)
+        return false
+      }
+      return true
+    } catch (tagErr) {
+      console.error('item-tags failed:', tagErr)
+      return false
+    }
+  }
+
+  // Retry only the photos that failed to upload for the live listing.
+  const retryFailedImages = async () => {
+    if (!publishedListingId || failedImages.length === 0 || !user) return
+    setLoading(true)
+    setError('')
+    const startOrder = uploadProgress?.done ?? 0
+    const { failed } = await uploadImagesSequential(publishedListingId, failedImages, startOrder)
+    setFailedImages(failed)
+    setLoading(false)
+    if (failed.length === 0) {
+      setUploadProgress(null)
+      router.push(`/listings/${publishedListingId}`)
+    } else {
+      setError('Todavía no se pudieron subir todas las fotos. Revisa tu conexión e inténtalo de nuevo.')
+    }
+  }
+
+  // Retry the tag operation that failed for the live listing.
+  const retryTags = async () => {
+    if (!publishedListingId || !tagWarning) return
+    setLoading(true)
+    setError('')
+    let ok = true
+    if (tagWarning === 'business' && taggedBusiness) {
+      const { error: tagError } = await supabase.from('listing_business_tags').insert({
+        listing_id: publishedListingId,
+        business_id: taggedBusiness.id,
+      })
+      if (tagError) {
+        console.error('business-tag retry failed:', tagError.message)
+        ok = false
+      }
+    } else if (tagWarning === 'items' && selectedItems.length > 0) {
+      ok = await postItemTags(publishedListingId)
+    }
+    setLoading(false)
+    if (ok) {
+      setTagWarning(null)
+      router.push(`/listings/${publishedListingId}`)
+    } else {
+      setError('Todavía no se pudo guardar la etiqueta. Inténtalo de nuevo.')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user) return
+    // The listing already exists once published — the form must not
+    // re-submit and duplicate it; retries go through the retry buttons.
+    if (!user || publishedListingId) return
 
-    const formError = validateForm()
-    if (formError) {
-      setError(formError)
+    const { errors, firstId } = validateForm()
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      setError('Revisa los datos marcados del anuncio')
+      if (firstId) scrollToField(firstId)
+      return
+    }
+    // Automotive required fields are validated here, before any DB
+    // write (P1-7) — not only at the very end of submit.
+    if (isAutomotive && (!year || !make.trim() || !model.trim())) {
+      const autoErrors: Record<string, string> = {}
+      if (!year) autoErrors.year = 'Falta el año'
+      if (!make.trim()) autoErrors.make = 'Falta la marca'
+      if (!model.trim()) autoErrors.model = 'Falta el modelo'
+      setFieldErrors(autoErrors)
+      setError('Completa año, marca y modelo del vehículo')
+      scrollToField('auto-fields')
       return
     }
 
     setLoading(true)
     setError('')
+    setFieldErrors({})
 
     try {
       let metadata = null
@@ -306,19 +588,6 @@ export default function NewListingPage() {
       const parsedPrice = parseFloat(price)
       const finalPrice = listingType === 'news' ? 0 : priceConsultar ? 0 : (Number.isFinite(parsedPrice) ? parsedPrice : 0)
 
-      // Re-check category + automotive required fields so a direct
-      // submit can never publish with a missing required field.
-      if (storeType === 'general' && !category) {
-        setError('Elige una categoría')
-        setLoading(false)
-        return
-      }
-      if (isAutomotive && (!year || !make.trim() || !model.trim())) {
-        setError('Completa año, marca y modelo del vehículo')
-        setLoading(false)
-        return
-      }
-
       // Validate user input before touching the DB.
       const validationError = firstListingError({
         title,
@@ -355,40 +624,48 @@ export default function NewListingPage() {
 
       if (listingError) throw listingError
 
-      // Create business tag junction record
+      // The listing exists now: the draft has done its job.
+      clearDraft()
+      setPublishedListingId(listing.id)
+
+      // WhatsApp opt-in (P1-6): save the number to the profile when
+      // the seller asked for it. Best-effort — a failure here never
+      // blocks the publish.
+      const digits = whatsappNumber.replace(/\D/g, '')
+      if (whatsappOptIn && digits.length >= 10 && !profile?.whatsapp_number) {
+        supabase.from('profiles').update({ whatsapp_number: digits }).eq('id', user.id)
+          .then(({ error: waError }) => {
+            if (waError) console.error('whatsapp save failed:', waError.message)
+          })
+      }
+
+      // Business tag junction — a failure is surfaced with a retry
+      // (P1-4), not swallowed as before.
+      let businessTagFailed = false
       if (taggedBusiness) {
-        await supabase.from('listing_business_tags').insert({
+        const { error: tagError } = await supabase.from('listing_business_tags').insert({
           listing_id: listing.id,
           business_id: taggedBusiness.id,
         })
+        if (tagError) {
+          businessTagFailed = true
+          console.error('business-tag failed:', tagError.message)
+        }
       }
 
+      // Images, one at a time with progress (P0-2). A failure keeps
+      // the listing (already live) and offers a retry for the failed
+      // photos only — the old rollback that deleted the listing and
+      // wiped the form is gone (P0-1).
+      let imagesFailed = false
       if (images.length > 0) {
-        // Track uploaded files so we can roll back if any upload/insert fails —
-        // otherwise a partial failure leaves an orphaned listing behind and the
-        // user retries, creating a duplicate.
-        const uploadedPaths: string[] = []
-        try {
-          await Promise.all(images.map(async (file, index) => {
-            const fileExt = file.name.split('.').pop()
-            const fileName = `${user.id}/${listing.id}/${Date.now()}-${index}.${fileExt}`
-            const { error: uploadError } = await supabase.storage.from('listing-images').upload(fileName, file)
-            if (uploadError) throw uploadError
-            uploadedPaths.push(fileName)
-            const { data: { publicUrl } } = supabase.storage.from('listing-images').getPublicUrl(fileName)
-            const { error: imgInsertError } = await supabase
-              .from('listing_images')
-              .insert({ listing_id: listing.id, image_url: publicUrl, order_index: index })
-            if (imgInsertError) throw imgInsertError
-          }))
-        } catch (imgErr) {
-          // Roll back uploaded files + the orphaned listing (cascade removes any
-          // image rows and the business tag) before surfacing the error.
-          if (uploadedPaths.length > 0) {
-            await supabase.storage.from('listing-images').remove(uploadedPaths).catch(() => {})
-          }
-          await supabase.from('listings').delete().eq('id', listing.id).eq('user_id', user.id)
-          throw imgErr
+        setUploadProgress({ done: 0, total: images.length })
+        const { failed } = await uploadImagesSequential(listing.id, images, 0)
+        if (failed.length > 0) {
+          imagesFailed = true
+          setFailedImages(failed)
+        } else {
+          setUploadProgress(null)
         }
       }
 
@@ -398,34 +675,26 @@ export default function NewListingPage() {
       // tag above: the listing is already live, and tags are
       // optional — a failure here must not strand the user on the
       // form with a published listing (a retry would duplicate it).
+      let itemTagsFailed = false
       if (selectedItems.length > 0) {
-        try {
-          const res = await fetch(`/api/listings/${listing.id}/item-tags`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              items: selectedItems.map((s) =>
-                s.itemId
-                  ? { item_id: s.itemId }
-                  : s.kindId
-                    ? { kind_id: s.kindId }
-                    : { kind_name: s.kindName },
-              ),
-            }),
-          })
-          if (!res.ok) {
-            const data = (await res.json().catch(() => null)) as { error?: string } | null
-            console.error('item-tags failed:', data?.error || res.status)
-          }
-        } catch (tagErr) {
-          console.error('item-tags failed:', tagErr)
-        }
+        itemTagsFailed = !(await postItemTags(listing.id))
       }
 
+      if (imagesFailed) {
+        setError('Tu anuncio ya está publicado, pero no se pudieron subir todas las fotos. Revisa tu conexión y reintenta solo las fotos.')
+        setLoading(false)
+        return
+      }
+      if (businessTagFailed || itemTagsFailed) {
+        setTagWarning(businessTagFailed ? 'business' : 'items')
+        setLoading(false)
+        return
+      }
+      setLoading(false)
       router.push(`/listings/${listing.id}`)
     } catch (err) {
-      const error = err as Error
-      setError(error.message || 'Error al publicar')
+      console.error('publish failed:', err)
+      setError(humanizePostError(err))
       setLoading(false)
     }
   }
@@ -448,6 +717,14 @@ export default function NewListingPage() {
           ) : (
             <p className="text-sm text-gray-400 mt-0.5">
               Tu publicación será visible para toda la comunidad
+            </p>
+          )}
+          {draftRestored && (
+            <p className="text-xs text-gray-500 mt-2">
+              Borrador restaurado · se guarda en este dispositivo.{' '}
+              <button type="button" onClick={resetForm} className="underline text-gray-700">
+                Descartar
+              </button>
             </p>
           )}
         </div>
@@ -533,7 +810,7 @@ export default function NewListingPage() {
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
-              onClick={() => images.length < 5 && fileInputRef.current?.click()}
+              onClick={() => images.length < MAX_LISTING_IMAGES && fileInputRef.current?.click()}
               className={`
                 relative rounded-xl border-2 border-dashed transition-all cursor-pointer
                 ${isDragging
@@ -564,7 +841,7 @@ export default function NewListingPage() {
                     Agrega fotos
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
-                    Arrastra aquí o toca para seleccionar (máx. 5)
+                    Arrastra aquí o toca para seleccionar (máx. 10)
                   </p>
                 </div>
               ) : (
@@ -593,16 +870,34 @@ export default function NewListingPage() {
                       </div>
                     ))}
                     {/* Add more slot */}
-                    {images.length < 5 && (
+                    {images.length < MAX_LISTING_IMAGES && (
                       <div className="aspect-square rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition">
                         <ImagePlus className="h-5 w-5 text-gray-300" />
-                        <span className="text-[10px] text-gray-400 mt-1">{5 - images.length} más</span>
+                        <span className="text-[10px] text-gray-400 mt-1">{MAX_LISTING_IMAGES - images.length} más</span>
                       </div>
                     )}
                   </div>
                 </div>
               )}
             </div>
+            {compressing && (
+              <p className="text-xs text-gray-500 mt-3">Comprimiendo fotos…</p>
+            )}
+            {uploadProgress && (
+              <div className="mt-3">
+                <p className="text-xs text-gray-500">
+                  {failedImages.length > 0
+                    ? `Fotos subidas: ${uploadProgress.done} de ${uploadProgress.total} · ${failedImages.length} pendiente${failedImages.length === 1 ? '' : 's'}.`
+                    : `Subiendo ${Math.min(uploadProgress.done + 1, uploadProgress.total)} de ${uploadProgress.total}…`}
+                </p>
+                <div className="h-1 bg-gray-200 rounded-full mt-1.5">
+                  <div
+                    className="h-1 bg-gray-900 rounded-full transition-all"
+                    style={{ width: `${(uploadProgress.done / uploadProgress.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ══════════════════════════════════════════════
@@ -617,12 +912,13 @@ export default function NewListingPage() {
               <Input
                 id="title"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => { setTitle(e.target.value); clearFieldError('title') }}
                 required
                 maxLength={LISTING_TITLE_MAX}
                 placeholder={config.titlePlaceholder}
                 className="text-base"
               />
+              {fieldErrors.title && <p className="text-xs text-red-500">{fieldErrors.title}</p>}
             </div>
 
             {/* Description */}
@@ -633,13 +929,14 @@ export default function NewListingPage() {
               <Textarea
                 id="description"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => { setDescription(e.target.value); clearFieldError('description') }}
                 required
                 maxLength={LISTING_DESC_MAX}
                 placeholder={config.descPlaceholder}
                 rows={listingType === 'news' ? 6 : 4}
                 className="resize-none"
               />
+              {fieldErrors.description && <p className="text-xs text-red-500">{fieldErrors.description}</p>}
             </div>
 
             {/* Price + Category row (contextual) */}
@@ -656,32 +953,31 @@ export default function NewListingPage() {
                     step="0.01"
                     min="0"
                     value={price}
-                    onChange={(e) => setPrice(e.target.value)}
+                    onChange={(e) => { setPrice(e.target.value); clearFieldError('price') }}
                     required={!priceConsultar}
                     disabled={priceConsultar}
                     placeholder={priceConsultar ? 'A consultar' : '0.00'}
                   />
-                  {(listingType === 'service' || listingType === 'event') && (
-                    <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={priceConsultar}
-                        onChange={(e) => { setPriceConsultar(e.target.checked); if (e.target.checked) setPrice('') }}
-                        className="rounded border-gray-300"
-                      />
-                      Precio a consultar / Gratis
-                    </label>
-                  )}
+                  {fieldErrors.price && <p className="text-xs text-red-500">{fieldErrors.price}</p>}
+                  <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={priceConsultar}
+                      onChange={(e) => { setPriceConsultar(e.target.checked); if (e.target.checked) setPrice('') }}
+                      className="rounded border-gray-300"
+                    />
+                    Precio a consultar / Gratis
+                  </label>
                 </div>
               )}
 
               {/* Category */}
               {storeType === 'general' ? (
-                <div className="space-y-1.5">
+                <div className="space-y-1.5" id="category-field">
                   <Label htmlFor="category" className="text-sm">
                     Categoría <span className="text-red-400">*</span>
                   </Label>
-                  <Select value={category} onValueChange={setCategory} required>
+                  <Select value={category} onValueChange={(v) => { setCategory(v); clearFieldError('category') }} required>
                     <SelectTrigger>
                       <SelectValue placeholder="Elige una categoría" />
                     </SelectTrigger>
@@ -693,6 +989,7 @@ export default function NewListingPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {fieldErrors.category && <p className="text-xs text-red-500">{fieldErrors.category}</p>}
                 </div>
               ) : storeType === 'real_estate' ? (
                 <div className="space-y-1.5">
@@ -735,6 +1032,39 @@ export default function NewListingPage() {
           </div>
 
           {/* ══════════════════════════════════════════════
+              WHATSAPP — opt-in at posting time (only when the
+              seller has no number on their profile yet)
+              ══════════════════════════════════════════════ */}
+          {user && profile && !profile.whatsapp_number && (
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-3">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Contacto por WhatsApp</p>
+            <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={whatsappOptIn}
+                onChange={(e) => setWhatsappOptIn(e.target.checked)}
+                className="rounded border-gray-300 mt-0.5"
+              />
+              Quiero que los compradores me escriban por WhatsApp
+            </label>
+            {whatsappOptIn && (
+              <div className="space-y-1.5">
+                <Label htmlFor="whatsapp" className="text-sm">Tu número de WhatsApp</Label>
+                <Input
+                  id="whatsapp"
+                  type="tel"
+                  inputMode="tel"
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                  placeholder="Ej: 665 123 4567"
+                />
+                <p className="text-[11px] text-gray-400">Se guarda en tu perfil para tus próximos anuncios.</p>
+              </div>
+            )}
+          </div>
+          )}
+
+          {/* ══════════════════════════════════════════════
               TYPE-SPECIFIC FIELDS — only when they apply
               ══════════════════════════════════════════════ */}
           {(isRealEstate || isAutomotive) && (
@@ -769,14 +1099,15 @@ export default function NewListingPage() {
 
             {/* Automotive Fields — only for vehicles */}
             {isAutomotive && (
-              <>
+              <div id="auto-fields" className="space-y-5">
                 <div className="space-y-1.5">
-                  <Label className="text-sm">Año *</Label>
-                  <Input type="number" min="1950" max="2027" value={year} onChange={(e) => setYear(e.target.value)} required placeholder="2024" />
+                  <Label htmlFor="auto-year" className="text-sm">Año *</Label>
+                  <Input id="auto-year" type="number" min="1950" max="2027" value={year} onChange={(e) => { setYear(e.target.value); clearFieldError('year') }} required placeholder="2024" />
+                  {fieldErrors.year && <p className="text-xs text-red-500">{fieldErrors.year}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5"><Label className="text-sm">Marca *</Label><Input value={make} onChange={(e) => setMake(e.target.value)} required placeholder="Toyota" /></div>
-                  <div className="space-y-1.5"><Label className="text-sm">Modelo *</Label><Input value={model} onChange={(e) => setModel(e.target.value)} required placeholder="Tacoma" /></div>
+                  <div className="space-y-1.5"><Label htmlFor="auto-make" className="text-sm">Marca *</Label><Input id="auto-make" value={make} onChange={(e) => { setMake(e.target.value); clearFieldError('make') }} required placeholder="Toyota" />{fieldErrors.make && <p className="text-xs text-red-500">{fieldErrors.make}</p>}</div>
+                  <div className="space-y-1.5"><Label htmlFor="auto-model" className="text-sm">Modelo *</Label><Input id="auto-model" value={model} onChange={(e) => { setModel(e.target.value); clearFieldError('model') }} required placeholder="Tacoma" />{fieldErrors.model && <p className="text-xs text-red-500">{fieldErrors.model}</p>}</div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="space-y-1.5"><Label className="text-sm">Kilómetros</Label><Input type="number" min="0" value={mileageKm} onChange={(e) => setMileageKm(e.target.value)} placeholder="45000" /></div>
@@ -817,7 +1148,7 @@ export default function NewListingPage() {
                     </Select>
                   </div>
                 </div>
-              </>
+              </div>
             )}
           </div>
           )}
@@ -852,9 +1183,23 @@ export default function NewListingPage() {
                     id="videoUrl"
                     type="url"
                     value={videoUrl}
-                    onChange={(e) => setVideoUrl(e.target.value)}
+                    onChange={(e) => { setVideoUrl(e.target.value); clearFieldError('videoUrl') }}
+                    onBlur={() => {
+                      if (!videoUrl.trim()) { clearFieldError('videoUrl'); return }
+                      try {
+                        const host = new URL(videoUrl.trim()).hostname.replace(/^www\./, '')
+                        if (!/(youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com)$/.test(host)) {
+                          setFieldErrors((prev) => ({ ...prev, videoUrl: 'Pega un enlace válido de YouTube, Facebook o TikTok' }))
+                        } else {
+                          clearFieldError('videoUrl')
+                        }
+                      } catch {
+                        setFieldErrors((prev) => ({ ...prev, videoUrl: 'El enlace de video no es válido' }))
+                      }
+                    }}
                     placeholder="https://youtube.com/watch?v=... o link de Facebook/TikTok"
                   />
+                  {fieldErrors.videoUrl && <p className="text-xs text-red-500">{fieldErrors.videoUrl}</p>}
                   <p className="text-[11px] text-gray-400">
                     Pega un enlace de YouTube, Facebook o TikTok
                   </p>
@@ -889,19 +1234,69 @@ export default function NewListingPage() {
               STICKY PUBLISH BAR — the action is always visible
               ══════════════════════════════════════════════ */}
           <div className="sticky bottom-0 z-20 -mx-4 px-4 pt-2 pb-3 mt-6 bg-white/95 backdrop-blur border-t border-gray-200">
-            {error && (
-              <div className="text-sm text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl mb-3">
-                {error}
-              </div>
+            {publishedListingId ? (
+              <>
+                {tagWarning && (
+                  <div className="text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-800 mb-3">
+                    Se publicó, pero no se pudo etiquetar el {tagWarning === 'business' ? 'negocio' : 'producto'}.
+                    <button
+                      type="button"
+                      onClick={retryTags}
+                      disabled={loading}
+                      className="ml-2 underline font-medium"
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                )}
+                {failedImages.length > 0 && (
+                  <div className="text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-800 mb-3">
+                    Faltan {failedImages.length} foto{failedImages.length === 1 ? '' : 's'} por subir.
+                    <button
+                      type="button"
+                      onClick={retryFailedImages}
+                      disabled={loading}
+                      className="ml-2 underline font-medium"
+                    >
+                      Reintentar fotos
+                    </button>
+                  </div>
+                )}
+                {error && (
+                  <div className="text-sm text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl mb-3">
+                    {error}
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  <Button type="button" variant="outline" onClick={() => router.push('/my-listings')} className="h-12 px-5 rounded-xl">
+                    Mis anuncios
+                  </Button>
+                  <Button type="button" onClick={() => router.push(`/listings/${publishedListingId}`)} className="flex-1 h-12 text-base font-medium rounded-xl">
+                    Ver mi anuncio
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                {error && (
+                  <div className="text-sm text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl mb-3">
+                    {error}
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading} className="h-12 px-5 rounded-xl">
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={loading} className="flex-1 h-12 text-base font-medium rounded-xl">
+                    {loading
+                      ? uploadProgress
+                        ? `Subiendo ${uploadProgress.done + 1} de ${uploadProgress.total}…`
+                        : 'Publicando...'
+                      : 'Publicar'}
+                  </Button>
+                </div>
+              </>
             )}
-            <div className="flex gap-3">
-              <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading} className="h-12 px-5 rounded-xl">
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={loading} className="flex-1 h-12 text-base font-medium rounded-xl">
-                {loading ? 'Publicando...' : 'Publicar'}
-              </Button>
-            </div>
           </div>
         </form>
       </main>

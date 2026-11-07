@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCategoriesForType } from '@/lib/categories'
+import { MAX_LISTING_IMAGES } from '@/lib/validation'
 
 function authorized(request: NextRequest): boolean {
   const expected = process.env.INTERNAL_POST_TOKEN
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
       if (error) return NextResponse.json({ error: 'Failed to update listing' }, { status: 500 })
     }
     const rawImages: unknown[] = Array.isArray(body.image_urls) ? body.image_urls : []
-    const imageUrls = rawImages.filter((u): u is string => typeof u === 'string' && /^https?:\/\//.test(u)).slice(0, 5)
+    const imageUrls = rawImages.filter((u): u is string => typeof u === 'string' && /^https?:\/\//.test(u)).slice(0, MAX_LISTING_IMAGES)
     if (imageUrls.length) {
       const { data: existing } = await admin.from('listing_images').select('order_index').eq('listing_id', listingId).order('order_index', { ascending: false }).limit(1)
       const start = (existing?.[0]?.order_index ?? -1) + 1

@@ -7,6 +7,7 @@ import { Wrench, Megaphone, Store, Play } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ListingWithImages } from '@/lib/types/database'
 import { formatPrice } from '@/lib/listings/format-price'
+import { formatEventRange, isEventPast } from '@/lib/listings/event-dates'
 import { ListingTitleCard } from './listing-title-card'
 
 interface ListingCardProps {
@@ -100,6 +101,20 @@ export function ListingCard({ listing }: ListingCardProps) {
 
   const formattedPrice = formatPrice(listing.price, listing.currency, { isFree: listing.is_free })
 
+  // Structured event dates (migration 043): pre-043 every field is
+  // undefined and all of this is null/false — the card renders
+  // exactly as before.
+  const eventStartsAt = listing.event_starts_at ?? null
+  const eventEndsAt = listing.event_ends_at ?? null
+  const eventDateLine = listingType === 'event' ? formatEventRange(eventStartsAt, eventEndsAt) : null
+  const eventPast = listingType === 'event' && isEventPast(eventStartsAt, eventEndsAt)
+  // Title-card subtitle (A4): the date line when there is one, then
+  // the venue (or town). Price already rides as a chip at the bottom
+  // of the card, so it is not repeated here.
+  const eventSubtitle = listingType === 'event'
+    ? [eventDateLine, listing.event_venue || listing.location].filter(Boolean).join(' · ') || null
+    : null
+
   const soldOverlay = (
     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
       <Badge variant="secondary" className="text-xs">
@@ -187,7 +202,10 @@ export function ListingCard({ listing }: ListingCardProps) {
   }
 
   // ── Event card: photo bounded to a 4:3 frame (object-cover) so a
-  // tall portrait poster cannot stretch the card endlessly.
+  // tall portrait poster cannot stretch the card endlessly. Title +
+  // date block + location/time row below the image, mirroring the
+  // news branch — a photo that is not a self-explanatory flyer used
+  // to leave a mute card with no title at all.
   if (listingType === 'event' && primaryImage) {
     return (
       <CardShell id={listing.id}>
@@ -195,13 +213,25 @@ export function ListingCard({ listing }: ListingCardProps) {
           <Image src={primaryImage} alt={listing.title} fill className="object-cover"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
           {listing.status === 'sold' && soldOverlay}
+          {eventPast && (
+            <span className="absolute top-1.5 right-1.5 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-full">
+              Terminado
+            </span>
+          )}
         </div>
-        <div className="px-2.5 py-1.5">
-          <div className="flex items-center justify-between">
+        <div className="px-2.5 pt-1.5 pb-2 flex flex-col flex-1">
+          {eventDateLine && (
+            <p className="text-[11px] font-semibold text-gray-900 leading-snug mb-0.5">{eventDateLine}</p>
+          )}
+          <h3 className="font-semibold text-[13px] line-clamp-2 leading-snug group-hover:underline">
+            {listing.title}
+          </h3>
+          <div className="flex items-center justify-between gap-2 mt-auto pt-1">
             <span className="text-[11px] text-gray-400 truncate">{listing.location}</span>
             {(listing.price > 0 || listing.is_free) && (
               <span className="text-[11px] font-semibold text-gray-900 shrink-0 ml-1">{formattedPrice}</span>
             )}
+            <span className="text-[10px] text-gray-400 shrink-0">{timeAgo(listing.created_at)}</span>
           </div>
         </div>
       </CardShell>
@@ -215,8 +245,13 @@ export function ListingCard({ listing }: ListingCardProps) {
     return (
       <CardShell id={listing.id}>
         <div className="relative flex-1 aspect-square">
-          <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" />
+          <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" subtitle={eventSubtitle} />
           {listing.status === 'sold' && soldOverlay}
+          {eventPast && (
+            <div className="absolute top-2 right-2 z-[5] bg-black/45 text-white text-[10px] px-2 py-0.5 rounded-full">
+              Terminado
+            </div>
+          )}
           <div className="absolute bottom-2 inset-x-2 z-[5] flex items-center justify-between gap-2">
             {(listing.price > 0 || listing.is_free) && (
               <span className="bg-black/45 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full truncate">

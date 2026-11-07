@@ -70,6 +70,11 @@ export type Listing = {
   is_free?: boolean
   /** Title-card color for photo-less news/events (migration 039). Absent pre-039 → orange. */
   card_color?: CardColorId
+  /** Structured event fields (migration 043). Absent pre-043 → undefined; all reads fail soft. */
+  event_starts_at?: string | null
+  event_ends_at?: string | null
+  event_venue?: string | null
+  event_ticket_url?: string | null
   category: string
   location: string
   country_code?: string | null

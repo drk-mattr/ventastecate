@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RealEstateMetadata, AutomotiveMetadata, ListingType } from '@/lib/types/database'
 import { firstListingError, LISTING_TITLE_MAX, LISTING_DESC_MAX, MAX_LISTING_IMAGES } from '@/lib/validation'
+import { CARD_COLORS, type CardColorId } from '@/lib/listings/card-colors'
 import { normalizeTownName, LOCATION_COOKIE, TOWN_REGIONS, townsForLocation } from '@/lib/business-regions'
 import { compressImage } from '@/lib/images/compress'
 import { humanizePostError } from '@/lib/errors'
@@ -24,7 +25,7 @@ import { ItemTagPicker } from '@/components/listings/item-tag-picker'
 import type { SelectedItemTag } from '@/lib/items/types'
 import { Business } from '@/lib/types/database'
 import {
-  ImagePlus, X, Video, ChevronDown, ChevronUp,
+  ImagePlus, X, Video, ChevronDown, ChevronUp, Check,
   ShoppingBag, Handshake, CalendarHeart, Megaphone, Store,
   UtensilsCrossed, Star, AlertTriangle, Briefcase, Dog
 } from 'lucide-react'
@@ -137,6 +138,9 @@ export default function NewListingPage() {
   const [currency, setCurrency] = useState<'MXN' | 'USD'>('MXN')
   // Gratis is its own state now — not the same checkbox as consultar.
   const [isFree, setIsFree] = useState(false)
+  // Title-card color (migration 039): news/event only, used when the
+  // post has no photo. Stored regardless of photos.
+  const [cardColor, setCardColor] = useState<CardColorId>('orange')
   const [category, setCategory] = useState('')
   const [location, setLocation] = useState('')
   const [city, setCity] = useState('')
@@ -220,7 +224,7 @@ export default function NewListingPage() {
   // localStorage write. Photos are excluded (File objects can't
   // serialize) — the text is what a draft saves.
   const draftValue = {
-    listingType, title, description, price, priceConsultar, currency, isFree, category,
+    listingType, title, description, price, priceConsultar, currency, isFree, cardColor, category,
     location, city, stateRegion, countryCode, videoUrl,
     taggedBusinessId: taggedBusiness?.id ?? null,
     selectedItems,
@@ -236,6 +240,7 @@ export default function NewListingPage() {
     setPriceConsultar(!!d.priceConsultar)
     setCurrency((d.currency as 'MXN' | 'USD') || 'MXN')
     setIsFree(!!d.isFree)
+    setCardColor((d.cardColor as CardColorId) || 'orange')
     setCategory(d.category || '')
     setLocation(d.location || '')
     setCity(d.city || '')
@@ -607,10 +612,11 @@ export default function NewListingPage() {
         return
       }
 
-      // Currency + Gratis (migration 038): try with the new columns
-      // first; pre-038 the columns don't exist, so retry without them
-      // (same 42703 fallback PR #86 used for sold_at). The price itself
-      // is the core — the currency is a bonus until 038 is applied.
+      // Currency + Gratis (migration 038) + title-card color (039):
+      // try with the new columns first; pre-migration the columns
+      // don't exist, so retry without them (same 42703 fallback PR #86
+      // used for sold_at). The listing itself is the core — the
+      // currency and the card color are bonuses until applied.
       const insertBase = {
         user_id: user.id,
         store_id: activeStore?.id || null,
@@ -629,7 +635,7 @@ export default function NewListingPage() {
       }
       let { data: listing, error: listingError } = await supabase
         .from('listings')
-        .insert({ ...insertBase, currency, is_free: isFree })
+        .insert({ ...insertBase, currency, is_free: isFree, card_color: cardColor })
         .select()
         .single()
       if (listingError && (listingError.code === '42703' || listingError.code === 'PGRST204')) {
@@ -919,6 +925,33 @@ export default function NewListingPage() {
               </div>
             )}
           </div>
+
+          {/* Title-card color — news/event only. The card only renders
+              when the post has no photo; the choice is stored anyway. */}
+          {(listingType === 'news' || listingType === 'event') && (
+            <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+              <p className="text-sm font-medium mb-1">Color de la tarjeta</p>
+              <p className="text-xs text-gray-400 mb-3">
+                Si no agregas foto, tu publicación se muestra como una tarjeta con el título en este color.
+              </p>
+              <div className="flex items-center gap-2.5" role="group" aria-label="Color de la tarjeta">
+                {CARD_COLORS.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setCardColor(c.id)}
+                    aria-pressed={cardColor === c.id}
+                    aria-label={c.label}
+                    title={c.label}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center transition ${cardColor === c.id ? 'ring-2 ring-gray-900 ring-offset-2' : 'hover:scale-105'}`}
+                    style={{ backgroundColor: c.hex }}
+                  >
+                    {cardColor === c.id && <Check className="h-4 w-4 text-white" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ══════════════════════════════════════════════
               CORE DETAILS — title, description, price, category

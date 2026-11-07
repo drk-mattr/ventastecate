@@ -1,3 +1,5 @@
+import type { CardColorId } from '@/lib/listings/card-colors'
+
 export type Profile = {
   id: string
   username: string
@@ -66,6 +68,8 @@ export type Listing = {
   currency?: 'MXN' | 'USD'
   /** True when the item is free ("Gratis"); price is 0. Migration 038. */
   is_free?: boolean
+  /** Title-card color for photo-less news/events (migration 039). Absent pre-039 → orange. */
+  card_color?: CardColorId
   category: string
   location: string
   country_code?: string | null

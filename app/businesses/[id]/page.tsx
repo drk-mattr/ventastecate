@@ -182,6 +182,7 @@ export default async function BusinessPage({ params }: { params: Promise<{ id: s
   const engagementBar = (
     <BusinessEngagementBar
       businessId={business.id}
+      businessName={business.name}
       initialFollowing={initialFollowing}
       initialLiked={initialLiked}
       followersCount={business.followers_count ?? 0}

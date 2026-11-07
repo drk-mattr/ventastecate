@@ -185,6 +185,19 @@ export type ItemComment = {
   profile?: Pick<Profile, 'username' | 'display_name' | 'avatar_url'>
 }
 
+/** Business review (migration 042): 1–5 stars + optional written note
+    on one business shell. Display-only in v1 — feeds no score. */
+export type BusinessReview = {
+  id: string
+  business_id: string
+  user_id: string
+  rating: number
+  body: string | null
+  created_at: string
+  updated_at: string
+  profile?: Pick<Profile, 'username' | 'display_name' | 'avatar_url'>
+}
+
 export type Report = {
   id: string
   type: string
@@ -194,6 +207,7 @@ export type Report = {
   listing_title?: string | null
   story_id?: string | null
   item_comment_id?: string | null
+  business_review_id?: string | null
   reporter_id?: string | null
   reporter_label?: string | null
   status: 'new' | 'reviewed' | 'resolved'

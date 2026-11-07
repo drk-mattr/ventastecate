@@ -18,6 +18,8 @@ const TYPE_LABEL: Record<string, string> = {
   story_prohibited: 'Historia: contenido prohibido', story_other: 'Historia: otro motivo',
   item_comment_spam: 'Comentario (artículo): spam', item_comment_offensive: 'Comentario (artículo): contenido ofensivo',
   item_comment_prohibited: 'Comentario (artículo): contenido prohibido', item_comment_other: 'Comentario (artículo): otro motivo',
+  business_review_spam: 'Opinión (negocio): spam', business_review_offensive: 'Opinión (negocio): contenido ofensivo',
+  business_review_prohibited: 'Opinión (negocio): contenido prohibido', business_review_other: 'Opinión (negocio): otro motivo',
 }
 
 async function ItemCommentReportPreview({ commentId }: { commentId: string }) {
@@ -30,6 +32,21 @@ async function ItemCommentReportPreview({ commentId }: { commentId: string }) {
     <div className="mt-3">
       <p className="text-sm text-gray-800 whitespace-pre-wrap">{comment.body}</p>
       <p className="text-sm mt-2"><Link href={`/items/${comment.item_id}`} className="underline">Ver artículo comentado</Link></p>
+    </div>
+  )
+}
+
+async function BusinessReviewReportPreview({ reviewId }: { reviewId: string }) {
+  // Business reviews are public-read, so the anon client can see the
+  // reported review; a deleted review renders the fallback line.
+  const supabase = await createClient()
+  const { data: review } = await supabase.from('business_reviews').select('id, business_id, rating, body').eq('id', reviewId).maybeSingle()
+  if (!review) return <p className="text-sm mt-3 text-gray-500">Opinión eliminada.</p>
+  return (
+    <div className="mt-3">
+      <p className="text-sm text-gray-800">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</p>
+      {review.body && <p className="text-sm text-gray-800 whitespace-pre-wrap mt-1">{review.body}</p>}
+      <p className="text-sm mt-2"><Link href={`/businesses/${review.business_id}`} className="underline">Ver negocio opinado</Link></p>
     </div>
   )
 }
@@ -78,6 +95,7 @@ export default async function AdminReportDetail({ params }: { params: Promise<{ 
           )}
           {report.story_id && <StoryReportPreview storyId={report.story_id} />}
           {report.item_comment_id && <ItemCommentReportPreview commentId={report.item_comment_id} />}
+          {report.business_review_id && <BusinessReviewReportPreview reviewId={report.business_review_id} />}
           {report.email && <p className="text-xs text-gray-500 mt-3">Email del usuario: {report.email}</p>}
         </div>
         <h2 className="text-lg font-semibold mb-3">Notas y respuestas</h2>

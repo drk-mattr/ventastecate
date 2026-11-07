@@ -206,6 +206,40 @@ export default async function Home({ searchParams }: HomeProps) {
 
   const { data: trendingRaw } = await trendingQuery.limit(12)
 
+  // Primary item mention per trending listing, for the # tag chip
+  // (kind wins over category when present). listing_item_tags is
+  // publicly readable for tags on visible items + active listings
+  // (034 RLS), so the anon client can run this — no admin needed.
+  // At cold start (0 mentions) this is empty and every chip falls
+  // back to the listing's category.
+  const trendingIds = (trendingRaw || []).map((l) => l.id)
+  const primaryKinds: Record<string, { name: string; slug: string }> = {}
+  if (trendingIds.length > 0) {
+    const { data: primaryTags } = await supabase
+      .from('listing_item_tags')
+      .select('listing_id, item:items(kind:item_kinds(name, slug, status))')
+      .in('listing_id', trendingIds)
+      .eq('is_primary', true)
+    for (const t of ((primaryTags || []) as unknown) as {
+      listing_id: string
+      item: unknown
+    }[]) {
+      // PostgREST types the to-one embeds as arrays; normalize both shapes.
+      const item = (Array.isArray(t.item) ? t.item[0] : t.item) as {
+        kind?: unknown
+      } | null
+      const kindRaw = item?.kind
+      const kind = (Array.isArray(kindRaw) ? kindRaw[0] : kindRaw) as {
+        name: string
+        slug: string
+        status: string
+      } | null
+      if (kind && kind.status === 'approved') {
+        primaryKinds[t.listing_id] = { name: kind.name, slug: kind.slug }
+      }
+    }
+  }
+
   const topBusinesses = await getTopBusinesses(supabase, feedTowns)
   const stories = await getStories(supabase)
 
@@ -255,7 +289,7 @@ export default async function Home({ searchParams }: HomeProps) {
         </Suspense>
 
         {/* Trending: only when engagement exists, so it never shows an empty row */}
-        {trending.length > 0 && <TrendingStrip items={trending} locationLabel={cookieStore.get(LOCATION_COOKIE)?.value || 'Tecate'} />}
+        {trending.length > 0 && <TrendingStrip items={trending} locationLabel={cookieStore.get(LOCATION_COOKIE)?.value || 'Tecate'} primaryKinds={primaryKinds} />}
         {/* Trending items: only when the §11.3 gate passes, so it never shows an empty row */}
         {trendingItems.cards.length > 0 && <ItemCarousel items={trendingItems.cards} />}
         <TopBusinesses items={topBusinesses} />

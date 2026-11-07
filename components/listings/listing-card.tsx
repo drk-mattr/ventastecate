@@ -201,23 +201,27 @@ export function ListingCard({ listing }: ListingCardProps) {
     )
   }
 
-  // ── Event card: photo bounded to a 4:3 frame (object-cover) so a
-  // tall portrait poster cannot stretch the card endlessly. Title +
-  // date block + location/time row below the image, mirroring the
-  // news branch — a photo that is not a self-explanatory flyer used
-  // to leave a mute card with no title at all.
+  // ── Event card: the poster IS the content — it must show fully,
+  // never cropped. Printed-poster treatment (like the lost-poster
+  // card): the image sits inset with a white margin in a
+  // portrait-friendly 3:4 frame, object-contain, so a portrait
+  // poster fills it and a landscape image letterboxes on white
+  // matting instead of being sliced. The title + location + time
+  // row below the image is unchanged.
   if (listingType === 'event' && primaryImage) {
     return (
       <CardShell id={listing.id}>
-        <div className="relative aspect-[4/3] shrink-0 overflow-hidden">
-          <Image src={primaryImage} alt={listing.title} fill className="object-cover"
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
-          {listing.status === 'sold' && soldOverlay}
-          {eventPast && (
-            <span className="absolute top-1.5 right-1.5 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-full">
-              Terminado
-            </span>
-          )}
+        <div className="relative shrink-0 px-4 pt-2.5">
+          <div className="relative aspect-[3/4] overflow-hidden rounded-none bg-white">
+            <Image src={primaryImage} alt={listing.title} fill className="object-contain"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
+            {listing.status === 'sold' && soldOverlay}
+            {eventPast && (
+              <span className="absolute top-1.5 right-1.5 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-full">
+                Terminado
+              </span>
+            )}
+          </div>
         </div>
         <div className="px-2.5 pt-1.5 pb-2 flex flex-col flex-1">
           {eventDateLine && (

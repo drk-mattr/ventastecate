@@ -47,6 +47,24 @@ export async function POST(request: NextRequest) {
     // Title-card color (A6): validated against the curated palette —
     // an unknown value is ignored, never stored.
     if (isCardColorId(body.card_color)) updates.card_color = body.card_color
+    // Title / description / location: each is optional; only the
+    // fields present in the body are updated. Invalid values fail
+    // the whole call (same pattern as the category check above).
+    if (typeof body.title === 'string') {
+      const title = body.title.trim()
+      if (!title || title.length > 200) return NextResponse.json({ error: 'Invalid title' }, { status: 400 })
+      updates.title = title
+    }
+    if (typeof body.description === 'string') {
+      const description = body.description.trim()
+      if (!description || description.length > 5000) return NextResponse.json({ error: 'Invalid description' }, { status: 400 })
+      updates.description = description
+    }
+    if (typeof body.location === 'string') {
+      const location = body.location.trim()
+      if (!location) return NextResponse.json({ error: 'Invalid location' }, { status: 400 })
+      updates.location = location
+    }
     if (Object.keys(updates).length) {
       const { error } = await admin.from('listings').update(updates).eq('id', listingId)
       if (error) return NextResponse.json({ error: 'Failed to update listing' }, { status: 500 })

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { Wrench, Megaphone, Store, Play } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ListingWithImages } from '@/lib/types/database'
@@ -34,12 +35,16 @@ const NEWS_CATEGORY_COLORS: Record<string, string> = {
   'Empleos':               'text-gray-500',
 }
 
-// Lost posts carry a SE BUSCA banner strip across the top of the
-// image/card — the poster treatment the user picked (Spanish-first).
-const SE_BUSCA_BANNER = (
-  <div className="absolute top-0 inset-x-0 z-[5] bg-red-600 px-3 py-1 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-white">
+// Lost posts look like a printed missing-pet poster: "SE BUSCA" in
+// plain red letters above the photo (or title card), the image inset
+// with a white margin on all sides — no banner strip. The frame is
+// kept tight and even (8px top and bottom) and the feed photo is
+// black-and-white (grayscale); the detail-page hero keeps full color,
+// because color matters for actually identifying the animal.
+const SE_BUSCA_HEADING = (
+  <p className="shrink-0 px-2.5 pt-2 pb-1 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-red-600">
     Se busca
-  </div>
+  </p>
 )
 
 function timeAgo(dateStr: string): string {
@@ -66,10 +71,29 @@ function CardShell({ id, children }: { id: string; children: React.ReactNode }) 
 }
 
 export function ListingCard({ listing }: ListingCardProps) {
+  const router = useRouter()
   const primaryImage = listing.images?.length ? listing.images[0].image_url : null
   const listingType = listing.listing_type || 'product'
   const isNews = listingType === 'news'
   const hasVideo = !!listing.video_url
+
+  // The seller shown on the card — a store name goes to the store
+  // page, a personal name to the public profile. The whole card is
+  // itself a link to the listing, so the name navigates with the
+  // router instead of a nested <a> (invalid HTML), stopping the
+  // card's own navigation like the like/save buttons do.
+  const sellerName = listing.store?.name || listing.profile?.display_name || null
+  const sellerHref = listing.store
+    ? `/stores/${listing.store.slug}`
+    : listing.profile?.username
+      ? `/users/${listing.profile.username}`
+      : null
+  const goToSeller = (e: React.MouseEvent) => {
+    if (!sellerHref) return
+    e.preventDefault()
+    e.stopPropagation()
+    router.push(sellerHref)
+  }
 
   const formattedPrice = formatPrice(listing.price, listing.currency, { isFree: listing.is_free })
 
@@ -86,15 +110,17 @@ export function ListingCard({ listing }: ListingCardProps) {
     const categoryColor = NEWS_CATEGORY_COLORS[listing.category] || 'text-slate-500'
     const isLostPost = listing.category === 'Objetos Perdidos'
 
-    // Photo-less news: the title card IS the whole card (full poster).
+    // Photo-less news: the title card fills the card (full poster).
     // Meta is a single quiet chip overlaid at the bottom — no white
-    // content area below, no "half poster".
+    // content area below, no "half poster". Lost posts get the
+    // printed-poster treatment instead: red SE BUSCA letters above
+    // and the title card inset with a white margin.
     if (!primaryImage) {
       return (
         <CardShell id={listing.id}>
-          <div className="relative flex-1 aspect-square">
+          {isLostPost && SE_BUSCA_HEADING}
+          <div className={`relative flex-1 aspect-square ${isLostPost ? 'mx-2.5 mb-2' : ''}`}>
             <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" />
-            {isLostPost && SE_BUSCA_BANNER}
             {listing.status === 'sold' && soldOverlay}
             <div className="absolute bottom-2 left-2 z-[5] bg-black/45 text-white text-[10px] px-2 py-0.5 rounded-full">
               {timeAgo(listing.created_at)}
@@ -107,14 +133,17 @@ export function ListingCard({ listing }: ListingCardProps) {
     return (
       <CardShell id={listing.id}>
         {isLostPost ? (
-          /* Lost post: full-poster photo (natural ratio, edge-to-edge)
-             with the SE BUSCA banner across the top. No category
-             eyebrow — the banner says what it is. */
-          <div className="relative shrink-0">
-            <Image src={primaryImage} alt={listing.title} width={400} height={600} className="w-full h-auto" />
-            {SE_BUSCA_BANNER}
-            {listing.status === 'sold' && soldOverlay}
-          </div>
+          /* Lost post: a printed-poster look — SE BUSCA in red
+             letters above the photo, the photo inset with a white
+             margin on all sides, natural aspect. No category
+             eyebrow — the heading says what it is. */
+          <>
+            {SE_BUSCA_HEADING}
+            <div className="relative shrink-0 px-2.5">
+              <Image src={primaryImage} alt={listing.title} width={400} height={600} className="w-full h-auto grayscale" />
+              {listing.status === 'sold' && soldOverlay}
+            </div>
+          </>
         ) : (
           <div className="px-2.5 pt-2.5 shrink-0">
             <div className="relative aspect-video rounded-sm overflow-hidden">
@@ -124,7 +153,7 @@ export function ListingCard({ listing }: ListingCardProps) {
             </div>
           </div>
         )}
-        <div className="flex flex-col flex-1 px-2.5 pt-2 pb-2.5">
+        <div className="flex flex-col flex-1 px-2.5 pt-1.5 pb-2">
           {!isLostPost && listing.category && (
             <p className={`text-[9px] font-bold uppercase tracking-wider mb-1 leading-none ${categoryColor}`}>
               {listing.category}
@@ -140,7 +169,7 @@ export function ListingCard({ listing }: ListingCardProps) {
           )}
           {/* Meta footer — like/save live on the detail page now, not on
               grid cards (OfferUp shows no buttons on its cards either). */}
-          <div className="flex items-center gap-2 mt-auto pt-1.5">
+          <div className="flex items-center gap-2 mt-auto pt-1">
             <span className="text-[10px] text-gray-400">{timeAgo(listing.created_at)}</span>
           </div>
         </div>
@@ -247,13 +276,28 @@ export function ListingCard({ listing }: ListingCardProps) {
             {listing.title}
           </h3>
         )}
-        {/* Meta + engagement on one compact row */}
+        {/* Meta + engagement on one compact row — the seller name
+            links to their profile (or store page), so a buyer can
+            reach the seller without opening the listing first. */}
         <div className="flex items-center justify-between gap-1.5 mt-auto pt-1">
           <span className="text-xs text-gray-500 truncate flex items-center gap-1 min-w-0">
             {listing.store && <Store className="h-2.5 w-2.5 shrink-0" />}
-            <span className="truncate">
-              {[listing.store?.name || listing.profile?.display_name || listing.location, timeAgo(listing.created_at)].filter(Boolean).join(' · ')}
-            </span>
+            {sellerName ? (
+              <span
+                role="link"
+                tabIndex={0}
+                onClick={goToSeller}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && sellerHref) router.push(sellerHref)
+                }}
+                className="truncate hover:underline cursor-pointer"
+              >
+                {sellerName}
+              </span>
+            ) : (
+              <span className="truncate">{listing.location}</span>
+            )}
+            <span className="shrink-0">· {timeAgo(listing.created_at)}</span>
           </span>
         </div>
       </div>

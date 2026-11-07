@@ -13,7 +13,7 @@ import { Home, Plus, MessageCircle, Store, User, UserPlus } from 'lucide-react'
  * Hidden on md+ (desktop uses the header). Gives phones one-tap access to the
  * core actions and keeps posting a listing always reachable.
  *
- * Cuenta links to /my-listings (Mis anuncios) — the user's own page.
+ * Cuenta links to /cuenta (the Account hub) — the user's own page.
  * It used to open the black left sidebar, but the hamburger and the header
  * avatar already open that drawer, so the tab was a duplicate. The drawer
  * still holds Editar perfil, settings and the rest of the account links.
@@ -90,9 +90,8 @@ export function MobileActionBar() {
             {/* Cuenta is the user's avatar, not a generic person icon:
                 the avatar moved here from the mobile header so it isn't
                 shown three times (header, sidebar identity, tab). It links
-                to Mis anuncios — the drawer is one tap away on the
-                hamburger for everything else. */}
-            <Link href="/my-listings" className={itemClass('/my-listings')} aria-label="Mi cuenta">
+                to the Account hub — Mis anuncios lives one row inside it. */}
+            <Link href="/cuenta" className={itemClass('/cuenta')} aria-label="Mi cuenta">
               <span className="relative h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-medium overflow-hidden">
                 {activeStore ? (
                   activeStore.avatar_url ? (

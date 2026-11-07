@@ -119,6 +119,31 @@ export function MessageThread({
   const pendingSeller = pending?.seller ?? null
   const headerUser = otherUser ?? pendingSeller
 
+  // The thread header links to the other person's public profile —
+  // a buyer should be able to reach the seller from the thread,
+  // not only from the listing. Guarded: no username, no link.
+  const headerHref = headerUser?.username ? `/users/${headerUser.username}` : null
+  const headerAvatar = (
+    <Avatar className="h-10 w-10">
+      {headerUser?.avatar_url && (
+        <AvatarImage src={headerUser.avatar_url} alt={headerUser.display_name} />
+      )}
+      <AvatarFallback>
+        {headerUser?.display_name?.[0]?.toUpperCase()}
+      </AvatarFallback>
+    </Avatar>
+  )
+  const headerName = (
+    <span className="min-w-0 flex-1">
+      <span className="block font-semibold truncate">{headerUser?.display_name}</span>
+      {pending && (
+        <span className="block text-sm text-gray-500 truncate">
+          Escribe tu primer mensaje para iniciar la conversación
+        </span>
+      )}
+    </span>
+  )
+
   // The listing, live or snapshotted. A pending thread always has
   // the live listing; a real thread has it unless it was deleted.
   const listing: ConversationListing | null =
@@ -272,22 +297,17 @@ export function MessageThread({
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
-            <Avatar className="h-10 w-10">
-              {headerUser?.avatar_url && (
-                <AvatarImage src={headerUser.avatar_url} alt={headerUser.display_name} />
-              )}
-              <AvatarFallback>
-                {headerUser?.display_name?.[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold truncate">{headerUser?.display_name}</p>
-              {pending && (
-                <p className="text-sm text-gray-500 truncate">
-                  Escribe tu primer mensaje para iniciar la conversación
-                </p>
-              )}
-            </div>
+            {headerHref ? (
+              <Link href={headerHref} className="flex min-w-0 flex-1 items-center gap-3">
+                {headerAvatar}
+                {headerName}
+              </Link>
+            ) : (
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                {headerAvatar}
+                {headerName}
+              </div>
+            )}
 
             {/* Step 4 menu: archivar, bloquear, reportar. A pending
                 thread has no row to archive or report, so it only

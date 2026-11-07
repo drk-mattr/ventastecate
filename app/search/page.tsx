@@ -11,6 +11,7 @@ import { MobileFilters } from '@/components/search/mobile-filters'
 import { SearchFilters } from '@/components/search/search-filters'
 import { SearchChips } from '@/components/search/search-chips'
 import { ListingWithImages } from '@/lib/types/database'
+import { sortEventListings } from '@/lib/listings/event-dates'
 import { getTranslations } from '@/lib/i18n'
 import { EmptyState } from '@/components/ui/empty-state'
 import { LOCK_TO_TECATE, resolveCountry } from '@/lib/mvp-config'
@@ -140,10 +141,15 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   // by definition (every listing entered so far was priced in pesos).
   const hasCurrencyFilter = currency === 'MXN' || currency === 'USD'
   const hasMetadataFilter = Boolean(bedrooms || bathrooms || m2)
+  // Events (migration 043): without an explicit sort, upcoming first
+  // — also a JS sort, so pre-043 (no event dates at all) it falls
+  // back to newest-first, identical to today. Needs the wider fetch
+  // so the sort sees more than the first 50 newest rows.
+  const needsEventSort = type === 'event' && !sort
   const DISPLAY_LIMIT = 50
-  const { data: listings } = await query.limit(hasMetadataFilter || hasCurrencyFilter ? 500 : DISPLAY_LIMIT)
+  const { data: listings } = await query.limit(hasMetadataFilter || hasCurrencyFilter || needsEventSort ? 500 : DISPLAY_LIMIT)
 
-  const listingsWithImages: ListingWithImages[] = (listings || [])
+  const filteredListings: ListingWithImages[] = (listings || [])
     .filter((l) => {
       const m = (l.metadata ?? {}) as Record<string, unknown>
       if (hasCurrencyFilter && ((l.currency ?? 'MXN') !== currency)) return false
@@ -152,7 +158,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       if (m2 && Number(m.construction_m2 ?? 0) < Number(m2)) return false
       return true
     })
-    .slice(0, DISPLAY_LIMIT)
+
+  const listingsWithImages: ListingWithImages[] = (needsEventSort
+    ? sortEventListings(filteredListings)
+    : filteredListings
+  ).slice(0, DISPLAY_LIMIT)
 
   // Build toggle URL (preserve other params, flip country)
   const toggleParams = new URLSearchParams()

@@ -12,13 +12,14 @@ import { ListingTitleCard } from '@/components/listings/listing-title-card'
 import { CommentSection } from '@/components/listings/comment-section'
 import { ReportListingButton } from '@/components/listings/report-listing-button'
 import Image from 'next/image'
-import { MapPin, Calendar, Newspaper, Store, Bed, Droplets, Ruler, Home, Car, Gauge, Settings, Fuel, Palette, DoorOpen, BadgeCheck } from 'lucide-react'
+import { MapPin, Calendar, Newspaper, Store, Bed, Droplets, Ruler, Home, Car, Gauge, Settings, Fuel, Palette, DoorOpen, BadgeCheck, Megaphone, Ticket } from 'lucide-react'
 import { ListingEngagementBar } from '@/components/listings/listing-engagement-bar'
 import { VideoEmbed } from '@/components/listings/video-embed'
 import { ContactSellerButton } from '@/components/messages/contact-seller-button'
 import { MarkSoldButton } from '@/components/listings/mark-sold-button'
 import { getEngagementCounts } from '@/lib/listings/engagement-counts'
 import { formatPrice } from '@/lib/listings/format-price'
+import { formatEventRangeLong, isEventPast } from '@/lib/listings/event-dates'
 
 // Serialize JSON-LD safely: escape characters that could break out of the
 // <script> tag (prevents stored XSS via user-controlled title/description).
@@ -184,6 +185,18 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const isEvent = listingType === 'event'
   const isNews = listingType === 'news'
   const isLostPost = isNews && listing.category === 'Objetos Perdidos'
+
+  // Structured event fields (migration 043): pre-043 every value is
+  // undefined and the when/where block below simply does not render.
+  const eventStartsAt = listing.event_starts_at ?? null
+  const eventEndsAt = listing.event_ends_at ?? null
+  const eventVenue = listing.event_venue ?? null
+  const eventTicketUrl =
+    typeof listing.event_ticket_url === 'string' && /^https?:\/\//i.test(listing.event_ticket_url)
+      ? listing.event_ticket_url
+      : null
+  const eventHasFields = Boolean(eventStartsAt || eventEndsAt || eventVenue || eventTicketUrl)
+  const eventPast = isEvent && isEventPast(eventStartsAt, eventEndsAt)
 
   // Comments live only on news/event listings — product/service
   // conversations happen in DMs (user decision 2026-11-06), so for
@@ -474,12 +487,50 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   {listing.location && (
                     <span className="flex items-center gap-1"><MapPin className="h-3 w-3 shrink-0" />{listing.location}</span>
                   )}
-                  <span className="flex items-center gap-1"><Calendar className="h-3 w-3 shrink-0" />{formatPostedDate(listing.created_at)}</span>
+                  {/* The posted date is labeled honestly — a bare "Hoy"
+                      next to a calendar icon read as the event day. */}
+                  <span className="flex items-center gap-1"><Calendar className="h-3 w-3 shrink-0" />Publicado {formatPostedDate(listing.created_at).toLowerCase()}</span>
+                  <span className="flex items-center gap-1"><Megaphone className="h-3 w-3 shrink-0" />Evento</span>
                   {listing.category && (
                     <Badge variant="secondary" className="text-[10px] font-normal text-gray-600">{listing.category}</Badge>
                   )}
                 </div>
               </div>
+
+              {/* When / where (migration 043): renders only when at
+                  least one structured event field exists — pre-043
+                  nothing shows here, exactly as before. */}
+              {eventHasFields && (
+                <div className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 space-y-1.5">
+                  {eventStartsAt && (
+                    <p className="flex items-start gap-2 text-sm text-gray-900">
+                      <Calendar className="h-4 w-4 shrink-0 mt-0.5 text-gray-500" />
+                      <span>
+                        {formatEventRangeLong(eventStartsAt, eventEndsAt)}
+                        {eventPast && (
+                          <span className="ml-2 bg-gray-200 text-gray-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full align-middle">
+                            Terminado
+                          </span>
+                        )}
+                      </span>
+                    </p>
+                  )}
+                  {eventVenue && (
+                    <p className="flex items-start gap-2 text-sm text-gray-700">
+                      <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-gray-500" />
+                      <span>{eventVenue}</span>
+                    </p>
+                  )}
+                  {eventTicketUrl && (
+                    <p className="flex items-start gap-2 text-sm">
+                      <Ticket className="h-4 w-4 shrink-0 mt-0.5 text-gray-500" />
+                      <a href={eventTicketUrl} target="_blank" rel="noopener noreferrer" className="font-medium text-gray-900 underline">
+                        Boletos
+                      </a>
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Video embed */}
               {listing.video_url && (

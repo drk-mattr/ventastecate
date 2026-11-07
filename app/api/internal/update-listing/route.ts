@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCategoriesForType } from '@/lib/categories'
+import { isCardColorId } from '@/lib/listings/card-colors'
 import { MAX_LISTING_IMAGES } from '@/lib/validation'
 
 function authorized(request: NextRequest): boolean {
@@ -17,8 +18,9 @@ function authorized(request: NextRequest): boolean {
 
 // Internal update for community posts ONLY: the listing must belong to the
 // ventastecate community account, otherwise it is refused. Used to convert
-// a news post to an event (and vice versa), fix its category, and attach
-// poster images — never to touch seller listings, and never to delete.
+// a news post to an event (and vice versa), fix its category, change the
+// title-card color, and attach poster images — never to touch seller
+// listings, and never to delete.
 export async function POST(request: NextRequest) {
   try {
     if (!authorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -42,6 +44,9 @@ export async function POST(request: NextRequest) {
       updates.listing_type = body.listing_type
       if (category) updates.category = category
     }
+    // Title-card color (A6): validated against the curated palette —
+    // an unknown value is ignored, never stored.
+    if (isCardColorId(body.card_color)) updates.card_color = body.card_color
     if (Object.keys(updates).length) {
       const { error } = await admin.from('listings').update(updates).eq('id', listingId)
       if (error) return NextResponse.json({ error: 'Failed to update listing' }, { status: 500 })

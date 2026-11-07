@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import { useUnreadMessages } from '@/lib/hooks/use-unread-messages'
-import { Home, Search, Plus, MessageCircle, Store, User, UserPlus } from 'lucide-react'
+import { Home, Plus, MessageCircle, Store, User, UserPlus } from 'lucide-react'
 
 /**
  * Mobile-only sticky bottom navigation with a prominent "Publicar" CTA.
@@ -51,10 +51,6 @@ export function MobileActionBar() {
         <Link href="/" className={itemClass('/')} aria-label="Inicio">
           <Home className="h-5 w-5" />
           <span>Inicio</span>
-        </Link>
-        <Link href="/search" className={itemClass('/search')} aria-label="Buscar">
-          <Search className="h-5 w-5" />
-          <span>Buscar</span>
         </Link>
 
         {/* Prominent primary CTA */}

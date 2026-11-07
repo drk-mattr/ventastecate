@@ -162,8 +162,11 @@ export function ListingCard({ listing }: ListingCardProps) {
           </div>
         )}
         {listing.status === 'sold' && soldOverlay}
-        {/* Type badge (Servicio / Evento) */}
-        {TYPE_BADGE[listingType] && (() => {
+        {/* Type badge (Servicio / Evento) — only over a real photo. On a
+            title card or the gradient fallback the badge sits on top of
+            the title text (the first characters hide behind the pill),
+            and the colored card already identifies the event. */}
+        {primaryImage && TYPE_BADGE[listingType] && (() => {
           const badge = TYPE_BADGE[listingType]!
           const Icon = badge.icon
           return (

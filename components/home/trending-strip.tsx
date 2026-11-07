@@ -44,7 +44,7 @@ export function TrendingStrip({ items }: TrendingStripProps) {
               <Link
                 key={item.id}
                 href={`/listings/${item.id}`}
-                className="flex-none w-32"
+                className="flex-none w-28"
               >
                 {primaryImage ? (
                   <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">

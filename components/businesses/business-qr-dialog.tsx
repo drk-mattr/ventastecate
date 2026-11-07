@@ -151,24 +151,45 @@ async function buildCardBlob(
 export function BusinessQrDialog({ businessId, businessName, businessTown }: Props) {
   const [open, setOpen] = useState(false)
   const [cardUrl, setCardUrl] = useState<string | null>(null)
-  const [generating, setGenerating] = useState(false)
+  const [generating, setGenerating] = useState(true)
   const [copied, setCopied] = useState(false)
   const [shared, setShared] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const qrRef = useRef<QRCodeStyling | null>(null)
   const cardBlobRef = useRef<Blob | null>(null)
+  const cardUrlRef = useRef<string | null>(null)
 
   const url = `https://ventastecate.com/businesses/${businessId}`
   const town = businessTown || null
 
+  // Reset the card when the dialog closes (event handler, not an effect,
+  // so setState here is fine) and revoke the object URL.
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next)
+    if (!next) {
+      if (cardUrlRef.current) URL.revokeObjectURL(cardUrlRef.current)
+      cardUrlRef.current = null
+      cardBlobRef.current = null
+      setCardUrl(null)
+      setGenerating(true)
+    }
+  }
+
+  // Revoke any lingering object URL on unmount.
+  useEffect(() => {
+    return () => {
+      if (cardUrlRef.current) URL.revokeObjectURL(cardUrlRef.current)
+    }
+  }, [])
+
   // The dialog content only mounts when open, so the QR is created and the
   // card composed when the dialog first opens — never during server render.
   // The preview shows the exact same card blob that download/share export.
+  // (No synchronous setState in this effect: generating starts true and
+  // is only cleared in the async continuation below.)
   useEffect(() => {
     if (!open) return
     let cancelled = false
-    let objectUrl: string | null = null
-    setGenerating(true)
     if (!qrRef.current) {
       qrRef.current = new QRCodeStyling({
         width: QR_SIZE,
@@ -191,8 +212,9 @@ export function BusinessQrDialog({ businessId, businessName, businessTown }: Pro
       .then((blob) => {
         if (cancelled) return
         cardBlobRef.current = blob
-        objectUrl = URL.createObjectURL(blob)
-        setCardUrl(objectUrl)
+        if (cardUrlRef.current) URL.revokeObjectURL(cardUrlRef.current)
+        cardUrlRef.current = URL.createObjectURL(blob)
+        setCardUrl(cardUrlRef.current)
         setGenerating(false)
       })
       .catch(() => {
@@ -200,7 +222,6 @@ export function BusinessQrDialog({ businessId, businessName, businessTown }: Pro
       })
     return () => {
       cancelled = true
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
   }, [open, url, businessName, town])
 
@@ -238,7 +259,7 @@ export function BusinessQrDialog({ businessId, businessName, businessTown }: Pro
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <button
           className="h-7 px-3 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-300 hover:border-gray-400 flex items-center gap-1.5 transition-colors"

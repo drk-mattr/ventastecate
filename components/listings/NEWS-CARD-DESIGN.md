@@ -129,6 +129,24 @@ gap-3  — spacing between footer elements
 
 ---
 
+## Update — Title cards for photo-less news/events (migration 039)
+
+> Decided 2026-11-06 (user): when a news/event post has no photo, the
+> card renders as a designed **title card** — solid background in a
+> curated color + big white title text — in the feed and on the detail
+> page. This supersedes the "no colored block" rule above for the
+> no-photo case: the old neutral-gray fallback is gone for news/events.
+>
+> - Palette: `lib/listings/card-colors.ts` — 6 curated colors
+>   (orange default, black, red, blue, green, purple). Never a free
+>   color picker. Component: `components/listings/listing-title-card.tsx`.
+> - The poster picks the color at posting time (swatches in the new/edit
+>   forms, news/event only); stored per listing in `listings.card_color`.
+> - The title lives on the card, so the feed news card skips its
+>   headline below when there is no photo (no duplicate title).
+> - Products/services never get title cards — they require a photo.
+> - OG share images are out of scope: the card renders as styled HTML.
+
 ## File Reference
 
 | File | Role |

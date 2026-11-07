@@ -6,6 +6,7 @@ import { Wrench, Megaphone, Store, Play } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ListingWithImages } from '@/lib/types/database'
 import { formatPrice } from '@/lib/listings/format-price'
+import { ListingTitleCard } from './listing-title-card'
 
 interface ListingCardProps {
   listing: ListingWithImages
@@ -77,13 +78,20 @@ export function ListingCard({ listing }: ListingCardProps) {
     const categoryColor = NEWS_CATEGORY_COLORS[listing.category] || 'text-slate-500'
     return (
       <CardShell id={listing.id}>
-        {primaryImage && (
+        {primaryImage ? (
           <div className="px-2.5 pt-2.5 shrink-0">
             <div className="relative aspect-video rounded-sm overflow-hidden">
               <Image src={primaryImage} alt={listing.title} fill className="object-cover"
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
               {listing.status === 'sold' && soldOverlay}
             </div>
+          </div>
+        ) : (
+          /* Photo-less news: designed title card in the stored color
+             (migration 039). The title lives on the card, so the
+             headline below is skipped to avoid showing it twice. */
+          <div className="px-2.5 pt-2.5 shrink-0">
+            <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="aspect-video rounded-sm" />
           </div>
         )}
         <div className="flex flex-col flex-1 px-2.5 pt-2 pb-2.5">
@@ -92,9 +100,11 @@ export function ListingCard({ listing }: ListingCardProps) {
               {listing.category}
             </p>
           )}
-          <h3 className="font-semibold text-[13px] line-clamp-2 mb-1 group-hover:underline leading-snug">
-            {listing.title}
-          </h3>
+          {primaryImage && (
+            <h3 className="font-semibold text-[13px] line-clamp-2 mb-1 group-hover:underline leading-snug">
+              {listing.title}
+            </h3>
+          )}
           {listing.description && (
             <p className="text-[11px] text-gray-400 line-clamp-2 leading-snug">
               {listing.description.slice(0, 300)}
@@ -139,6 +149,11 @@ export function ListingCard({ listing }: ListingCardProps) {
         {primaryImage ? (
           <Image src={primaryImage} alt={listing.title} fill className="object-cover"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
+        ) : listingType === 'event' ? (
+          /* Photo-less event: designed title card in the stored color
+             (migration 039). Products/services never get title cards —
+             they require a photo, so they keep the neutral fallback. */
+          <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" />
         ) : (
           <div className={`absolute inset-0 bg-gradient-to-br ${TYPE_STYLES[listingType as keyof typeof TYPE_STYLES]?.gradient || TYPE_STYLES.product.gradient} flex items-center justify-center p-3`}>
             <p className="text-white font-bold text-lg leading-snug text-center line-clamp-3">

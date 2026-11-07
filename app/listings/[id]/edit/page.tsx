@@ -18,6 +18,8 @@ import { firstListingError, MAX_LISTING_IMAGES } from '@/lib/validation'
 import { normalizeTownName } from '@/lib/business-regions'
 import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
+import { Check } from 'lucide-react'
+import { CARD_COLORS, type CardColorId } from '@/lib/listings/card-colors'
 
 const PRODUCT_CATEGORIES = [
   'Electrónica',
@@ -99,6 +101,9 @@ export default function EditListingPage() {
   // Currency (migration 038) + Gratis as its own state (not consultar).
   const [currency, setCurrency] = useState<'MXN' | 'USD'>('MXN')
   const [isFree, setIsFree] = useState(false)
+  // Title-card color (migration 039): news/event only, used when the
+  // post has no photo.
+  const [cardColor, setCardColor] = useState<CardColorId>('orange')
   const [metadataType, setMetadataType] = useState<string | null>(null)
 
   // Real estate metadata
@@ -165,6 +170,7 @@ export default function EditListingPage() {
       setPrice(listing.price > 0 ? String(listing.price) : '')
       setCurrency((listing.currency as 'MXN' | 'USD') || 'MXN')
       setIsFree(!!listing.is_free)
+      setCardColor((listing.card_color as CardColorId) || 'orange')
       setPriceConsultar(listing.price === 0 && !listing.is_free)
       setCategory(listing.category)
       setLocation(listing.location)
@@ -275,9 +281,10 @@ export default function EditListingPage() {
         } as AutomotiveMetadata
       }
 
-      // Update listing fields — currency + Gratis (migration 038),
-      // with the same 42703 retry-without-them fallback the new form
-      // uses: pre-038 the columns don't exist yet.
+      // Update listing fields — currency + Gratis (migration 038) +
+      // title-card color (039), with the same 42703
+      // retry-without-them fallback the new form uses: pre-migration
+      // the columns don't exist yet.
       const updateBase = {
         title,
         description,
@@ -292,7 +299,7 @@ export default function EditListingPage() {
       }
       let updateError = (await supabase
         .from('listings')
-        .update({ ...updateBase, currency, is_free: isFree })
+        .update({ ...updateBase, currency, is_free: isFree, card_color: cardColor })
         .eq('id', id)
         .eq('user_id', user.id)).error
       if (updateError && (updateError.code === '42703' || updateError.code === 'PGRST204')) {
@@ -710,6 +717,33 @@ export default function EditListingPage() {
                   </div>
                 )}
               </div>
+
+              {/* Title-card color — news/event only. The card only
+                  renders when the post has no photo. */}
+              {(listingType === 'news' || listingType === 'event') && (
+                <div className="space-y-2">
+                  <Label>Color de la tarjeta</Label>
+                  <p className="text-xs text-gray-400">
+                    Si no tiene foto, la publicación se muestra como una tarjeta con el título en este color.
+                  </p>
+                  <div className="flex items-center gap-2.5" role="group" aria-label="Color de la tarjeta">
+                    {CARD_COLORS.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setCardColor(c.id)}
+                        aria-pressed={cardColor === c.id}
+                        aria-label={c.label}
+                        title={c.label}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center transition ${cardColor === c.id ? 'ring-2 ring-gray-900 ring-offset-2' : 'hover:scale-105'}`}
+                        style={{ backgroundColor: c.hex }}
+                      >
+                        {cardColor === c.id && <Check className="h-4 w-4 text-white" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {error && (
                 <div className="text-sm text-red-600 bg-red-50 p-3 rounded">

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCategoriesForType } from '@/lib/categories'
 import { MAX_LISTING_IMAGES } from '@/lib/validation'
+import { isCardColorId } from '@/lib/listings/card-colors'
 
 function authorized(request: NextRequest): boolean {
   const expected = process.env.INTERNAL_POST_TOKEN
@@ -41,6 +42,10 @@ export async function POST(request: NextRequest) {
     const category = typeof body.category === 'string' ? body.category.trim() : ''
     const location = typeof body.location === 'string' ? body.location.trim() : ''
     const source = typeof body.source === 'string' ? body.source.trim() : ''
+    // Title-card color (migration 039): optional, curated set only,
+    // default orange. Unknown values fall back to orange.
+    const cardColorRaw = typeof body.card_color === 'string' ? body.card_color.trim() : ''
+    const cardColor = isCardColorId(cardColorRaw) ? cardColorRaw : 'orange'
     if (title.length < 3 || title.length > 120) {
       return NextResponse.json({ error: 'Title must be 3-120 characters' }, { status: 400 })
     }
@@ -66,22 +71,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Community account not set up' }, { status: 503 })
     }
     const fullDescription = `${description}\n\nFuente: ${source}`
-    const { data: listing, error: insertError } = await admin
+    const insertPayload = {
+      user_id: profile.id,
+      title,
+      description: fullDescription,
+      price: 0,
+      category,
+      location,
+      listing_type: listingType,
+      country_code: 'MX',
+      status: 'active',
+      metadata: { source, posted_via: 'internal-community' },
+    }
+    // Pre-039 the card_color column doesn't exist — retry without it
+    // (same 42703 pattern the public forms use).
+    let { data: listing, error: insertError } = await admin
       .from('listings')
-      .insert({
-        user_id: profile.id,
-        title,
-        description: fullDescription,
-        price: 0,
-        category,
-        location,
-        listing_type: listingType,
-        country_code: 'MX',
-        status: 'active',
-        metadata: { source, posted_via: 'internal-community' },
-      })
+      .insert({ ...insertPayload, card_color: cardColor })
       .select('id')
       .single()
+    if (insertError?.code === '42703') {
+      const retry = await admin
+        .from('listings')
+        .insert(insertPayload)
+        .select('id')
+        .single()
+      listing = retry.data
+      insertError = retry.error
+    }
     if (insertError || !listing) {
       return NextResponse.json({ error: 'Failed to create listing' }, { status: 500 })
     }

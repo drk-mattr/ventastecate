@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { ListingMetadata, RealEstateMetadata, AutomotiveMetadata, ListingType, ListingComment } from '@/lib/types/database'
 import { ListingImageGallery } from '@/components/listings/listing-image-gallery'
+import { ListingTitleCard } from '@/components/listings/listing-title-card'
 import { CommentSection } from '@/components/listings/comment-section'
 import { ReportListingButton } from '@/components/listings/report-listing-button'
 import Image from 'next/image'
@@ -348,8 +349,9 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               )}
             </div>
 
-            {/* Hero image */}
-            {sortedImages.length > 0 && (
+            {/* Hero image — or the designed title card when a news
+                post has no photo (migration 039). */}
+            {sortedImages.length > 0 ? (
               <div className="mb-6 rounded-xl overflow-hidden">
                 <ListingImageGallery
                   images={sortedImages}
@@ -357,6 +359,10 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   isSold={listing.status === 'sold'}
                   listingType={listingType}
                 />
+              </div>
+            ) : (
+              <div className="mb-6 rounded-xl overflow-hidden">
+                <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="hero" className="aspect-[16/9]" />
               </div>
             )}
 
@@ -395,13 +401,18 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           /* ── Event layout: single stacked column ── */
           <>
           <div className="max-w-3xl mx-auto space-y-4">
-            {/* Poster on top */}
-            <ListingImageGallery
-              images={sortedImages}
-              listingTitle={listing.title}
-              isSold={listing.status === 'sold'}
-              listingType={listingType}
-            />
+            {/* Poster on top — or the designed title card when an
+                event has no photo (migration 039). */}
+            {sortedImages.length > 0 ? (
+              <ListingImageGallery
+                images={sortedImages}
+                listingTitle={listing.title}
+                isSold={listing.status === 'sold'}
+                listingType={listingType}
+              />
+            ) : (
+              <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="hero" className="aspect-[16/9] rounded-xl" />
+            )}
 
             {/* All event info, stacked below the poster */}
             <div className="space-y-4">

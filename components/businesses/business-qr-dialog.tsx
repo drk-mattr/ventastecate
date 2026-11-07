@@ -16,9 +16,20 @@ import {
 interface Props {
   businessId: string
   businessName: string
+  businessTown?: string | null
 }
 
-const QR_SIZE = 1024
+// Print-ready card: 1600x2000 px ≈ 5.3 x 6.7 in at 300 DPI, so a shop can
+// print it and put it on display. Pure black on white, no transparency.
+const CARD_WIDTH = 1600
+const CARD_HEIGHT = 2000
+// The QR itself: big in absolute terms so it scans from a meter away,
+// smaller relative to the card than the old bare 1024px export.
+const QR_SIZE = 960
+const QR_MARGIN = 32
+const QR_X = (CARD_WIDTH - QR_SIZE) / 2
+const QR_Y = 360
+const TEXT_MAX_WIDTH = 1400
 
 function slugify(text: string): string {
   return text
@@ -30,26 +41,141 @@ function slugify(text: string): string {
     .slice(0, 40) || 'negocio'
 }
 
-export function BusinessQrDialog({ businessId, businessName }: Props) {
+// The site wordmark is Fraunces, loaded via next/font as the --font-forum
+// variable on <body> (layout.tsx). Resolve the generated family name at
+// runtime so the canvas draws the same wordmark as the header.
+function forumFamily(): string {
+  if (typeof window === 'undefined') return 'Georgia, serif'
+  const fromBody = getComputedStyle(document.body).getPropertyValue('--font-forum').trim()
+  const fromRoot = getComputedStyle(document.documentElement).getPropertyValue('--font-forum').trim()
+  const family = fromBody || fromRoot
+  if (!family) return 'Georgia, serif'
+  // next/font generates a single-token family name; quote it if it has spaces.
+  return /\s/.test(family) && !family.startsWith('"') ? `"${family}"` : family
+}
+
+function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(/\s+/).filter(Boolean)
+  const lines: string[] = []
+  let line = ''
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word
+    if (ctx.measureText(test).width <= maxWidth || !line) {
+      line = test
+    } else {
+      lines.push(line)
+      line = word
+    }
+  }
+  if (line) lines.push(line)
+  return lines
+}
+
+// Compose the print-ready card: wordmark on top, QR in the middle, business
+// name + town below, generous white space everywhere. Returns a PNG blob.
+async function buildCardBlob(
+  qr: QRCodeStyling,
+  businessName: string,
+  town: string | null,
+): Promise<Blob> {
+  const raw = await qr.getRawData('png')
+  if (!(raw instanceof Blob)) throw new Error('No se pudo generar el código QR')
+  const qrBitmap = await createImageBitmap(raw)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = CARD_WIDTH
+  canvas.height = CARD_HEIGHT
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Canvas no disponible')
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
+
+  const family = forumFamily()
+  try {
+    await Promise.race([
+      document.fonts.load(`700 108px ${family}`),
+      new Promise((resolve) => setTimeout(resolve, 1500)),
+    ])
+  } catch {
+    // Font did not load in time — the serif fallback below still draws.
+  }
+
+  ctx.fillStyle = '#000000'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'alphabetic'
+
+  // Wordmark, same lowercase wordmark as the site header.
+  ctx.font = `700 108px ${family}, Georgia, serif`
+  ctx.fillText('ventastecate.com', CARD_WIDTH / 2, 230)
+
+  // QR, centered with the card's white space as its quiet zone.
+  ctx.drawImage(qrBitmap, QR_X, QR_Y, QR_SIZE, QR_SIZE)
+
+  // Business name: shrink, then wrap to at most two lines.
+  const nameFont = (size: number) => `700 ${size}px ${family}, Georgia, serif`
+  let nameSize = 76
+  let nameLines: string[] = []
+  while (nameSize >= 44) {
+    ctx.font = nameFont(nameSize)
+    nameLines = wrapLines(ctx, businessName, TEXT_MAX_WIDTH)
+    if (nameLines.length <= 2) break
+    nameSize -= 6
+  }
+  if (nameLines.length > 2) {
+    nameLines = nameLines.slice(0, 2)
+    while (ctx.measureText(`${nameLines[1]}…`).width > TEXT_MAX_WIDTH && nameLines[1].length > 1) {
+      nameLines[1] = nameLines[1].slice(0, -1)
+    }
+    nameLines[1] = `${nameLines[1].trim()}…`
+  }
+  ctx.font = nameFont(nameSize)
+  ctx.fillStyle = '#000000'
+  const nameFirstY = nameLines.length > 1 ? 1430 : 1470
+  nameLines.forEach((line, i) => {
+    ctx.fillText(line, CARD_WIDTH / 2, nameFirstY + i * 90)
+  })
+
+  // Town, in dark gray (never a light gray — it has to print clean).
+  if (town) {
+    ctx.fillStyle = '#404040'
+    ctx.font = `500 48px ${family}, Georgia, serif`
+    const townY = nameLines.length > 1 ? 1625 : 1575
+    ctx.fillText(town, CARD_WIDTH / 2, townY)
+  }
+
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
+  if (!blob) throw new Error('No se pudo generar la imagen')
+  return blob
+}
+
+export function BusinessQrDialog({ businessId, businessName, businessTown }: Props) {
   const [open, setOpen] = useState(false)
+  const [cardUrl, setCardUrl] = useState<string | null>(null)
+  const [generating, setGenerating] = useState(false)
   const [copied, setCopied] = useState(false)
   const [shared, setShared] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const qrRef = useRef<QRCodeStyling | null>(null)
+  const cardBlobRef = useRef<Blob | null>(null)
 
   const url = `https://ventastecate.com/businesses/${businessId}`
+  const town = businessTown || null
 
-  // The dialog content only mounts when open, so the QR is created and
-  // appended when the dialog first opens — never during server render.
+  // The dialog content only mounts when open, so the QR is created and the
+  // card composed when the dialog first opens — never during server render.
+  // The preview shows the exact same card blob that download/share export.
   useEffect(() => {
     if (!open) return
+    let cancelled = false
+    let objectUrl: string | null = null
+    setGenerating(true)
     if (!qrRef.current) {
       qrRef.current = new QRCodeStyling({
         width: QR_SIZE,
         height: QR_SIZE,
         type: 'canvas',
         data: url,
-        margin: 32,
+        margin: QR_MARGIN,
         qrOptions: { errorCorrectionLevel: 'M' },
         dotsOptions: { color: '#000000', type: 'square' },
         backgroundOptions: { color: '#ffffff' },
@@ -61,19 +187,36 @@ export function BusinessQrDialog({ businessId, businessName }: Props) {
     if (container && container.childElementCount === 0) {
       qrRef.current.append(container)
     }
-  }, [open, url])
+    void buildCardBlob(qrRef.current, businessName, town)
+      .then((blob) => {
+        if (cancelled) return
+        cardBlobRef.current = blob
+        objectUrl = URL.createObjectURL(blob)
+        setCardUrl(objectUrl)
+        setGenerating(false)
+      })
+      .catch(() => {
+        if (!cancelled) setGenerating(false)
+      })
+    return () => {
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [open, url, businessName, town])
 
   const handleDownload = () => {
-    void qrRef.current?.download({ name: `codigo-qr-${slugify(businessName)}`, extension: 'png' })
+    if (!cardUrl) return
+    const a = document.createElement('a')
+    a.href = cardUrl
+    a.download = `codigo-qr-${slugify(businessName)}.png`
+    a.click()
   }
 
   const handleShare = async () => {
-    const qr = qrRef.current
-    if (!qr) return
-    const blob = await qr.getRawData('png')
-    // getRawData is typed Blob | Buffer — in the browser it is always a Blob.
-    const file = blob instanceof Blob ? new File([blob], `codigo-qr-${slugify(businessName)}.png`, { type: 'image/png' }) : null
-    if (file && navigator.canShare?.({ files: [file] })) {
+    const blob = cardBlobRef.current
+    if (!blob) return
+    const file = new File([blob], `codigo-qr-${slugify(businessName)}.png`, { type: 'image/png' })
+    if (navigator.canShare?.({ files: [file] })) {
       try {
         await navigator.share({ files: [file], title: businessName, text: url })
         setShared(true)
@@ -112,19 +255,29 @@ export function BusinessQrDialog({ businessId, businessName }: Props) {
             {businessName} — escanea el código para abrir este negocio en Ventas Tecate.
           </DialogDescription>
         </DialogHeader>
+        {/* Hidden QR canvas: the source bitmap for the composed card. */}
+        <div ref={containerRef} className="hidden" aria-hidden="true" />
         <div className="flex justify-center py-2">
-          <div
-            ref={containerRef}
-            className="w-full max-w-[256px] rounded-lg bg-white [&_canvas]:h-auto [&_canvas]:w-full"
-            aria-label={`Código QR de ${businessName}`}
-          />
+          {cardUrl ? (
+            <img
+              src={cardUrl}
+              alt={`Código QR de ${businessName}`}
+              className="w-full max-w-[260px] rounded-lg border border-gray-200 bg-white"
+            />
+          ) : (
+            <div className="w-full max-w-[260px] aspect-[4/5] rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center">
+              <span className="text-sm text-gray-500">
+                {generating ? 'Preparando código…' : 'No se pudo generar el código'}
+              </span>
+            </div>
+          )}
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" onClick={handleDownload}>
+          <Button variant="outline" onClick={handleDownload} disabled={!cardUrl}>
             <Download className="h-4 w-4" />
             Descargar PNG
           </Button>
-          <Button onClick={handleShare}>
+          <Button onClick={handleShare} disabled={!cardUrl}>
             {shared || copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
             {shared ? 'Compartido' : copied ? 'Enlace copiado' : 'Compartir'}
           </Button>

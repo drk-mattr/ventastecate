@@ -10,13 +10,14 @@ import { BusinessQrDialog } from '@/components/businesses/business-qr-dialog'
 interface Props {
   businessId: string
   businessName: string
+  businessTown?: string | null
   initialFollowing: boolean
   initialLiked: boolean
   followersCount: number
   likesCount: number
 }
 
-export function BusinessEngagementBar({ businessId, businessName, initialFollowing, initialLiked, followersCount, likesCount }: Props) {
+export function BusinessEngagementBar({ businessId, businessName, businessTown, initialFollowing, initialLiked, followersCount, likesCount }: Props) {
   const { user } = useAuth()
   const router = useRouter()
   const [following, setFollowing] = useState(initialFollowing)
@@ -36,7 +37,7 @@ export function BusinessEngagementBar({ businessId, businessName, initialFollowi
 
   return (
     <div className="flex items-center gap-3">
-      <BusinessQrDialog businessId={businessId} businessName={businessName} />
+      <BusinessQrDialog businessId={businessId} businessName={businessName} businessTown={businessTown} />
       <button
         onClick={() => toggle('business_follows', following, setFollowing, setFollowers)}
         className={`h-7 px-3 rounded-full text-xs font-medium transition-colors ${

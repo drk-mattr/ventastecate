@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, Suspense } from 'react'
+import { useState, useRef, useEffect, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -17,6 +17,7 @@ import { firstListingError, LISTING_TITLE_MAX, LISTING_DESC_MAX, MAX_LISTING_IMA
 import { CARD_COLORS, type CardColorId } from '@/lib/listings/card-colors'
 import { normalizeTownName, LOCATION_COOKIE, TOWN_REGIONS, townsForLocation } from '@/lib/business-regions'
 import { compressImage } from '@/lib/images/compress'
+import { suggestCategory } from '@/lib/listings/suggest-category'
 import { humanizePostError } from '@/lib/errors'
 import { useListingDraft, draftKeyForUser } from '@/lib/hooks/use-listing-draft'
 import Image from 'next/image'
@@ -449,7 +450,9 @@ function NewListingForm() {
   const validateForm = (): { errors: Record<string, string>; firstId: string | null } => {
     const errors: Record<string, string> = {}
     if (!title.trim()) errors.title = 'Escribe un título'
-    if (!description.trim()) errors.description = 'Escribe una descripción'
+    // B2: description is required only for news; for product / service /
+    // event it is optional, so a blank box no longer blocks the publish.
+    if (listingType === 'news' && !description.trim()) errors.description = 'Escribe una descripción'
     if (showPrice && !priceConsultar && !isFree && !price) errors.price = 'Escribe un precio, o marca Precio a consultar / Gratis'
     if (storeType === 'general' && !category) errors.category = 'Elige una categoría'
     // Events need a date — it is the whole point of the post. Time,
@@ -738,6 +741,7 @@ function NewListingForm() {
         description,
         price: finalPrice,
         videoUrl: videoUrl || undefined,
+        listingType,
       })
       if (validationError) {
         setError(validationError)
@@ -766,7 +770,7 @@ function NewListingForm() {
         user_id: user.id,
         store_id: activeStore?.id || null,
         listing_type: listingType,
-        title, description,
+        title, description: description.trim(),
         price: finalPrice,
         category: finalCategory,
         location: location || activeStore?.location || '',
@@ -872,6 +876,14 @@ function NewListingForm() {
 
   const categories = categoriesForType(listingType)
 
+  // B3: category suggestion from the title — client-side keyword map,
+  // suggestion only, never forced. Shown only while no category is
+  // chosen, so it never nags after the user picks one.
+  const suggestedCategory = useMemo(
+    () => suggestCategory(title, categories),
+    [title, categories],
+  )
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -920,6 +932,10 @@ function NewListingForm() {
                       type="button"
                       onClick={() => {
                         setListingType(type)
+                        // The description requirement is type-dependent
+                        // (required only for news), so a stale error
+                        // from the old type must not linger.
+                        clearFieldError('description')
                         // Keep the category when it exists in the new
                         // type's list; only clear when it doesn't apply.
                         setCategory((prev) => (prev && categoriesForType(type).includes(prev) ? prev : ''))
@@ -952,6 +968,7 @@ function NewListingForm() {
                       type="button"
                       onClick={() => {
                         setListingType(shortcut.type)
+                        clearFieldError('description')
                         setCategory(shortcut.category)
                       }}
                       className={`
@@ -1199,16 +1216,19 @@ function NewListingForm() {
               {fieldErrors.title && <p className="text-xs text-red-500">{fieldErrors.title}</p>}
             </div>
 
-            {/* Description */}
+            {/* Description — required only for news (B2); optional
+                for product / service / event. */}
             <div className="space-y-1.5">
               <Label htmlFor="description" className="text-sm">
-                Descripción <span className="text-red-400">*</span>
+                Descripción {listingType === 'news'
+                  ? <span className="text-red-400">*</span>
+                  : <span className="text-gray-500 font-normal">(opcional)</span>}
               </Label>
               <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => { setDescription(e.target.value); clearFieldError('description') }}
-                required
+                required={listingType === 'news'}
                 maxLength={LISTING_DESC_MAX}
                 placeholder={config.descPlaceholder}
                 rows={listingType === 'news' ? 6 : 4}
@@ -1296,6 +1316,19 @@ function NewListingForm() {
                       ))}
                     </SelectContent>
                   </Select>
+                  {/* B3: tappable category suggestion from the title.
+                      Only while no category is chosen — tap to fill the
+                      Select, ignore it to pick any other category. */}
+                  {suggestedCategory && !category && (
+                    <button
+                      type="button"
+                      onClick={() => { setCategory(suggestedCategory); clearFieldError('category') }}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-gray-50 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-100"
+                    >
+                      ¿{t.categories.find(c => c.value === suggestedCategory)?.label ?? suggestedCategory}?
+                      <span className="text-gray-500">Sugerencia por tu título</span>
+                    </button>
+                  )}
                   {fieldErrors.category && <p className="text-xs text-red-500">{fieldErrors.category}</p>}
                 </div>
               ) : storeType === 'real_estate' ? (

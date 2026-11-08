@@ -61,11 +61,11 @@ const QUICK_SHORTCUTS: {
   accentBg: string
   accentBorder: string
 }[] = [
-  { label: 'Comida', Icon: UtensilsCrossed, type: 'product', category: 'Comida', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-200' },
-  { label: 'Reseña', Icon: Star, type: 'news', category: 'Reseñas y Recomendaciones', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-200' },
-  { label: 'Empleo', Icon: Briefcase, type: 'news', category: 'Empleos', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-200' },
-  { label: 'Perdido', Icon: Dog, type: 'news', category: 'Objetos Perdidos', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-200' },
-  { label: 'Seguridad', Icon: AlertTriangle, type: 'news', category: 'Seguridad Pública', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-200' },
+  { label: 'Comida', Icon: UtensilsCrossed, type: 'product', category: 'Comida', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-300' },
+  { label: 'Reseña', Icon: Star, type: 'news', category: 'Reseñas y Recomendaciones', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-300' },
+  { label: 'Empleo', Icon: Briefcase, type: 'news', category: 'Empleos', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-300' },
+  { label: 'Perdido', Icon: Dog, type: 'news', category: 'Objetos Perdidos', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-300' },
+  { label: 'Seguridad', Icon: AlertTriangle, type: 'news', category: 'Seguridad Pública', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-300' },
 ]
 
 // Neutral type config — verbs describe what the user is DOING, not what they're selling
@@ -886,7 +886,7 @@ function NewListingForm() {
               Publicando como <span className="font-medium">{activeStore.name}</span>
             </p>
           ) : (
-            <p className="text-sm text-gray-400 mt-0.5">
+            <p className="text-sm text-gray-500 mt-0.5">
               Tu publicación será visible para toda la comunidad
             </p>
           )}
@@ -900,15 +900,15 @@ function NewListingForm() {
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-0">
+        <form onSubmit={handleSubmit} className="divide-y divide-gray-200">
 
           {/* ══════════════════════════════════════════════
               TYPE — what are you sharing?
               ══════════════════════════════════════════════ */}
           {storeType === 'general' && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-5">
+          <div className="py-6 first:pt-0 space-y-5">
             <div className="space-y-2.5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <p className="text-base font-semibold text-gray-900">
                 ¿Qué quieres compartir?
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -928,11 +928,11 @@ function NewListingForm() {
                         relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all
                         ${isActive
                           ? `${cfg.colorBorder} ${cfg.colorBg}`
-                          : 'border-gray-100 bg-white hover:bg-gray-50 hover:border-gray-200'
+                          : 'border-gray-300 bg-white hover:bg-gray-50 hover:border-gray-400'
                         }
                       `}
                     >
-                      <cfg.Icon className={`h-5 w-5 ${isActive ? cfg.color : 'text-gray-400'}`} />
+                      <cfg.Icon className={`h-5 w-5 ${isActive ? cfg.color : 'text-gray-500'}`} />
                       <span className={`text-xs font-medium leading-tight text-center ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
                         {cfg.label}
                       </span>
@@ -943,7 +943,7 @@ function NewListingForm() {
 
               {/* Quick shortcuts — popular topics */}
               <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                <span className="text-[10px] text-gray-400 mr-0.5">Popular:</span>
+                <span className="text-[10px] text-gray-500 mr-0.5">Popular:</span>
                 {QUICK_SHORTCUTS.map((shortcut) => {
                   const isActive = listingType === shortcut.type && category === shortcut.category
                   return (
@@ -959,11 +959,11 @@ function NewListingForm() {
                         border transition-all
                         ${isActive
                           ? `${shortcut.accentBg} ${shortcut.accentBorder} ${shortcut.accent}`
-                          : 'border-gray-150 bg-white text-gray-500 hover:bg-gray-50 hover:border-gray-250'
+                          : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-50 hover:border-gray-400'
                         }
                       `}
                     >
-                      <shortcut.Icon className={`h-3 w-3 ${isActive ? shortcut.accent : 'text-gray-400'}`} />
+                      <shortcut.Icon className={`h-3 w-3 ${isActive ? shortcut.accent : 'text-gray-500'}`} />
                       {shortcut.label}
                     </button>
                   )
@@ -976,7 +976,8 @@ function NewListingForm() {
           {/* ══════════════════════════════════════════════
               PHOTOS — visual first
               ══════════════════════════════════════════════ */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+          <div className="py-6 first:pt-0">
+            <p className="text-base font-semibold text-gray-900 mb-3">Fotos</p>
             <div
               onDrop={handleDrop}
               onDragOver={handleDragOver}
@@ -987,7 +988,7 @@ function NewListingForm() {
                 ${isDragging
                   ? 'border-gray-900 bg-gray-100 scale-[1.01]'
                   : images.length > 0
-                    ? 'border-gray-200 bg-gray-50/50'
+                    ? 'border-gray-300 bg-gray-50/50'
                     : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100/50'
                 }
               `}
@@ -1005,12 +1006,12 @@ function NewListingForm() {
                 /* Empty state — inviting, not clinical */
                 <div className="flex flex-col items-center justify-center py-10 px-4">
                   <div className="h-14 w-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
-                    <ImagePlus className="h-7 w-7 text-gray-400" />
+                    <ImagePlus className="h-7 w-7 text-gray-500" />
                   </div>
                   <p className="text-sm font-medium text-gray-700">
                     Agrega fotos
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     Arrastra aquí o toca para seleccionar (máx. 10)
                   </p>
                 </div>
@@ -1041,9 +1042,9 @@ function NewListingForm() {
                     ))}
                     {/* Add more slot */}
                     {images.length < MAX_LISTING_IMAGES && (
-                      <div className="aspect-square rounded-lg border-2 border-dashed border-gray-200 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition">
-                        <ImagePlus className="h-5 w-5 text-gray-300" />
-                        <span className="text-[10px] text-gray-400 mt-1">{MAX_LISTING_IMAGES - images.length} más</span>
+                      <div className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition">
+                        <ImagePlus className="h-5 w-5 text-gray-500" />
+                        <span className="text-[10px] text-gray-500 mt-1">{MAX_LISTING_IMAGES - images.length} más</span>
                       </div>
                     )}
                   </div>
@@ -1073,9 +1074,9 @@ function NewListingForm() {
           {/* Title-card color — news/event only. The card only renders
               when the post has no photo; the choice is stored anyway. */}
           {(listingType === 'news' || listingType === 'event') && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
-              <p className="text-sm font-medium mb-1">Color de la tarjeta</p>
-              <p className="text-xs text-gray-400 mb-3">
+            <div className="py-6 first:pt-0">
+              <p className="text-base font-semibold text-gray-900 mb-1">Color de la tarjeta</p>
+              <p className="text-xs text-gray-500 mb-3">
                 Si no agregas foto, tu publicación se muestra como una tarjeta con el título en este color.
               </p>
               <div className="flex items-center gap-2.5" role="group" aria-label="Color de la tarjeta">
@@ -1101,10 +1102,10 @@ function NewListingForm() {
               what the card and the detail page show; the time is
               optional, and a date with no time shows as a day only. */}
           {listingType === 'event' && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-4">
+            <div className="py-6 first:pt-0 space-y-4">
               <div>
-                <p className="text-sm font-medium">Fecha y lugar</p>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-base font-semibold text-gray-900">Fecha y lugar</p>
+                <p className="text-xs text-gray-500 mt-0.5">
                   La fecha se muestra en la tarjeta y en la página del evento. Si no pones hora, solo se muestra el día.
                 </p>
               </div>
@@ -1113,7 +1114,7 @@ function NewListingForm() {
                   <Label htmlFor="event-start-date" className="text-sm">
                     Fecha de inicio <span className="text-red-400">*</span>
                   </Label>
-                  <Input
+                  <Input className="border-gray-300"
                     id="event-start-date"
                     type="date"
                     value={eventStartDate}
@@ -1124,7 +1125,7 @@ function NewListingForm() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="event-start-time" className="text-sm">Hora</Label>
-                  <Input
+                  <Input className="border-gray-300"
                     id="event-start-time"
                     type="time"
                     value={eventStartTime}
@@ -1133,7 +1134,7 @@ function NewListingForm() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="event-end-date" className="text-sm">Fecha de término</Label>
-                  <Input
+                  <Input className="border-gray-300"
                     id="event-end-date"
                     type="date"
                     value={eventEndDate}
@@ -1143,7 +1144,7 @@ function NewListingForm() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="event-end-time" className="text-sm">Hora</Label>
-                  <Input
+                  <Input className="border-gray-300"
                     id="event-end-time"
                     type="time"
                     value={eventEndTime}
@@ -1153,7 +1154,7 @@ function NewListingForm() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="event-venue" className="text-sm">Lugar / sede</Label>
-                <Input
+                <Input className="border-gray-300"
                   id="event-venue"
                   value={eventVenue}
                   onChange={(e) => setEventVenue(e.target.value)}
@@ -1163,7 +1164,7 @@ function NewListingForm() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="event-ticket-url" className="text-sm">Enlace de boletos</Label>
-                <Input
+                <Input className="border-gray-300"
                   id="event-ticket-url"
                   type="url"
                   inputMode="url"
@@ -1179,7 +1180,8 @@ function NewListingForm() {
           {/* ══════════════════════════════════════════════
               CORE DETAILS — title, description, price, category
               ══════════════════════════════════════════════ */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-5">
+          <div className="py-6 first:pt-0 space-y-5">
+            <p className="text-base font-semibold text-gray-900">Detalles</p>
             {/* Title */}
             <div className="space-y-1.5">
               <Label htmlFor="title" className="text-sm">
@@ -1192,7 +1194,7 @@ function NewListingForm() {
                 required
                 maxLength={LISTING_TITLE_MAX}
                 placeholder={config.titlePlaceholder}
-                className="text-base"
+                className="border-gray-300 text-base"
               />
               {fieldErrors.title && <p className="text-xs text-red-500">{fieldErrors.title}</p>}
             </div>
@@ -1210,7 +1212,7 @@ function NewListingForm() {
                 maxLength={LISTING_DESC_MAX}
                 placeholder={config.descPlaceholder}
                 rows={listingType === 'news' ? 6 : 4}
-                className="resize-none"
+                className="border-gray-300 resize-none"
               />
               {fieldErrors.description && <p className="text-xs text-red-500">{fieldErrors.description}</p>}
             </div>
@@ -1225,7 +1227,7 @@ function NewListingForm() {
                   </Label>
                   <div className="flex gap-2">
                     <div className="min-w-0 flex-1">
-                      <Input
+                      <Input className="border-gray-300"
                         id="price"
                         type="number"
                         step="0.01"
@@ -1238,7 +1240,7 @@ function NewListingForm() {
                       />
                     </div>
                     {/* Currency — MXN default; USD for cars, rent, etc. */}
-                    <div className="flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5" role="group" aria-label="Moneda">
+                    <div className="flex shrink-0 rounded-lg border border-gray-300 bg-white p-0.5" role="group" aria-label="Moneda">
                       {(['MXN', 'USD'] as const).map((cur) => (
                         <button
                           key={cur}
@@ -1283,7 +1285,7 @@ function NewListingForm() {
                     Categoría <span className="text-red-400">*</span>
                   </Label>
                   <Select value={category} onValueChange={(v) => { setCategory(v); clearFieldError('category') }} required>
-                    <SelectTrigger>
+                    <SelectTrigger className="border-gray-300">
                       <SelectValue placeholder="Elige una categoría" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1300,7 +1302,7 @@ function NewListingForm() {
                 <div className="space-y-1.5">
                   <Label className="text-sm">Tipo de Operación *</Label>
                   <Select value={transactionType} onValueChange={setTransactionType}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="venta">Venta</SelectItem>
                       <SelectItem value="renta">Renta</SelectItem>
@@ -1314,8 +1316,8 @@ function NewListingForm() {
           {/* ══════════════════════════════════════════════
               LOCATION
               ══════════════════════════════════════════════ */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Ubicación</p>
+          <div className="py-6 first:pt-0 space-y-4">
+            <p className="text-base font-semibold text-gray-900">Ubicación</p>
             <LocationPicker
               city={city}
               stateRegion={stateRegion}
@@ -1327,7 +1329,7 @@ function NewListingForm() {
             />
             <div className="space-y-1.5">
               <Label htmlFor="location" className="text-sm">Colonia / Barrio</Label>
-              <Input
+              <Input className="border-gray-300"
                 id="location"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
@@ -1341,8 +1343,8 @@ function NewListingForm() {
               seller has no number on their profile yet)
               ══════════════════════════════════════════════ */}
           {user && profile && !profile.whatsapp_number && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-3">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Contacto por WhatsApp</p>
+          <div className="py-6 first:pt-0 space-y-3">
+            <p className="text-base font-semibold text-gray-900">Contacto por WhatsApp</p>
             <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -1355,7 +1357,7 @@ function NewListingForm() {
             {whatsappOptIn && (
               <div className="space-y-1.5">
                 <Label htmlFor="whatsapp" className="text-sm">Tu número de WhatsApp</Label>
-                <Input
+                <Input className="border-gray-300"
                   id="whatsapp"
                   type="tel"
                   inputMode="tel"
@@ -1363,7 +1365,7 @@ function NewListingForm() {
                   onChange={(e) => setWhatsappNumber(e.target.value)}
                   placeholder="Ej: 665 123 4567"
                 />
-                <p className="text-[11px] text-gray-400">Se guarda en tu perfil para tus próximos anuncios.</p>
+                <p className="text-[11px] text-gray-500">Se guarda en tu perfil para tus próximos anuncios.</p>
               </div>
             )}
           </div>
@@ -1373,14 +1375,17 @@ function NewListingForm() {
               TYPE-SPECIFIC FIELDS — only when they apply
               ══════════════════════════════════════════════ */}
           {(isRealEstate || isAutomotive) && (
-          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4 space-y-5">
+          <div className="py-6 first:pt-0 space-y-5">
+            <p className="text-base font-semibold text-gray-900">
+              {isRealEstate ? 'Detalles de la propiedad' : 'Detalles del vehículo'}
+            </p>
             {/* Real Estate Fields — only for real-estate categories/stores */}
             {isRealEstate && (
               <>
                 <div className="space-y-1.5">
                   <Label className="text-sm">Tipo de Propiedad *</Label>
                   <Select value={propertyType} onValueChange={setPropertyType}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="casa">Casa</SelectItem>
                       <SelectItem value="departamento">Departamento</SelectItem>
@@ -1391,13 +1396,13 @@ function NewListingForm() {
                   </Select>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="space-y-1.5"><Label className="text-sm">Recámaras</Label><Input type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} placeholder="3" /></div>
-                  <div className="space-y-1.5"><Label className="text-sm">Baños</Label><Input type="number" min="0" step="0.5" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} placeholder="2" /></div>
-                  <div className="space-y-1.5"><Label className="text-sm">Estacionamientos</Label><Input type="number" min="0" value={parkingSpots} onChange={(e) => setParkingSpots(e.target.value)} placeholder="2" /></div>
+                  <div className="space-y-1.5"><Label className="text-sm">Recámaras</Label><Input className="border-gray-300" type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} placeholder="3" /></div>
+                  <div className="space-y-1.5"><Label className="text-sm">Baños</Label><Input className="border-gray-300" type="number" min="0" step="0.5" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} placeholder="2" /></div>
+                  <div className="space-y-1.5"><Label className="text-sm">Estacionamientos</Label><Input className="border-gray-300" type="number" min="0" value={parkingSpots} onChange={(e) => setParkingSpots(e.target.value)} placeholder="2" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5"><Label className="text-sm">m² Construidos</Label><Input type="number" min="0" value={constructionM2} onChange={(e) => setConstructionM2(e.target.value)} placeholder="120" /></div>
-                  <div className="space-y-1.5"><Label className="text-sm">m² Terreno</Label><Input type="number" min="0" value={lotM2} onChange={(e) => setLotM2(e.target.value)} placeholder="200" /></div>
+                  <div className="space-y-1.5"><Label className="text-sm">m² Construidos</Label><Input className="border-gray-300" type="number" min="0" value={constructionM2} onChange={(e) => setConstructionM2(e.target.value)} placeholder="120" /></div>
+                  <div className="space-y-1.5"><Label className="text-sm">m² Terreno</Label><Input className="border-gray-300" type="number" min="0" value={lotM2} onChange={(e) => setLotM2(e.target.value)} placeholder="200" /></div>
                 </div>
               </>
             )}
@@ -1407,19 +1412,19 @@ function NewListingForm() {
               <div id="auto-fields" className="space-y-5">
                 <div className="space-y-1.5">
                   <Label htmlFor="auto-year" className="text-sm">Año *</Label>
-                  <Input id="auto-year" type="number" min="1950" max="2027" value={year} onChange={(e) => { setYear(e.target.value); clearFieldError('year') }} required placeholder="2024" />
+                  <Input className="border-gray-300" id="auto-year" type="number" min="1950" max="2027" value={year} onChange={(e) => { setYear(e.target.value); clearFieldError('year') }} required placeholder="2024" />
                   {fieldErrors.year && <p className="text-xs text-red-500">{fieldErrors.year}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5"><Label htmlFor="auto-make" className="text-sm">Marca *</Label><Input id="auto-make" value={make} onChange={(e) => { setMake(e.target.value); clearFieldError('make') }} required placeholder="Toyota" />{fieldErrors.make && <p className="text-xs text-red-500">{fieldErrors.make}</p>}</div>
-                  <div className="space-y-1.5"><Label htmlFor="auto-model" className="text-sm">Modelo *</Label><Input id="auto-model" value={model} onChange={(e) => { setModel(e.target.value); clearFieldError('model') }} required placeholder="Tacoma" />{fieldErrors.model && <p className="text-xs text-red-500">{fieldErrors.model}</p>}</div>
+                  <div className="space-y-1.5"><Label htmlFor="auto-make" className="text-sm">Marca *</Label><Input className="border-gray-300" id="auto-make" value={make} onChange={(e) => { setMake(e.target.value); clearFieldError('make') }} required placeholder="Toyota" />{fieldErrors.make && <p className="text-xs text-red-500">{fieldErrors.make}</p>}</div>
+                  <div className="space-y-1.5"><Label htmlFor="auto-model" className="text-sm">Modelo *</Label><Input className="border-gray-300" id="auto-model" value={model} onChange={(e) => { setModel(e.target.value); clearFieldError('model') }} required placeholder="Tacoma" />{fieldErrors.model && <p className="text-xs text-red-500">{fieldErrors.model}</p>}</div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="space-y-1.5"><Label className="text-sm">Kilómetros</Label><Input type="number" min="0" value={mileageKm} onChange={(e) => setMileageKm(e.target.value)} placeholder="45000" /></div>
+                  <div className="space-y-1.5"><Label className="text-sm">Kilómetros</Label><Input className="border-gray-300" type="number" min="0" value={mileageKm} onChange={(e) => setMileageKm(e.target.value)} placeholder="45000" /></div>
                   <div className="space-y-1.5">
                     <Label className="text-sm">Transmisión</Label>
                     <Select value={transmission} onValueChange={setTransmission}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="automatica">Automática</SelectItem>
                         <SelectItem value="manual">Manual</SelectItem>
@@ -1429,7 +1434,7 @@ function NewListingForm() {
                   <div className="space-y-1.5">
                     <Label className="text-sm">Combustible</Label>
                     <Select value={fuelType} onValueChange={setFuelType}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="gasolina">Gasolina</SelectItem>
                         <SelectItem value="diesel">Diésel</SelectItem>
@@ -1440,11 +1445,11 @@ function NewListingForm() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5"><Label className="text-sm">Color</Label><Input value={color} onChange={(e) => setColor(e.target.value)} placeholder="Blanco" /></div>
+                  <div className="space-y-1.5"><Label className="text-sm">Color</Label><Input className="border-gray-300" value={color} onChange={(e) => setColor(e.target.value)} placeholder="Blanco" /></div>
                   <div className="space-y-1.5">
                     <Label className="text-sm">Puertas</Label>
                     <Select value={doors} onValueChange={setDoors}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="2">2 puertas</SelectItem>
                         <SelectItem value="4">4 puertas</SelectItem>
@@ -1461,30 +1466,30 @@ function NewListingForm() {
           {/* ══════════════════════════════════════════════
               EXTRAS (collapsible — reduce overwhelm)
               ══════════════════════════════════════════════ */}
-          <div className="bg-white rounded-xl border border-gray-200 mb-4 overflow-hidden">
+          <div className="py-6 first:pt-0">
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition"
+              className="w-full flex items-center justify-between py-3.5 hover:bg-gray-100 transition"
             >
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <span className="text-base font-semibold text-gray-900">
                 Opciones adicionales
               </span>
               {showAdvanced
-                ? <ChevronUp className="h-4 w-4 text-gray-400" />
-                : <ChevronDown className="h-4 w-4 text-gray-400" />
+                ? <ChevronUp className="h-4 w-4 text-gray-500" />
+                : <ChevronDown className="h-4 w-4 text-gray-500" />
               }
             </button>
 
             {showAdvanced && (
-              <div className="px-5 pb-5 space-y-5 border-t border-gray-100 pt-4">
+              <div className="pb-2 space-y-5 border-t border-gray-200 pt-4">
                 {/* Video URL */}
                 <div className="space-y-1.5">
                   <Label htmlFor="videoUrl" className="flex items-center gap-1.5 text-sm">
-                    <Video className="h-3.5 w-3.5 text-gray-400" />
+                    <Video className="h-3.5 w-3.5 text-gray-500" />
                     Video
                   </Label>
-                  <Input
+                  <Input className="border-gray-300"
                     id="videoUrl"
                     type="url"
                     value={videoUrl}
@@ -1505,7 +1510,7 @@ function NewListingForm() {
                     placeholder="https://youtube.com/watch?v=... o link de Facebook/TikTok"
                   />
                   {fieldErrors.videoUrl && <p className="text-xs text-red-500">{fieldErrors.videoUrl}</p>}
-                  <p className="text-[11px] text-gray-400">
+                  <p className="text-[11px] text-gray-500">
                     Pega un enlace de YouTube, Facebook o TikTok
                   </p>
                 </div>
@@ -1538,11 +1543,11 @@ function NewListingForm() {
           {/* ══════════════════════════════════════════════
               STICKY PUBLISH BAR — the action is always visible
               ══════════════════════════════════════════════ */}
-          <div className="sticky bottom-0 z-20 -mx-4 px-4 pt-2 pb-3 mt-6 bg-white/95 backdrop-blur border-t border-gray-200">
+          <div className="sticky bottom-0 z-20 -mx-4 px-4 pt-2 pb-3 mt-6 bg-white/95 backdrop-blur border-t border-gray-300">
             {publishedListingId ? (
               <>
                 {tagWarning && (
-                  <div className="text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-800 mb-3">
+                  <div className="text-sm bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 text-gray-700 mb-3">
                     Se publicó, pero no se pudo etiquetar el {tagWarning === 'business' ? 'negocio' : 'producto'}.
                     <button
                       type="button"
@@ -1555,7 +1560,7 @@ function NewListingForm() {
                   </div>
                 )}
                 {failedImages.length > 0 && (
-                  <div className="text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-amber-800 mb-3">
+                  <div className="text-sm bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 text-gray-700 mb-3">
                     Faltan {failedImages.length} foto{failedImages.length === 1 ? '' : 's'} por subir.
                     <button
                       type="button"

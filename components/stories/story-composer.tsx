@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Type, Trash2, X } from 'lucide-react'
 import type { StoryOverlay } from '@/lib/types/database'
 import {
+  clampOverlayCenter,
   displayedImageRect,
   isEmojiOnly,
   overlayBaseFontSize,
@@ -246,9 +247,21 @@ export function StoryComposer({ dataUrl, filename, onClose, onPublished }: Story
       const dy = e.clientY - g.startY
       if (Math.abs(dx) + Math.abs(dy) > 6) g.moved = true
       if (g.moved) {
-        const nx = Math.min(0.98, Math.max(0.02, g.startOverlayX + dx / Math.max(1, rect.width)))
-        const ny = Math.min(0.98, Math.max(0.02, g.startOverlayY + dy / Math.max(1, rect.height)))
-        updateOverlay(g.overlayId, { x: nx, y: ny })
+        // Keep the whole overlay box inside the displayed photo —
+        // a bare 0.02–0.98 center clamp still lets a big emoji or a
+        // long line hang half off the bottom edge.
+        const dragOverlay = overlaysRef.current.find((o) => o.id === g.overlayId)
+        if (dragOverlay) {
+          const c = clampOverlayCenter(
+            {
+              ...dragOverlay,
+              x: g.startOverlayX + dx / Math.max(1, rect.width),
+              y: g.startOverlayY + dy / Math.max(1, rect.height),
+            },
+            rect,
+          )
+          updateOverlay(g.overlayId, { x: c.x, y: c.y })
+        }
         // Trash zone: dragging over it arms the delete.
         const trash = trashRef.current?.getBoundingClientRect()
         setTrashHot(
@@ -318,6 +331,23 @@ export function StoryComposer({ dataUrl, filename, onClose, onPublished }: Story
 
   const dragging = draggingId !== null
 
+  // Live preview of the text being typed: Listo drops it exactly here
+  // (center, scale 1), so what you type is what you get. Only while
+  // adding a new overlay — editing an existing one keeps its old text
+  // on the canvas until Listo.
+  const draftPreview: StoryOverlay | null =
+    editingId === 'new' && inputText.trim() !== '' && natural
+      ? {
+          id: 'draft',
+          kind: 'text',
+          text: inputText.trim(),
+          x: 0.5,
+          y: 0.4,
+          scale: 1,
+          rotation: 0,
+        }
+      : null
+
   return (
     <div
       className="fixed inset-0 z-[60] bg-black flex flex-col"
@@ -332,11 +362,11 @@ export function StoryComposer({ dataUrl, filename, onClose, onPublished }: Story
           onClick={onClose}
           disabled={uploading}
           aria-label="Cancelar"
-          className="h-10 w-10 rounded-full flex items-center justify-center text-white hover:bg-white/10 disabled:opacity-50"
+          className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-white hover:bg-white/10 disabled:opacity-50"
         >
           <X className="h-5 w-5" />
         </button>
-        <span className="flex-1 text-sm font-semibold text-white text-center">Tu historia</span>
+        <span className="flex-1 min-w-0 truncate text-sm font-semibold text-white text-center">Tu historia</span>
         <button
           type="button"
           onClick={() => {
@@ -348,7 +378,7 @@ export function StoryComposer({ dataUrl, filename, onClose, onPublished }: Story
           }}
           disabled={uploading}
           aria-label="Agregar texto"
-          className="h-10 w-10 rounded-full flex items-center justify-center text-white hover:bg-white/10 disabled:opacity-50"
+          className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-white hover:bg-white/10 disabled:opacity-50"
         >
           <Type className="h-5 w-5" />
         </button>
@@ -356,7 +386,7 @@ export function StoryComposer({ dataUrl, filename, onClose, onPublished }: Story
           type="button"
           onClick={publish}
           disabled={uploading}
-          className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-gray-900 disabled:opacity-50"
+          className="shrink-0 rounded-full bg-white px-4 py-2 text-sm font-semibold text-gray-900 disabled:opacity-50"
         >
           {uploading ? 'Publicando…' : 'Publicar'}
         </button>
@@ -372,7 +402,12 @@ export function StoryComposer({ dataUrl, filename, onClose, onPublished }: Story
               onChange={(e) => setInputText(e.target.value.slice(0, OVERLAY_TEXT_MAX))}
               maxLength={OVERLAY_TEXT_MAX}
               placeholder="Escribe algo…"
-              className="flex-1 min-w-0 rounded-full bg-white/10 px-4 py-2.5 text-sm text-white placeholder:text-white/50 focus:outline-none focus:bg-white/15"
+              // text-base (16px): iOS Safari auto-zooms any text field
+              // under 16px on focus, and that zoom is what pushed this
+              // whole takeover (and the viewer) ~14% off-screen — the
+              // photo looked off-center and Publicar slid out of view.
+              // 16px is the one-line fix; never drop this below 16px.
+              className="flex-1 min-w-0 rounded-full bg-white/10 px-4 py-2.5 text-base text-white placeholder:text-white/50 focus:outline-none focus:bg-white/15"
             />
             <button
               type="button"
@@ -411,12 +446,15 @@ export function StoryComposer({ dataUrl, filename, onClose, onPublished }: Story
         />
         {overlays.map((o) => {
           const emoji = isEmojiOnly(o.text)
+          // Render-time clamp: a pinch that grows an overlay near an
+          // edge (or an old save) still stays fully on the photo.
+          const c = clampOverlayCenter(o, rect)
           return (
             <div
               key={o.id}
               data-overlay-id={o.id}
               className={`absolute ${selectedId === o.id ? 'z-20 ring-2 ring-white/90 rounded-full' : 'z-10'}`}
-              style={overlayStyle(o, rect)}
+              style={overlayStyle({ ...o, ...c }, rect)}
             >
               <span
                 className={
@@ -431,6 +469,23 @@ export function StoryComposer({ dataUrl, filename, onClose, onPublished }: Story
             </div>
           )
         })}
+        {/* Draft preview — dashed outline marks it as not yet placed. */}
+        {draftPreview && (
+          <div
+            className="pointer-events-none absolute z-10 opacity-70"
+            style={overlayStyle(
+              { ...draftPreview, ...clampOverlayCenter(draftPreview, rect) },
+              rect,
+            )}
+          >
+            <span
+              className="block rounded-full bg-black/60 px-3 py-1 text-center font-semibold text-white whitespace-nowrap outline-1 outline-dashed outline-white/70"
+              style={{ fontSize: overlayBaseFontSize(draftPreview) }}
+            >
+              {draftPreview.text}
+            </span>
+          </div>
+        )}
         {/* Safe-zone hint while editing */}
         {overlays.length === 0 && editingId === null && (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center px-4 pb-4">

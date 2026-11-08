@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { X, Flag, ExternalLink, Trash2 } from 'lucide-react'
 import type { StoryWithAuthor } from '@/lib/types/database'
 import {
+  clampOverlayCenter,
   displayedImageRect,
   isEmojiOnly,
   overlayBaseFontSize,
@@ -267,11 +268,15 @@ export function StoryViewer({ groups, startGroup, onClose, currentUserId, onStor
         {overlays.length > 0 ? (
           overlays.map((o) => {
             const emoji = isEmojiOnly(o.text)
+            // Render-time clamp: overlays saved near an edge (e.g. an
+            // emoji dragged to y≈0.95) render fully inside the photo
+            // instead of half-cut at its bottom edge.
+            const c = clampOverlayCenter(o, rect)
             return (
               <div
                 key={o.id}
                 className="pointer-events-none absolute z-10"
-                style={overlayStyle(o, rect)}
+                style={overlayStyle({ ...o, ...c }, rect)}
               >
                 <span
                   className={

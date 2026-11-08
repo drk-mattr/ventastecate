@@ -204,15 +204,18 @@ export function ListingCard({ listing }: ListingCardProps) {
   // ── Event card: the poster IS the content — it must show fully,
   // never cropped. Printed-poster treatment (like the lost-poster
   // card): the image sits inset with a white margin in a
-  // portrait-friendly 3:4 frame, object-contain, so a portrait
+  // portrait-friendly 4:5 frame, object-contain, so a portrait
   // poster fills it and a landscape image letterboxes on white
-  // matting instead of being sliced. The title + location + time
-  // row below the image is unchanged.
+  // matting instead of being sliced. The poster already carries the
+  // date/time/venue, so the bottom keeps the title ONLY — no date
+  // line, no location/price/time row (those live on the detail
+  // page). Keeping rows even: the 4:5 frame + title-only bottom
+  // take a desktop row from ~380px to ~325px.
   if (listingType === 'event' && primaryImage) {
     return (
       <CardShell id={listing.id}>
         <div className="relative shrink-0 px-4 pt-2.5">
-          <div className="relative aspect-[3/4] overflow-hidden rounded-none bg-white">
+          <div className="relative aspect-[4/5] overflow-hidden rounded-none bg-white">
             <Image src={primaryImage} alt={listing.title} fill className="object-contain"
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
             {listing.status === 'sold' && soldOverlay}
@@ -223,20 +226,10 @@ export function ListingCard({ listing }: ListingCardProps) {
             )}
           </div>
         </div>
-        <div className="px-2.5 pt-1.5 pb-2 flex flex-col flex-1">
-          {eventDateLine && (
-            <p className="text-[11px] font-semibold text-gray-900 leading-snug mb-0.5">{eventDateLine}</p>
-          )}
+        <div className="px-2.5 pt-1.5 pb-2">
           <h3 className="font-semibold text-[13px] line-clamp-2 leading-snug group-hover:underline">
             {listing.title}
           </h3>
-          <div className="flex items-center justify-between gap-2 mt-auto pt-1">
-            <span className="text-[11px] text-gray-400 truncate">{listing.location}</span>
-            {(listing.price > 0 || listing.is_free) && (
-              <span className="text-[11px] font-semibold text-gray-900 shrink-0 ml-1">{formattedPrice}</span>
-            )}
-            <span className="text-[10px] text-gray-400 shrink-0">{timeAgo(listing.created_at)}</span>
-          </div>
         </div>
       </CardShell>
     )

@@ -43,7 +43,7 @@ export function TypeShortcuts() {
 
   return (
     <div className="border-b bg-white">
-      <div className="container mx-auto px-4 py-2 flex gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div className="container mx-auto px-4 py-2 flex gap-2 overflow-x-auto sm:justify-center" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {SHORTCUTS.map((s) => {
           const Icon = s.icon
           // Todo is the default: active only when no type/category filter is set.

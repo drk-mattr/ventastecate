@@ -29,6 +29,12 @@ export function Header() {
   const { openAuth } = useAuthModal()
   const { openReport } = useReportModal()
   const pathname = usePathname()
+  // Business views have their own way to find things (the index's own
+  // search on /businesses, the gallery and info on a business page),
+  // so the header search is noise there — hide it on /businesses and
+  // /businesses/*, and nowhere else.
+  const hideHeaderSearch =
+    pathname === '/businesses' || (pathname?.startsWith('/businesses/') ?? false)
   const t = useTranslations()
   const [menuOpen, setMenuOpen] = useState(false)
   // Shared unread count (useUnreadMessages): the same value the
@@ -94,13 +100,16 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Search lives in the nav bar on every page, including the
-            homepage — the old big hero search was removed 2026-11-04. */}
-        <div className="order-3 sm:order-2 basis-full sm:basis-auto flex-1 min-w-0 mt-2 sm:mt-0">
-          <Suspense fallback={<div className="flex-1 max-w-2xl mx-4" />}>
-            <HeaderSearch />
-          </Suspense>
-        </div>
+        {/* Search lives in the nav bar on every page except business
+            views, including the homepage — the old big hero search was
+            removed 2026-11-04. */}
+        {!hideHeaderSearch && (
+          <div className="order-3 sm:order-2 basis-full sm:basis-auto flex-1 min-w-0 mt-2 sm:mt-0">
+            <Suspense fallback={<div className="flex-1 max-w-2xl mx-4" />}>
+              <HeaderSearch />
+            </Suspense>
+          </div>
+        )}
 
         <div className="order-2 sm:order-3 flex items-center gap-2 shrink-0">
           <LocationSelector />

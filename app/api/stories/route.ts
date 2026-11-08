@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { rateLimit } from '@/lib/rate-limit'
+import { validateOverlays } from '@/lib/stories/validate-overlays'
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 const STORY_CAPTION_MAX = 140
@@ -12,9 +13,13 @@ function isMissingSchema(error: { code?: string } | null): boolean {
 }
 
 // POST /api/stories — a signed-in user posts their own story image.
-// Body: { image: "data:image/jpeg;base64,...", filename?, caption?, listing_id?, business_id? }
+// Body: { image: "data:image/jpeg;base64,...", filename?, caption?, overlays?, listing_id?, business_id? }
 // caption is optional typed text (max 140 chars, emojis included) shown
 // as an overlay on the photo in the viewer (migration 045).
+// overlays is an optional array (max 5) of placeable text/emoji stickers
+// (migration 046): each { id, kind:'text', text ≤60, x, y 0–1, scale
+// 0.5–3, rotation -180–180 }. If both are sent, overlays win in the
+// viewer (the caption is stored but not shown).
 // The image is compressed client-side (same helper as the posting form)
 // before it gets here. Upload goes to the public listing-images bucket
 // under stories/<userId>/, the row goes to stories (migration 040).
@@ -31,7 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Llegaste al límite de historias por hoy' }, { status: 429 })
     }
 
-    let body: { image?: unknown; filename?: unknown; caption?: unknown; listing_id?: unknown; business_id?: unknown }
+    let body: { image?: unknown; filename?: unknown; caption?: unknown; overlays?: unknown; listing_id?: unknown; business_id?: unknown }
     try {
       body = await request.json()
     } catch {
@@ -55,6 +60,12 @@ export async function POST(request: NextRequest) {
     if (caption.length > STORY_CAPTION_MAX) {
       return NextResponse.json({ error: 'El texto es demasiado largo (máximo 140 caracteres)' }, { status: 400 })
     }
+
+    const validated = validateOverlays(body.overlays)
+    if ('error' in validated) {
+      return NextResponse.json({ error: validated.error }, { status: 400 })
+    }
+    const overlays = validated.overlays
 
     const admin = createAdminClient()
     if (!admin) {
@@ -85,6 +96,7 @@ export async function POST(request: NextRequest) {
       author_id: user.id,
       image_url: publicUrl,
       caption: caption || null,
+      overlays: overlays.length > 0 ? overlays : null,
       listing_id: listingId,
       business_id: businessId,
     }).select('id, expires_at').single()

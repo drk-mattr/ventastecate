@@ -89,7 +89,7 @@ let topBusinesses: TopBusiness[] = []
 async function getStories(supabase: Awaited<ReturnType<typeof createClient>>): Promise<StoryWithAuthor[]> {
   const { data } = await supabase
     .from('stories')
-    .select('id, image_url, caption, listing_id, business_id, created_at, expires_at, author:profiles(id, username, display_name, avatar_url)')
+    .select('id, image_url, caption, overlays, listing_id, business_id, created_at, expires_at, author:profiles(id, username, display_name, avatar_url)')
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
     .limit(24)
@@ -278,7 +278,7 @@ export default async function Home({ searchParams }: HomeProps) {
         {/* Stories: circles at the top, WhatsApp/Instagram pattern.
             Renders nothing until a real story exists (or someone is
             signed in and can add one). */}
-        <StoriesRail stories={stories} signedIn={Boolean(currentUser)} />
+        <StoriesRail stories={stories} signedIn={Boolean(currentUser)} currentUserId={currentUser?.id ?? null} />
         {/* No hero anymore: search lives in the header nav bar, and this
             slim row keeps the type/category shortcuts. The space the
             hero took is now the Top section below. */}

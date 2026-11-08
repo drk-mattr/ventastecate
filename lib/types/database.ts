@@ -223,12 +223,27 @@ export type Report = {
 }
 
 /** Story (migration 040): a 24h image post. Images only in v1;
- * an optional text caption (migration 045) overlays the photo. */
+ * an optional text caption (migration 045) overlays the photo.
+ * Placeable text/emoji overlays (migration 046) are stored as one
+ * JSONB array on the story, max 5. Positions are fractions (0–1) of
+ * the photo's displayed size, center-anchored; scale multiplies a
+ * base font size (clamp 0.5–3); rotation is degrees (-180–180). */
+export type StoryOverlay = {
+  id: string
+  kind: 'text'
+  text: string
+  x: number
+  y: number
+  scale: number
+  rotation: number
+}
+
 export type Story = {
   id: string
   author_id: string
   image_url: string
   caption?: string | null
+  overlays?: StoryOverlay[] | null
   listing_id?: string | null
   business_id?: string | null
   created_at: string

@@ -1,10 +1,17 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { X, Flag, ExternalLink } from 'lucide-react'
+import { X, Flag, ExternalLink, Trash2 } from 'lucide-react'
 import type { StoryWithAuthor } from '@/lib/types/database'
+import {
+  displayedImageRect,
+  isEmojiOnly,
+  overlayBaseFontSize,
+  overlayStyle,
+  type ImageRect,
+} from '@/lib/stories/overlay-geometry'
 
 // One author's stories, newest first — the unit the viewer steps through.
 export type StoryAuthorGroup = {
@@ -32,15 +39,27 @@ interface StoryViewerProps {
   groups: StoryAuthorGroup[]
   startGroup: number
   onClose: () => void
+  /** Signed-in user id, so the viewer can offer delete on own stories. */
+  currentUserId?: string | null
+  /** Called after the user deletes a story (rail closes + refreshes). */
+  onStoryDeleted?: () => void
 }
 
-export function StoryViewer({ groups, startGroup, onClose }: StoryViewerProps) {
+export function StoryViewer({ groups, startGroup, onClose, currentUserId, onStoryDeleted }: StoryViewerProps) {
   const [groupIndex, setGroupIndex] = useState(startGroup)
   const [index, setIndex] = useState(0)
   const [remaining, setRemaining] = useState<string | null>(null)
   const [showReport, setShowReport] = useState(false)
   const [reportSent, setReportSent] = useState(false)
   const [reportError, setReportError] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  // Displayed-photo geometry, for placing overlays inside the
+  // letterboxed image (same helper as the composer — see
+  // lib/stories/overlay-geometry.ts).
+  const imageWrapRef = useRef<HTMLDivElement | null>(null)
+  const [natural, setNatural] = useState<{ w: number; h: number } | null>(null)
+  const [wrapSize, setWrapSize] = useState({ w: 0, h: 0 })
 
   const group = groups[groupIndex]
   const story = group?.stories[index]
@@ -88,6 +107,19 @@ export function StoryViewer({ groups, startGroup, onClose }: StoryViewerProps) {
     return () => clearInterval(t)
   }, [story])
 
+  // Measure the image wrapper on mount + resize (event-driven, like
+  // the viewer's interval effect) so overlays track the letterboxed
+  // photo, not the container.
+  useEffect(() => {
+    const measure = () => {
+      const el = imageWrapRef.current
+      if (el) setWrapSize({ w: el.clientWidth, h: el.clientHeight })
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [story?.id])
+
   // Escape closes; lock body scroll while open.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -101,6 +133,37 @@ export function StoryViewer({ groups, startGroup, onClose }: StoryViewerProps) {
   }, [onClose])
 
   if (!group || !story) return null
+
+  // Displayed-photo rect (letterbox math, shared with the composer).
+  const rect: ImageRect = displayedImageRect(
+    wrapSize.w,
+    wrapSize.h,
+    natural?.w ?? 0,
+    natural?.h ?? 0,
+  )
+  const overlays = story.overlays ?? []
+  const isOwner = Boolean(currentUserId && story.author_id === currentUserId)
+
+  const removeStory = async () => {
+    if (deleting) return
+    if (!window.confirm('¿Eliminar esta historia?')) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      const res = await fetch(`/api/stories/${story.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => null)
+        setDeleteError(data?.error || 'No se pudo eliminar la historia')
+        return
+      }
+      onStoryDeleted?.()
+      onClose()
+    } catch {
+      setDeleteError('No se pudo eliminar la historia')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   const report = async (reason: string) => {
     setReportError(null)
@@ -122,9 +185,9 @@ export function StoryViewer({ groups, startGroup, onClose }: StoryViewerProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col" role="dialog" aria-label="Historia">
+    <div className="fixed inset-0 z-[60] bg-black flex flex-col" role="dialog" aria-label="Historia">
       {/* Progress segments */}
-      <div className="flex gap-1 px-3 pt-3 relative z-10">
+      <div className="flex gap-1 px-3 pt-[max(0.75rem,env(safe-area-inset-top))] relative z-10">
         {group.stories.map((s, i) => (
           <div key={s.id} className="h-0.5 flex-1 rounded-full bg-white/30 overflow-hidden">
             {i < index && <div className="h-full w-full bg-white" />}
@@ -132,7 +195,13 @@ export function StoryViewer({ groups, startGroup, onClose }: StoryViewerProps) {
               <div
                 key={s.id}
                 className="h-full bg-white"
-                style={{ animation: `story-progress ${STORY_MS}ms linear forwards` }}
+                style={{
+                  animation: `story-progress ${STORY_MS}ms linear forwards`,
+                  // Pause the bar with the JS timer when the report
+                  // panel is open — otherwise the bar fills while the
+                  // story has not advanced (desync).
+                  animationPlayState: showReport ? 'paused' : 'running',
+                }}
               />
             )}
           </div>
@@ -152,6 +221,18 @@ export function StoryViewer({ groups, startGroup, onClose }: StoryViewerProps) {
           <p className="text-sm font-semibold text-white truncate">{group.displayName}</p>
           <p className="text-[11px] text-white/60">{remaining ?? ''}</p>
         </div>
+        {isOwner && (
+          <button
+            type="button"
+            onClick={removeStory}
+            disabled={deleting}
+            aria-label="Eliminar historia"
+            className="h-9 px-2.5 rounded-full flex items-center gap-1 text-sm font-medium text-white hover:bg-white/10 disabled:opacity-50 shrink-0"
+          >
+            <Trash2 className="h-4 w-4" />
+            Eliminar
+          </button>
+        )}
         <button
           type="button"
           onClick={onClose}
@@ -161,9 +242,12 @@ export function StoryViewer({ groups, startGroup, onClose }: StoryViewerProps) {
           <X className="h-5 w-5" />
         </button>
       </div>
+      {deleteError && (
+        <p className="px-3 pb-1 text-xs text-red-400 relative z-10">{deleteError}</p>
+      )}
 
       {/* Image — tap right to advance, left to go back */}
-      <div className="relative flex-1 min-h-0">
+      <div ref={imageWrapRef} className="relative flex-1 min-h-0">
         <Image
           src={story.image_url}
           alt={`Historia de ${group.displayName}`}
@@ -171,14 +255,39 @@ export function StoryViewer({ groups, startGroup, onClose }: StoryViewerProps) {
           className="object-contain"
           sizes="100vw"
           priority
+          onLoadingComplete={({ naturalWidth, naturalHeight }) =>
+            setNatural({ w: naturalWidth, h: naturalHeight })
+          }
         />
         <button type="button" aria-label="Anterior" onClick={goBack} className="absolute inset-y-0 left-0 w-1/3" />
         <button type="button" aria-label="Siguiente" onClick={advance} className="absolute inset-y-0 right-0 w-2/3" />
-        {/* Optional text (migration 045): white on a dark chip, so it
-            stays readable on any photo. pointer-events-none so the tap
-            zones above still advance / go back. */}
-        {story.caption ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center px-4 pb-4">
+        {/* Placeable overlays (migration 046) win over the caption
+            chip (migration 045) — one text, one place. Both are
+            pointer-events-none so the tap zones keep working. */}
+        {overlays.length > 0 ? (
+          overlays.map((o) => {
+            const emoji = isEmojiOnly(o.text)
+            return (
+              <div
+                key={o.id}
+                className="pointer-events-none absolute z-10"
+                style={overlayStyle(o, rect)}
+              >
+                <span
+                  className={
+                    emoji
+                      ? 'block leading-none'
+                      : 'block rounded-full bg-black/60 px-3 py-1 text-center font-semibold text-white whitespace-nowrap'
+                  }
+                  style={{ fontSize: overlayBaseFontSize(o) }}
+                >
+                  {o.text}
+                </span>
+              </div>
+            )
+          })
+        ) : story.caption ? (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <p className="rounded-full bg-black/60 px-4 py-2 text-center text-sm font-medium text-white">
               {story.caption}
             </p>
@@ -187,7 +296,7 @@ export function StoryViewer({ groups, startGroup, onClose }: StoryViewerProps) {
       </div>
 
       {/* Link chip + report */}
-      <div className="flex items-center gap-2 px-3 py-3 relative z-10">
+      <div className="flex items-center gap-2 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] relative z-10">
         {story.listing_id ? (
           <Link
             href={`/listings/${story.listing_id}`}
@@ -217,7 +326,7 @@ export function StoryViewer({ groups, startGroup, onClose }: StoryViewerProps) {
 
       {/* Report panel — a report opens a review, it never hides the story */}
       {showReport && (
-        <div className="px-3 pb-4 relative z-10">
+        <div className="px-3 pb-[max(1rem,env(safe-area-inset-bottom))] relative z-10">
           <div className="rounded-xl bg-white p-3">
             {reportSent ? (
               <p className="text-sm text-gray-900">Gracias, revisaremos esta historia.</p>

@@ -89,7 +89,7 @@ let topBusinesses: TopBusiness[] = []
 async function getStories(supabase: Awaited<ReturnType<typeof createClient>>): Promise<StoryWithAuthor[]> {
   const { data } = await supabase
     .from('stories')
-    .select('id, image_url, listing_id, business_id, created_at, expires_at, author:profiles(id, username, display_name, avatar_url)')
+    .select('id, image_url, caption, listing_id, business_id, created_at, expires_at, author:profiles(id, username, display_name, avatar_url)')
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
     .limit(24)

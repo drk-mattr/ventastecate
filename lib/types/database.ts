@@ -222,11 +222,13 @@ export type Report = {
   updated_at: string
 }
 
-/** Story (migration 040): a 24h image post. Images only in v1. */
+/** Story (migration 040): a 24h image post. Images only in v1;
+ * an optional text caption (migration 045) overlays the photo. */
 export type Story = {
   id: string
   author_id: string
   image_url: string
+  caption?: string | null
   listing_id?: string | null
   business_id?: string | null
   created_at: string

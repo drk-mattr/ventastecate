@@ -23,6 +23,10 @@ export function StoriesRail({ stories, signedIn }: StoriesRailProps) {
   const [openGroup, setOpenGroup] = useState<number | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  // Composer: picking a photo opens a preview + optional text step
+  // before anything is published (text cap 140, enforced here + API).
+  const [pending, setPending] = useState<{ dataUrl: string; filename: string } | null>(null)
+  const [storyText, setStoryText] = useState('')
 
   // One circle per author, newest story first inside each group.
   const groups = useMemo<StoryAuthorGroup[]>(() => {
@@ -48,7 +52,7 @@ export function StoriesRail({ stories, signedIn }: StoriesRailProps) {
   const handleClose = useCallback(() => setOpenGroup(null), [])
 
   const handleFile = async (file: File | undefined) => {
-    if (!file || uploading) return
+    if (!file || uploading || pending) return
     setUploading(true)
     setUploadError(null)
     try {
@@ -59,16 +63,44 @@ export function StoriesRail({ stories, signedIn }: StoriesRailProps) {
         reader.onerror = () => reject(new Error('read'))
         reader.readAsDataURL(compressed)
       })
+      // Open the composer — nothing is published until Publicar.
+      setPending({ dataUrl, filename: compressed.name })
+      setStoryText('')
+    } catch {
+      setUploadError('No se pudo publicar la historia')
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  const cancelPending = useCallback(() => {
+    setPending(null)
+    setStoryText('')
+    if (fileRef.current) fileRef.current.value = ''
+  }, [])
+
+  const publishPending = async () => {
+    if (!pending || uploading) return
+    setUploading(true)
+    setUploadError(null)
+    try {
       const res = await fetch('/api/stories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: dataUrl, filename: compressed.name }),
+        body: JSON.stringify({
+          image: pending.dataUrl,
+          filename: pending.filename,
+          caption: storyText.trim() || undefined,
+        }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => null)
         setUploadError(data?.error || 'No se pudo publicar la historia')
         return
       }
+      setPending(null)
+      setStoryText('')
       router.refresh()
     } catch {
       setUploadError('No se pudo publicar la historia')
@@ -85,7 +117,10 @@ export function StoriesRail({ stories, signedIn }: StoriesRailProps) {
     <div className="border-b bg-white">
       <div className="container mx-auto px-4 py-3">
         <div
-          className="flex gap-4 overflow-x-auto pb-1 -mx-4 px-4"
+          // pt-1: the unviewed ring overhangs the circle by 4px
+          // (ring-2 + ring-offset-2); without top padding the scroll
+          // container clips the ring's top edge.
+          className="flex gap-4 overflow-x-auto pt-1 pb-1 -mx-4 px-4"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {signedIn && (
@@ -133,6 +168,46 @@ export function StoriesRail({ stories, signedIn }: StoriesRailProps) {
         </div>
         {uploadError && <p className="text-xs text-red-600 mt-1">{uploadError}</p>}
       </div>
+      {pending && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-end sm:items-center justify-center p-4" role="dialog" aria-label="Publicar historia">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-4">
+            <div className="relative aspect-[3/4] max-h-[55vh] w-full overflow-hidden rounded-xl bg-gray-100">
+              <Image src={pending.dataUrl} alt="Vista previa de la historia" fill className="object-cover" />
+            </div>
+            <label htmlFor="story-text" className="mt-3 block text-sm font-semibold text-gray-900">
+              Texto (opcional)
+            </label>
+            <textarea
+              id="story-text"
+              value={storyText}
+              onChange={(e) => setStoryText(e.target.value.slice(0, 140))}
+              maxLength={140}
+              rows={2}
+              placeholder="Escribe algo…"
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:border-gray-900"
+            />
+            <p className="mt-1 text-right text-xs text-gray-500">{storyText.length}/140</p>
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={cancelPending}
+                disabled={uploading}
+                className="flex-1 rounded-full border border-gray-300 py-2.5 text-sm font-semibold text-gray-700 disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={publishPending}
+                disabled={uploading}
+                className="flex-1 rounded-full bg-gray-900 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {uploading ? 'Publicando…' : 'Publicar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {openGroup !== null && (
         <StoryViewer groups={groups} startGroup={openGroup} onClose={handleClose} />
       )}

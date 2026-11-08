@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { rateLimit } from '@/lib/rate-limit'
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+const STORY_CAPTION_MAX = 140
 
 function isMissingSchema(error: { code?: string } | null): boolean {
   if (!error) return false
@@ -11,7 +12,9 @@ function isMissingSchema(error: { code?: string } | null): boolean {
 }
 
 // POST /api/stories — a signed-in user posts their own story image.
-// Body: { image: "data:image/jpeg;base64,...", filename?, listing_id?, business_id? }
+// Body: { image: "data:image/jpeg;base64,...", filename?, caption?, listing_id?, business_id? }
+// caption is optional typed text (max 140 chars, emojis included) shown
+// as an overlay on the photo in the viewer (migration 045).
 // The image is compressed client-side (same helper as the posting form)
 // before it gets here. Upload goes to the public listing-images bucket
 // under stories/<userId>/, the row goes to stories (migration 040).
@@ -28,7 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Llegaste al límite de historias por hoy' }, { status: 429 })
     }
 
-    let body: { image?: unknown; filename?: unknown; listing_id?: unknown; business_id?: unknown }
+    let body: { image?: unknown; filename?: unknown; caption?: unknown; listing_id?: unknown; business_id?: unknown }
     try {
       body = await request.json()
     } catch {
@@ -47,6 +50,11 @@ export async function POST(request: NextRequest) {
 
     const listingId = typeof body.listing_id === 'string' && body.listing_id ? body.listing_id : null
     const businessId = typeof body.business_id === 'string' && body.business_id ? body.business_id : null
+
+    const caption = typeof body.caption === 'string' ? body.caption.trim() : ''
+    if (caption.length > STORY_CAPTION_MAX) {
+      return NextResponse.json({ error: 'El texto es demasiado largo (máximo 140 caracteres)' }, { status: 400 })
+    }
 
     const admin = createAdminClient()
     if (!admin) {
@@ -76,6 +84,7 @@ export async function POST(request: NextRequest) {
     const { data: story, error: insertError } = await admin.from('stories').insert({
       author_id: user.id,
       image_url: publicUrl,
+      caption: caption || null,
       listing_id: listingId,
       business_id: businessId,
     }).select('id, expires_at').single()

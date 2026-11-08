@@ -174,6 +174,16 @@ export function StoryViewer({ groups, startGroup, onClose }: StoryViewerProps) {
         />
         <button type="button" aria-label="Anterior" onClick={goBack} className="absolute inset-y-0 left-0 w-1/3" />
         <button type="button" aria-label="Siguiente" onClick={advance} className="absolute inset-y-0 right-0 w-2/3" />
+        {/* Optional text (migration 045): white on a dark chip, so it
+            stays readable on any photo. pointer-events-none so the tap
+            zones above still advance / go back. */}
+        {story.caption ? (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center px-4 pb-4">
+            <p className="rounded-full bg-black/60 px-4 py-2 text-center text-sm font-medium text-white">
+              {story.caption}
+            </p>
+          </div>
+        ) : null}
       </div>
 
       {/* Link chip + report */}

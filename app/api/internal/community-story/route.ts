@@ -24,10 +24,11 @@ function isMissingSchema(error: { code?: string } | null): boolean {
 // posting, and it only posts under the dedicated community account.
 // This is how @ventastecate seeds the first stories (news/events).
 //
-// Body: { image_url?, photos?, listing_id?, business_id? }
+// Body: { image_url?, photos?, caption?, listing_id?, business_id? }
 // - image_url: an https URL already hosted (e.g. a listing/poster image)
 // - photos: [{ filename, data }] base64, like business-photos — the
 //   first photo is uploaded to stories/<communityId>/ and used.
+// - caption: optional typed text (max 140 chars), same as the public route.
 // One of image_url / photos is required.
 export async function POST(request: NextRequest) {
   try {
@@ -42,6 +43,11 @@ export async function POST(request: NextRequest) {
 
     const listingId = typeof body.listing_id === 'string' && body.listing_id ? body.listing_id : null
     const businessId = typeof body.business_id === 'string' && body.business_id ? body.business_id : null
+
+    const caption = typeof body.caption === 'string' ? body.caption.trim() : ''
+    if (caption.length > 140) {
+      return NextResponse.json({ error: 'caption too long (max 140 characters)' }, { status: 400 })
+    }
 
     const username = process.env.COMMUNITY_USERNAME || 'ventastecate'
     const { data: profile, error: profileError } = await admin
@@ -82,6 +88,7 @@ export async function POST(request: NextRequest) {
     const { data: story, error: insertError } = await admin.from('stories').insert({
       author_id: profile.id,
       image_url: imageUrl,
+      caption: caption || null,
       listing_id: listingId,
       business_id: businessId,
     }).select('id, expires_at').single()

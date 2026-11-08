@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -8,7 +9,7 @@ import { Store, MapPin, BadgeCheck } from 'lucide-react'
 import { BusinessEngagementBar } from '@/components/businesses/business-engagement-bar'
 import { BusinessOfferings } from '@/components/businesses/business-offerings'
 import { BusinessPhotoGallery } from '@/components/businesses/business-photo-gallery'
-import { BusinessReviews } from '@/components/businesses/business-reviews'
+import { BusinessActivityFeed, type ActivityItemComment } from '@/components/businesses/business-activity-feed'
 import { BusinessReviewOpener } from '@/components/businesses/review-opener'
 import { ReviewStars } from '@/components/businesses/review-stars'
 import type { BusinessReview } from '@/lib/types/database'
@@ -217,6 +218,51 @@ export default async function BusinessPage({
   const isOwner = Boolean(currentUser && claimedBy && claimedBy === currentUser.id)
   const myReview = currentUser ? reviews.find((r) => r.user_id === currentUser.id) : undefined
 
+  // Item comments (migration 041) joined through this business's
+  // items — the Actividad feed merges them with the reviews above,
+  // newest first. Admin client, like the item page: the kind join
+  // is hidden from anonymous readers when the kind is still pending.
+  // Any read failure degrades to reviews-only, never a crash.
+  let activityComments: ActivityItemComment[] = []
+  let firstItemId: string | null = null
+  const admin = createAdminClient()
+  if (admin) {
+    const { data: businessItems } = await admin
+      .from('items')
+      .select('id, kind:item_kinds(id, name, slug)')
+      .eq('business_id', id)
+      .eq('status', 'visible')
+      .order('created_at', { ascending: true })
+    const itemIds = (businessItems || []).map((i) => i.id)
+    if (itemIds.length > 0) {
+      firstItemId = itemIds[0]
+      const kindById = new Map<string, string>()
+      for (const item of businessItems || []) {
+        const kind = item.kind as { name?: string } | null
+        if (kind?.name) kindById.set(item.id, kind.name)
+      }
+      const { data: commentRows, error: commentError } = await admin
+        .from('item_comments')
+        .select('id, item_id, author_id, body, created_at, profile:profiles(username, display_name, avatar_url)')
+        .in('item_id', itemIds)
+        .order('created_at', { ascending: false })
+        .limit(100)
+      if (!commentError) {
+        // The profile join can come back as an array in the inferred
+        // type — normalize to the single profile, like getStories does.
+        activityComments = ((commentRows || []) as unknown as Array<Record<string, unknown>>).map((r) => {
+          const rawProfile = r.profile
+          const profile = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile
+          return {
+            ...(r as object),
+            profile,
+            itemName: kindById.get(r.item_id as string) ?? '',
+          } as ActivityItemComment
+        })
+      }
+    }
+  }
+
   // Follow / like, rendered once and placed either over the gallery
   // (when there are photos) or in the identity block (when not).
   const engagementBar = (
@@ -275,7 +321,7 @@ export default async function BusinessPage({
               </div>
               {/* Reviews aggregate + the visible "Opinar" entry point.
                   The aggregate alone gave no way in when there were no
-                  reviews yet — the Opiniones section sits at the bottom
+                  reviews yet — the Actividad section sits at the bottom
                   of a long page — so the button lives here, next to it,
                   and ?review=1 opens its pop-up on load. */}
               {reviewsAvailable && (
@@ -283,7 +329,7 @@ export default async function BusinessPage({
                   {reviewCount > 0 ? (
                     <p className="flex items-center gap-2 text-sm">
                       <ReviewStars value={reviewAverage} />
-                      <a href="#opiniones" className="text-gray-600 hover:underline">
+                      <a href="#actividad" className="text-gray-600 hover:underline">
                         {reviewAverage.toFixed(1)} · {reviewCount} {reviewCount === 1 ? 'opinión' : 'opiniones'}
                       </a>
                     </p>
@@ -360,14 +406,18 @@ export default async function BusinessPage({
         )}
 
         {reviewsAvailable && (
-          <BusinessReviews
+          <BusinessActivityFeed
             businessId={id}
             initialReviews={reviews}
+            initialComments={activityComments}
             currentUserId={currentUser?.id ?? null}
             isOwner={isOwner}
+            hasOfferings={firstItemId !== null}
+            firstItemId={firstItemId}
           />
         )}
       </main>
     </div>
   )
 }
+

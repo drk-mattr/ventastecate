@@ -32,7 +32,6 @@ import { Tag } from 'lucide-react'
 type OfferingRow = {
   id: string
   kindName: string
-  kindSlug: string
   origin: string
   createdBy: string | null
   creatorUsername: string | null
@@ -128,7 +127,6 @@ export async function BusinessOfferings({
       rows.push({
         id: item.id,
         kindName: kind.name,
-        kindSlug: kind.slug ?? '',
         origin: item.origin,
         createdBy: item.created_by,
         creatorUsername: item.created_by ? (usernames.get(item.created_by) ?? null) : null,
@@ -182,14 +180,14 @@ export async function BusinessOfferings({
               </div>
             )}
             <div className="min-w-0 flex-1">
+              {/* The row links to the ITEM page, not the type page:
+                  the item view is where the comment box lives, so
+                  this is how a visitor reaches it from the business
+                  page (see the 2026-11-07 activity analysis). */}
               <p className="text-sm font-medium text-gray-900 truncate">
-                {row.kindSlug ? (
-                  <Link href={`/tipos/${row.kindSlug}`} className="hover:underline">
-                    {row.kindName}
-                  </Link>
-                ) : (
-                  row.kindName
-                )}
+                <Link href={`/items/${row.id}`} className="hover:underline">
+                  {row.kindName}
+                </Link>
               </p>
               <p className="text-xs text-gray-500">
                 {row.contributors > 0
@@ -222,3 +220,4 @@ export async function BusinessOfferings({
     </div>
   )
 }
+

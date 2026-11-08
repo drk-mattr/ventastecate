@@ -1,6 +1,6 @@
 'use client'
 
-// The review form: 1–5 black stars plus an optional short note.
+// The review form: 1–5 yellow stars plus an optional short note.
 // Shared by the inline Opiniones section and the review pop-up, so
 // both write through the same POST /api/businesses/[id]/reviews.
 // One review per user per business; a repeat call updates it.
@@ -88,7 +88,7 @@ export function ReviewForm({
               className="p-0.5"
             >
               <Star
-                className={`h-6 w-6 ${active ? 'text-gray-900' : 'text-gray-300'}`}
+                className={`h-6 w-6 ${active ? 'text-amber-400' : 'text-gray-300'}`}
                 fill={active ? 'currentColor' : 'none'}
               />
             </button>

@@ -69,6 +69,40 @@ function getCategoriesForType(type: ListingType) {
   return PRODUCT_CATEGORIES
 }
 
+// Split a stored ISO instant into date/time inputs in America/Tijuana
+// (the Worker renders in UTC; the inputs must show Baja local time).
+// A stored midnight local time means date-only (see
+// lib/listings/event-dates.ts), so the time input stays empty.
+function eventIsoToParts(iso: string | null | undefined): { date: string; time: string } {
+  if (!iso) return { date: '', time: '' }
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return { date: '', time: '' }
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Tijuana',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(d)
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? ''
+  const hour = Number(get('hour')) % 24 // hour12:false can yield "24" for midnight
+  const minute = get('minute')
+  return {
+    date: `${get('year')}-${get('month')}-${get('day')}`,
+    time: hour === 0 && minute === '00' ? '' : `${String(hour).padStart(2, '0')}:${minute}`,
+  }
+}
+
+// Date + optional time inputs back to a stored ISO instant, mirroring
+// the posting form (local time → UTC ISO).
+function eventPartsToIso(date: string, time: string): string | null {
+  if (!date) return null
+  const d = new Date(`${date}T${time || '00:00'}:00`)
+  return Number.isNaN(d.getTime()) ? null : d.toISOString()
+}
+
 interface ExistingImage {
   id: string
   image_url: string
@@ -104,6 +138,15 @@ export default function EditListingPage() {
   // Title-card color (migration 039): news/event only, used when the
   // post has no photo.
   const [cardColor, setCardColor] = useState<CardColorId>('orange')
+  // Structured event fields (migration 043): events only. Time is
+  // optional — a date with no time is stored at local midnight and
+  // shown as a day only (see lib/listings/event-dates.ts).
+  const [eventStartDate, setEventStartDate] = useState('')
+  const [eventStartTime, setEventStartTime] = useState('')
+  const [eventEndDate, setEventEndDate] = useState('')
+  const [eventEndTime, setEventEndTime] = useState('')
+  const [eventVenue, setEventVenue] = useState('')
+  const [eventTicketUrl, setEventTicketUrl] = useState('')
   const [metadataType, setMetadataType] = useState<string | null>(null)
 
   // Real estate metadata
@@ -179,6 +222,17 @@ export default function EditListingPage() {
       setCountryCode(listing.country_code || null)
       setStatus(listing.status)
       setListingType(listing.listing_type || 'product')
+      // Structured event fields (043) — prefill the inputs from the
+      // stored values. A non-event has none; an event keeps whatever
+      // it had until the owner changes it.
+      const startParts = eventIsoToParts(listing.event_starts_at)
+      setEventStartDate(startParts.date)
+      setEventStartTime(startParts.time)
+      const endParts = eventIsoToParts(listing.event_ends_at)
+      setEventEndDate(endParts.date)
+      setEventEndTime(endParts.time)
+      setEventVenue(listing.event_venue || '')
+      setEventTicketUrl(listing.event_ticket_url || '')
       setExistingImages(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (listing.images || []).sort((a: any, b: any) => a.order_index - b.order_index)
@@ -254,6 +308,28 @@ export default function EditListingPage() {
         return
       }
 
+      // Events need a start date — it is the whole point of the post.
+      // Time, end date, venue, and ticket link stay optional.
+      if (listingType === 'event') {
+        if (!eventStartDate) {
+          setError('Ponle fecha a tu evento')
+          setLoading(false)
+          return
+        }
+        const startMs = new Date(`${eventStartDate}T${eventStartTime || '00:00'}:00`).getTime()
+        const endMs = eventEndDate ? new Date(`${eventEndDate}T${eventEndTime || '00:00'}:00`).getTime() : NaN
+        if (eventEndDate && !Number.isNaN(startMs) && !Number.isNaN(endMs) && endMs < startMs) {
+          setError('El término no puede ser antes del inicio')
+          setLoading(false)
+          return
+        }
+        if (eventTicketUrl && !/^https?:\/\//i.test(eventTicketUrl.trim())) {
+          setError('El enlace debe empezar con https://')
+          setLoading(false)
+          return
+        }
+      }
+
       // Build metadata
       let metadata: ListingMetadata | null = null
       if (metadataType === 'real_estate') {
@@ -282,9 +358,16 @@ export default function EditListingPage() {
       }
 
       // Update listing fields — currency + Gratis (migration 038) +
-      // title-card color (039), with the same 42703
-      // retry-without-them fallback the new form uses: pre-migration
-      // the columns don't exist yet.
+      // title-card color (039) + structured event fields (043), with
+      // the same 42703 retry-without-them fallback the new form uses:
+      // pre-migration the columns don't exist yet. Event fields ride
+      // only for events, so editing any other type never touches them.
+      const eventUpdate = listingType === 'event' ? {
+        event_starts_at: eventPartsToIso(eventStartDate, eventStartTime),
+        event_ends_at: eventPartsToIso(eventEndDate, eventEndTime),
+        event_venue: eventVenue.trim() || null,
+        event_ticket_url: eventTicketUrl.trim() || null,
+      } : {}
       const updateBase = {
         title,
         description,
@@ -299,7 +382,7 @@ export default function EditListingPage() {
       }
       let updateError = (await supabase
         .from('listings')
-        .update({ ...updateBase, currency, is_free: isFree, card_color: cardColor })
+        .update({ ...updateBase, currency, is_free: isFree, card_color: cardColor, ...eventUpdate })
         .eq('id', id)
         .eq('user_id', user.id)).error
       if (updateError && (updateError.code === '42703' || updateError.code === 'PGRST204')) {
@@ -499,6 +582,82 @@ export default function EditListingPage() {
                   </Select>
                 </div>
               </div>
+
+              {/* Fecha y lugar — events only (migration 043). The date is
+                  what the card and the detail page show; the time is
+                  optional, and a date with no time shows as a day only. */}
+              {listingType === 'event' && (
+                <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+                  <div>
+                    <p className="text-sm font-medium">Fecha y lugar</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      La fecha se muestra en la tarjeta y en la página del evento. Si no pones hora, solo se muestra el día.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="event-start-date" className="text-sm">
+                        Fecha de inicio <span className="text-red-400">*</span>
+                      </Label>
+                      <Input
+                        id="event-start-date"
+                        type="date"
+                        value={eventStartDate}
+                        onChange={(e) => setEventStartDate(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="event-start-time" className="text-sm">Hora</Label>
+                      <Input
+                        id="event-start-time"
+                        type="time"
+                        value={eventStartTime}
+                        onChange={(e) => setEventStartTime(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="event-end-date" className="text-sm">Fecha de término</Label>
+                      <Input
+                        id="event-end-date"
+                        type="date"
+                        value={eventEndDate}
+                        onChange={(e) => setEventEndDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="event-end-time" className="text-sm">Hora</Label>
+                      <Input
+                        id="event-end-time"
+                        type="time"
+                        value={eventEndTime}
+                        onChange={(e) => setEventEndTime(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="event-venue" className="text-sm">Lugar / sede</Label>
+                    <Input
+                      id="event-venue"
+                      value={eventVenue}
+                      onChange={(e) => setEventVenue(e.target.value)}
+                      maxLength={120}
+                      placeholder="Ej: Arena Tecate, Unidad Deportiva CREA…"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="event-ticket-url" className="text-sm">Enlace de boletos</Label>
+                    <Input
+                      id="event-ticket-url"
+                      type="url"
+                      inputMode="url"
+                      value={eventTicketUrl}
+                      onChange={(e) => setEventTicketUrl(e.target.value)}
+                      placeholder="https://…"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Real Estate Fields */}
               {metadataType === 'real_estate' && (

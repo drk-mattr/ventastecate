@@ -301,7 +301,7 @@ export default function EditListingPage() {
       const finalPrice = (priceConsultar || isFree) ? 0 : parseFloat(price)
 
       // Validate user input before touching the DB.
-      const validationError = firstListingError({ title, description, price: finalPrice })
+      const validationError = firstListingError({ title, description, price: finalPrice, listingType })
       if (validationError) {
         setError(validationError)
         setLoading(false)
@@ -370,7 +370,7 @@ export default function EditListingPage() {
       } : {}
       const updateBase = {
         title,
-        description,
+        description: description.trim(),
         price: finalPrice,
         category,
         location,
@@ -499,12 +499,16 @@ export default function EditListingPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">{f.descriptionLabel}</Label>
+                {/* B2: description is required only for news; optional
+                    for product / service / event. The i18n label ends
+                    with ' *' in every locale, so strip it and re-add
+                    only for news. */}
+                <Label htmlFor="description">{f.descriptionLabel.replace(/ \*$/, '')}{listingType === 'news' ? ' *' : ' (opcional)'}</Label>
                 <Textarea
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  required
+                  required={listingType === 'news'}
                   placeholder={f.descriptionPlaceholder}
                   rows={5}
                 />

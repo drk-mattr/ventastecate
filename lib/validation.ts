@@ -4,6 +4,7 @@
  * the authoritative gate. DB CHECK constraints remain the last line of defense.
  */
 import { z } from 'zod'
+import type { ListingType } from '@/lib/types/database'
 
 // ── Listings ────────────────────────────────────────────────────────────────
 
@@ -21,11 +22,16 @@ export const listingInputSchema = z.object({
     .trim()
     .min(3, 'El título debe tener al menos 3 caracteres')
     .max(LISTING_TITLE_MAX, `El título no puede exceder ${LISTING_TITLE_MAX} caracteres`),
+  // B2: the description is required only for news. For product /
+  // service / event it is optional — a listing can publish with an
+  // empty description (the DB column is NOT NULL, so the forms insert
+  // '' rather than null). An unknown or missing type stays strict:
+  // description required, so no caller silently loosens the rule.
   description: z
     .string()
     .trim()
-    .min(1, 'La descripción es obligatoria')
     .max(LISTING_DESC_MAX, `La descripción no puede exceder ${LISTING_DESC_MAX} caracteres`),
+  listingType: z.enum(['product', 'service', 'event', 'news']).optional(),
   // News posts are free; everything else must be a finite, non-negative price.
   price: z
     .number()
@@ -39,6 +45,12 @@ export const listingInputSchema = z.object({
     .max(500)
     .optional()
     .or(z.literal('')),
+}).superRefine((data, ctx) => {
+  const descOptional =
+    data.listingType === 'product' || data.listingType === 'service' || data.listingType === 'event'
+  if (!descOptional && !data.description.trim()) {
+    ctx.addIssue({ code: 'custom', path: ['description'], message: 'La descripción es obligatoria' })
+  }
 })
 
 export type ListingInput = z.infer<typeof listingInputSchema>
@@ -49,6 +61,7 @@ export function firstListingError(input: {
   description: string
   price: number
   videoUrl?: string
+  listingType?: ListingType
 }): string | null {
   const result = listingInputSchema.safeParse(input)
   if (result.success) return null

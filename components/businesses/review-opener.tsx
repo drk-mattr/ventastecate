@@ -11,10 +11,10 @@
 // owner never sees the button (owners cannot review their own
 // business) and the dialog never renders the form for them.
 //
-// After a save the page reloads: the inline Opiniones section holds
-// its own list state, so a reload is what makes the new review show
-// there and in the aggregate. The ?review=1 param is stripped before
-// the reload so the pop-up does not reopen.
+// After a save the page reloads: the Actividad feed and the aggregate
+// are server-rendered, so a reload is what makes the new review show
+// there. The ?review=1 param is stripped before the reload so the
+// pop-up does not reopen.
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -64,8 +64,8 @@ export function BusinessReviewOpener({
   const handleSaved = () => {
     // Strip the deep-link param so the reload does not reopen the pop-up.
     window.history.replaceState(null, '', `/businesses/${businessId}`)
-    // The inline section keeps its own list state; reload to show the
-    // new review there and in the aggregate. Give the "Guardada" state
+    // The Actividad feed and the aggregate are server-rendered;
+    // reload to show the new review there. Give the "Guardada" state
     // a beat to read first.
     setTimeout(() => window.location.reload(), 900)
   }

@@ -154,10 +154,10 @@ export default async function StoreProfilePage({ params }: { params: Promise<{ s
         {mentionedListings && mentionedListings.length > 0 && (
           <div className="mt-8">
             <h2 className="text-base font-medium mb-4 text-gray-700 flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-orange-500" />
+              <MessageSquare className="h-4 w-4 text-gray-500" />
               Mencionado en
               {linkedBusiness && linkedBusiness.mention_count > 0 && (
-                <span className="text-xs text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full">
+                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
                   {linkedBusiness.mention_count}
                 </span>
               )}

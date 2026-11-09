@@ -23,11 +23,11 @@ export async function GET(request: NextRequest) {
   const towns = townsForLocation((await cookies()).get(LOCATION_COOKIE)?.value)
   const supabase = await createClient()
 
-  // Listings. Migration 038 (currency / is_free) has not been applied
-  // in prod yet, so the full select 400s with 42703 until the user
-  // runs it — retry without the new columns (every existing listing
-  // is MXN, which formatPrice defaults to). Same 42703-retry pattern
-  // PR #93 uses elsewhere.
+  // Listings. The full select includes the migration 038 columns
+  // (currency / is_free, live in prod since 2026-11-06) — retry
+  // without them on 42703 if the schema ever drifts again (every
+  // existing listing is MXN, which formatPrice defaults to). Same
+  // 42703-retry pattern PR #93 uses elsewhere.
   type ListingRow = {
     id: string
     title: string

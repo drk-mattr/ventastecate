@@ -22,6 +22,39 @@ const TYPE_LABEL: Record<string, string> = {
   business_review_prohibited: 'Opinión (negocio): contenido prohibido', business_review_other: 'Opinión (negocio): otro motivo',
 }
 
+// B7: one-tap flags on a business offering land in `item_reports`,
+// a separate table the flag route writes to — not in `reports`.
+// The flag's own status stays authoritative and the report API is
+// untouched; flags are surfaced here as inbox entries instead, so a
+// moderator can see them. There is no status-change UI for a flag
+// yet; each entry links to the offering so it can be inspected.
+type ItemFlag = {
+  id: string
+  item_id: string
+  kind_id: string | null
+  reporter_id: string | null
+  reason: string
+  status: string
+  created_at: string
+}
+const ITEM_FLAG_REASON_LABEL: Record<string, string> = {
+  incorrecto: 'Información incorrecta',
+  duplicado: 'Duplicado',
+  spam: 'Spam',
+  prohibido: 'Contenido prohibido',
+  otro: 'Otro motivo',
+}
+
+type InboxEntry = {
+  key: string
+  href: string
+  typeLabel: string
+  status: string
+  createdAt: string
+  description: string
+  meta: string
+}
+
 export default async function AdminReportsPage({ searchParams }: { searchParams: Promise<{ status?: string; type?: string }> }) {
   const admin = await getSuperadminProfile()
   if (!admin) redirect('/login')
@@ -43,7 +76,72 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
   let reports = await fetchReports(true)
   if (!reports) reports = await fetchReports(false)
   const list = reports || []
-  const newCount = list.filter((r) => r.status === 'new').length
+
+  // Offering flags (B7). A type filter hides them: flags carry a
+  // reason, not a report type, so they only join the unfiltered view.
+  let itemFlags: ItemFlag[] = []
+  if (!sp.type) {
+    let fq = supabase.from('item_reports').select('id, item_id, kind_id, reporter_id, reason, status, created_at').order('created_at', { ascending: false })
+    if (sp.status) fq = fq.eq('status', sp.status)
+    const { data } = await fq
+    itemFlags = (data ?? []) as unknown as ItemFlag[]
+  }
+  // Enrich flags with the offering (business · kind) and reporter
+  // names, via plain queries + JS joins.
+  const itemById = new Map<string, { business_id: string | null; kind_id: string | null }>()
+  const kindNameById = new Map<string, string>()
+  const businessNameById = new Map<string, string>()
+  const reporterNameById = new Map<string, string>()
+  if (itemFlags.length > 0) {
+    const flagItemIds = [...new Set(itemFlags.map((f) => f.item_id))]
+    const flagReporterIds = [...new Set(itemFlags.map((f) => f.reporter_id).filter((v): v is string => v !== null))]
+    const { data: items } = await supabase.from('items').select('id, business_id, kind_id').in('id', flagItemIds)
+    const itemRows = (items ?? []) as unknown as { id: string; business_id: string | null; kind_id: string | null }[]
+    for (const it of itemRows) itemById.set(it.id, it)
+    const bizIds = [...new Set(itemRows.map((it) => it.business_id).filter((v): v is string => v !== null))]
+    const kindIds = [...new Set([...itemRows.map((it) => it.kind_id), ...itemFlags.map((f) => f.kind_id)].filter((v): v is string => v !== null))]
+    if (bizIds.length > 0) {
+      const { data: biz } = await supabase.from('businesses').select('id, name').in('id', bizIds)
+      for (const b of (biz ?? []) as unknown as { id: string; name: string }[]) businessNameById.set(b.id, b.name)
+    }
+    if (kindIds.length > 0) {
+      const { data: kinds } = await supabase.from('item_kinds').select('id, name').in('id', kindIds)
+      for (const k of (kinds ?? []) as unknown as { id: string; name: string }[]) kindNameById.set(k.id, k.name)
+    }
+    if (flagReporterIds.length > 0) {
+      const { data: reporters } = await supabase.from('profiles').select('id, username').in('id', flagReporterIds)
+      for (const p of (reporters ?? []) as unknown as { id: string; username: string | null }[]) reporterNameById.set(p.id, p.username ?? '')
+    }
+  }
+
+  const entries: InboxEntry[] = [
+    ...list.map((r): InboxEntry => ({
+      key: `report-${r.id}`,
+      href: `/admin/reports/${r.id}`,
+      typeLabel: TYPE_LABEL[r.type] || r.type,
+      status: r.status,
+      createdAt: r.created_at,
+      description: r.description || r.listing_title || (r.story_id ? 'Historia reportada' : r.item_comment_id ? 'Comentario de artículo reportado' : r.business_review_id ? 'Opinión de negocio reportada' : 'Sin descripción'),
+      meta: `${r.reporter_label || 'Anónimo'}${r.listing_title ? ` · ${r.listing_title}` : ''}${r.email ? ` · ${r.email}` : ''}`,
+    })),
+    ...itemFlags.map((f): InboxEntry => {
+      const item = itemById.get(f.item_id)
+      const kindName = (item?.kind_id && kindNameById.get(item.kind_id)) || (f.kind_id && kindNameById.get(f.kind_id)) || null
+      const businessName = (item?.business_id && businessNameById.get(item.business_id)) || null
+      const offering = [businessName, kindName].filter(Boolean).join(' · ') || 'Ofrecimiento'
+      const reporter = (f.reporter_id && reporterNameById.get(f.reporter_id)) || 'Anónimo'
+      return {
+        key: `item-flag-${f.id}`,
+        href: `/items/${f.item_id}`,
+        typeLabel: 'Ofrecimiento reportado',
+        status: f.status,
+        createdAt: f.created_at,
+        description: `${ITEM_FLAG_REASON_LABEL[f.reason] || f.reason} — ${offering}`,
+        meta: `${reporter} · ${offering}`,
+      }
+    }),
+  ].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
+  const newCount = entries.filter((e) => e.status === 'new').length
 
   return (
     <div className="min-h-screen bg-white">
@@ -59,19 +157,19 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
             <Link key={v} href={`/admin/reports?status=${v}`} className={`px-3 py-1.5 rounded-full text-xs font-medium border ${sp.status === v ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200'}`}>{l}</Link>
           ))}
         </div>
-        {list.length === 0 ? (
+        {entries.length === 0 ? (
           <p className="text-sm text-gray-500 border rounded-xl p-6 text-center">No hay reportes con ese filtro.</p>
         ) : (
           <div className="space-y-3">
-            {list.map((r) => (
-              <Link key={r.id} href={`/admin/reports/${r.id}`} className="block border rounded-xl p-4 hover:border-gray-400 transition">
+            {entries.map((e) => (
+              <Link key={e.key} href={e.href} className="block border rounded-xl p-4 hover:border-gray-400 transition">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-semibold">{TYPE_LABEL[r.type] || r.type}</span>
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${r.status === 'new' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}`}>{STATUS_LABEL[r.status] || r.status}</span>
-                  <span className="text-xs text-gray-400 ml-auto">{new Date(r.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                  <span className="text-xs font-semibold">{e.typeLabel}</span>
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${e.status === 'new' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}`}>{STATUS_LABEL[e.status] || e.status}</span>
+                  <span className="text-xs text-gray-400 ml-auto">{new Date(e.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 </div>
-                <p className="text-sm text-gray-700 mt-2 line-clamp-2">{r.description || r.listing_title || (r.story_id ? 'Historia reportada' : r.item_comment_id ? 'Comentario de artículo reportado' : r.business_review_id ? 'Opinión de negocio reportada' : 'Sin descripción')}</p>
-                <p className="text-xs text-gray-400 mt-1">{r.reporter_label || 'Anónimo'}{r.listing_title ? ` · ${r.listing_title}` : ''}{r.email ? ` · ${r.email}` : ''}</p>
+                <p className="text-sm text-gray-700 mt-2 line-clamp-2">{e.description}</p>
+                <p className="text-xs text-gray-400 mt-1">{e.meta}</p>
               </Link>
             ))}
           </div>

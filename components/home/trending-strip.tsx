@@ -68,7 +68,7 @@ export function TrendingStrip({ items, locationLabel, primaryKinds }: TrendingSt
                 : null
 
             return (
-              <div key={item.id} className="relative flex-none w-28">
+              <div key={item.id} className="relative flex-none w-20">
                 <Link
                   href={`/listings/${item.id}`}
                   className="block"
@@ -80,7 +80,7 @@ export function TrendingStrip({ items, locationLabel, primaryKinds }: TrendingSt
                         alt={item.title}
                         fill
                         className="object-cover"
-                        sizes="144px"
+                        sizes="80px"
                       />
                     </div>
                   ) : (listingType === 'news' || listingType === 'event') ? (

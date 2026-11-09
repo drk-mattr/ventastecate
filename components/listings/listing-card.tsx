@@ -152,7 +152,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       return (
         <CardShell id={listing.id}>
           {isLostPost && SE_BUSCA_HEADING}
-          <div className={`relative flex-1 aspect-square ${isLostPost ? 'mx-4 mb-2' : ''}`}>
+          <div className={`relative flex-1 aspect-square w-full ${isLostPost ? 'mx-4 mb-2' : ''}`}>
             <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" />
             {listing.status === 'sold' && soldOverlay}
             <div className="absolute bottom-2 left-2 z-[5] bg-black/45 text-white text-[10px] px-2 py-0.5 rounded-full">
@@ -267,7 +267,7 @@ export function ListingCard({ listing }: ListingCardProps) {
   if (listingType === 'event' && !primaryImage) {
     return (
       <CardShell id={listing.id}>
-        <div className="relative flex-1 aspect-square">
+        <div className="relative flex-1 aspect-square w-full">
           <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" subtitle={eventSubtitle} />
           {listing.status === 'sold' && soldOverlay}
           {eventPast && (

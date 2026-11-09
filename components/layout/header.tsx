@@ -21,7 +21,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Check, CircleUserRound, Store, User, Menu, UserCircle, Tag } from 'lucide-react'
+import { useUnreadMessages } from '@/lib/hooks/use-unread-messages'
+import { Check, CircleUserRound, Store, User, Menu, UserCircle, Tag, MessageCircle } from 'lucide-react'
 
 export function Header() {
   const { user, profile, stores, activeStore, setActiveStore, signOut, loading, recentStoreIds } = useAuth()
@@ -36,6 +37,10 @@ export function Header() {
     pathname === '/businesses' || (pathname?.startsWith('/businesses/') ?? false)
   const t = useTranslations()
   const [menuOpen, setMenuOpen] = useState(false)
+  // Unread thread count for the Mensajes item in the avatar menu —
+  // the bell badge no longer carries it (its badge is unread
+  // notification rows only, so one message never counts twice).
+  const unreadMessages = useUnreadMessages()
 
   // Keep the avatar dropdown clean: surface the active store + the most recent
   // few, and push the rest behind a link to the full "Mis Tiendas" page so the
@@ -121,9 +126,9 @@ export function Header() {
                 <Link href="/listings/new">{t.nav.publish}</Link>
               </Button>
               {/* Quick-access icons (desktop; mobile uses the bottom action bar).
-                  Messages + notifications live in ONE bell now (see
-                  NotificationBell): a single badge, one panel with
-                  Mensajes on top and Notificaciones below. */}
+                  The bell is activity notifications only now (see
+                  NotificationBell) — threads live in the avatar menu
+                  below and in the mobile bottom-bar Mensajes tab. */}
               <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex h-8 w-8 text-gray-600 hover:text-gray-900" aria-label={t.nav.myListings} title={t.nav.myListings}>
                 <Link href="/my-listings"><Tag className="h-[18px] w-[18px]" /></Link>
               </Button>
@@ -191,6 +196,21 @@ export function Header() {
                   <DropdownMenuItem asChild className="text-xs">
                     <Link href={`/users/${profile?.username}`} className="flex items-center gap-2">
                       <UserCircle className="h-3.5 w-3.5 text-gray-400" />{t.nav.myProfile}
+                    </Link>
+                  </DropdownMenuItem>
+
+                  {/* Mensajes lives here now (avatar menu), not in the
+                      bell panel — the bell is activity notifications
+                      only. The pill is the thread unread count, the
+                      same value the bottom-bar Mensajes tab shows. */}
+                  <DropdownMenuItem asChild className="text-xs">
+                    <Link href="/messages" className="flex w-full items-center gap-2">
+                      <MessageCircle className="h-3.5 w-3.5 text-gray-400" />Mensajes
+                      {unreadMessages > 0 && (
+                        <span className="ml-auto h-4 min-w-4 px-1 rounded-full bg-gray-900 text-white text-[10px] font-semibold inline-flex items-center justify-center">
+                          {unreadMessages > 99 ? '99+' : unreadMessages}
+                        </span>
+                      )}
                     </Link>
                   </DropdownMenuItem>
 

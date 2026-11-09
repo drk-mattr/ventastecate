@@ -15,6 +15,9 @@ import Image from 'next/image'
 import { MapPin, Calendar, Newspaper, Store, Bed, Droplets, Ruler, Home, Car, Gauge, Settings, Fuel, Palette, DoorOpen, BadgeCheck, Megaphone, Ticket } from 'lucide-react'
 import { ListingEngagementBar } from '@/components/listings/listing-engagement-bar'
 import { VideoEmbed } from '@/components/listings/video-embed'
+import { VideoPlayer } from '@/components/listings/video-player'
+import { ReporterBadge } from '@/components/user/reporter-badge'
+import { nativeVideoOf, isLocalReporter } from '@/lib/video/types'
 import { ContactSellerButton } from '@/components/messages/contact-seller-button'
 import { MarkSoldButton } from '@/components/listings/mark-sold-button'
 import { getEngagementCounts } from '@/lib/listings/engagement-counts'
@@ -146,7 +149,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
         username,
         display_name,
         avatar_url,
-        created_at
+        created_at,
+        is_local_reporter
       ),
       store:stores(
         id,
@@ -229,6 +233,27 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   }
 
   const formattedPrice = formatPrice(listing.price, listing.currency, { isFree: listing.is_free })
+
+  // Native video (migration 050): the clip renders in the
+  // VideoEmbed slot below; the link embed stays for video_url
+  // posts. Pre-050 the columns are undefined and videoBlock is
+  // null — the page renders exactly as before.
+  const nativeVideo = nativeVideoOf(listing)
+  const nativeVideoUrl = nativeVideo
+    ? supabase.storage.from('listing-videos').getPublicUrl(nativeVideo.path).data.publicUrl
+    : null
+  const videoBlock =
+    nativeVideo && nativeVideoUrl ? (
+      <VideoPlayer
+        src={nativeVideoUrl}
+        posterUrl={nativeVideo.thumbnailUrl}
+        durationSeconds={nativeVideo.durationSeconds}
+        title={listing.title}
+        className="aspect-video rounded-lg"
+      />
+    ) : listing.video_url ? (
+      <VideoEmbed url={listing.video_url} title={listing.title} />
+    ) : null
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sortedImages = listing.images.sort((a: any, b: any) => a.order_index - b.order_index)
@@ -347,6 +372,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                     {listing.profile.username === 'ventastecate' && (
                       <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-gray-500"><BadgeCheck className="h-3.5 w-3.5 text-orange-600" />Cuenta oficial</span>
                     )}
+                    {(isNews || isEvent) && isLocalReporter(listing.profile) && <ReporterBadge />}
                   </span>
                 )}
                 <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5">
@@ -408,10 +434,10 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               </div>
             )}
 
-            {/* Video embed */}
-            {listing.video_url && (
+            {/* Video embed — native clip first, link embed otherwise */}
+            {videoBlock && (
               <div className="mb-6">
-                <VideoEmbed url={listing.video_url} title={listing.title} />
+                {videoBlock}
               </div>
             )}
 
@@ -532,10 +558,10 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 </div>
               )}
 
-              {/* Video embed */}
-              {listing.video_url && (
+              {/* Video embed — native clip first, link embed otherwise */}
+              {videoBlock && (
                 <div>
-                  <VideoEmbed url={listing.video_url} title={listing.title} />
+                  {videoBlock}
                 </div>
               )}
 
@@ -590,6 +616,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                         {listing.profile.username === 'ventastecate' && (
                           <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-gray-500"><BadgeCheck className="h-3.5 w-3.5 text-orange-600" />Cuenta oficial</span>
                         )}
+                        {(isNews || isEvent) && isLocalReporter(listing.profile) && <ReporterBadge />}
                       </span>
                       <p className="text-xs text-gray-500">@{listing.profile.username}</p>
                     </div>
@@ -650,10 +677,10 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 }
               />
 
-              {/* Video embed */}
-              {listing.video_url && (
+              {/* Video embed — native clip first, link embed otherwise */}
+              {videoBlock && (
                 <div className="max-w-2xl">
-                  <VideoEmbed url={listing.video_url} title={listing.title} />
+                  {videoBlock}
                 </div>
               )}
 

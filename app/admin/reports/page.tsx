@@ -5,6 +5,7 @@ import { getSuperadminProfile } from '@/lib/admin'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import type { Report } from '@/lib/types/database'
+import { formatVideoDuration } from '@/lib/video/validate'
 
 const STATUS_LABEL: Record<string, string> = { new: 'Nuevo', reviewed: 'En revisión', resolved: 'Resuelto' }
 const TYPE_LABEL: Record<string, string> = {
@@ -53,6 +54,10 @@ type InboxEntry = {
   createdAt: string
   description: string
   meta: string
+  /** Native video (migration 050): duration + poster frame, so the
+   * moderator can triage a video report without opening the detail
+   * page. Set only when the reported listing has a native clip. */
+  video?: { durationSeconds: number | null; thumbnailUrl: string | null }
 }
 
 export default async function AdminReportsPage({ searchParams }: { searchParams: Promise<{ status?: string; type?: string }> }) {
@@ -76,6 +81,27 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
   let reports = await fetchReports(true)
   if (!reports) reports = await fetchReports(false)
   const list = reports || []
+
+  // Native video (migration 050): enrich reported listings with
+  // their clip's duration + poster frame. Plain query + JS join,
+  // same pattern as the flags below. Pre-050 the columns do not
+  // exist — the query errors and the enrichment is skipped, never
+  // breaking the inbox.
+  const videoByListingId = new Map<string, { durationSeconds: number | null; thumbnailUrl: string | null }>()
+  const reportListingIds = [...new Set(list.map((r) => r.listing_id).filter((v): v is string => v !== null))]
+  if (reportListingIds.length > 0) {
+    const { data: videoListings, error: videoError } = await supabase
+      .from('listings')
+      .select('id, video_storage_path, video_duration_seconds, video_thumbnail_url')
+      .in('id', reportListingIds)
+    if (!videoError && videoListings) {
+      for (const v of videoListings as unknown as { id: string; video_storage_path: string | null; video_duration_seconds: number | null; video_thumbnail_url: string | null }[]) {
+        if (v.video_storage_path) {
+          videoByListingId.set(v.id, { durationSeconds: v.video_duration_seconds, thumbnailUrl: v.video_thumbnail_url })
+        }
+      }
+    }
+  }
 
   // Offering flags (B7). A type filter hides them: flags carry a
   // reason, not a report type, so they only join the unfiltered view.
@@ -123,6 +149,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
       createdAt: r.created_at,
       description: r.description || r.listing_title || (r.story_id ? 'Historia reportada' : r.item_comment_id ? 'Comentario de artículo reportado' : r.business_review_id ? 'Opinión de negocio reportada' : 'Sin descripción'),
       meta: `${r.reporter_label || 'Anónimo'}${r.listing_title ? ` · ${r.listing_title}` : ''}${r.email ? ` · ${r.email}` : ''}`,
+      video: r.listing_id ? videoByListingId.get(r.listing_id) : undefined,
     })),
     ...itemFlags.map((f): InboxEntry => {
       const item = itemById.get(f.item_id)
@@ -169,6 +196,17 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
                   <span className="text-xs text-gray-400 ml-auto">{new Date(e.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 </div>
                 <p className="text-sm text-gray-700 mt-2 line-clamp-2">{e.description}</p>
+                {e.video && (
+                  <span className="mt-2 flex items-center gap-2">
+                    {e.video.thumbnailUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={e.video.thumbnailUrl} alt="" className="h-10 w-16 rounded object-cover bg-gray-100" />
+                    )}
+                    <span className="text-xs font-medium text-gray-600">
+                      Video{formatVideoDuration(e.video.durationSeconds) ? ` · ${formatVideoDuration(e.video.durationSeconds)}` : ''}
+                    </span>
+                  </span>
+                )}
                 <p className="text-xs text-gray-400 mt-1">{e.meta}</p>
               </Link>
             ))}

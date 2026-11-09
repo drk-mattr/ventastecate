@@ -9,6 +9,12 @@ import { ListingWithImages } from '@/lib/types/database'
 import { formatPrice } from '@/lib/listings/format-price'
 import { formatEventRange, isEventPast } from '@/lib/listings/event-dates'
 import { ListingTitleCard } from './listing-title-card'
+import { VideoPlayer } from './video-player'
+import { nativeVideoOf, listingVideoPublicUrl } from '@/lib/video/types'
+
+// Public storage base for native video URLs (URL construction
+// only, no fetch — the same public env the browser client uses).
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 
 interface ListingCardProps {
   listing: ListingWithImages
@@ -80,6 +86,14 @@ export function ListingCard({ listing }: ListingCardProps) {
   const listingType = listing.listing_type || 'product'
   const isNews = listingType === 'news'
   const hasVideo = !!listing.video_url
+  // Native video (migration 050, news only): the clip IS the
+  // content — it takes the media slot instead of the photo. The
+  // feed query selects `*,` so the columns arrive once 050 is
+  // applied; pre-050 nativeVideo is null and the card renders
+  // exactly as before.
+  const nativeVideo = nativeVideoOf(listing)
+  const nativeVideoUrl =
+    nativeVideo && SUPABASE_URL ? listingVideoPublicUrl(SUPABASE_URL, nativeVideo.path) : null
 
   // The seller shown on the card — a store name goes to the store
   // page, a personal name to the public profile. The whole card is
@@ -132,8 +146,9 @@ export function ListingCard({ listing }: ListingCardProps) {
     // Meta is a single quiet chip overlaid at the bottom — no white
     // content area below, no "half poster". Lost posts get the
     // printed-poster treatment instead: red SE BUSCA letters above
-    // and the title card inset with a white margin.
-    if (!primaryImage) {
+    // and the title card inset with a white margin. A native video
+    // is not photo-less — it takes the media slot below instead.
+    if (!primaryImage && !nativeVideo) {
       return (
         <CardShell id={listing.id}>
           {isLostPost && SE_BUSCA_HEADING}
@@ -150,25 +165,36 @@ export function ListingCard({ listing }: ListingCardProps) {
 
     return (
       <CardShell id={listing.id}>
-        {isLostPost ? (
+        {isLostPost && SE_BUSCA_HEADING}
+        {nativeVideo && nativeVideoUrl ? (
+          /* Native clip: muted autoplay in view, tap for sound.
+             The photo (if any) stays on the detail page gallery. */
+          <div className="px-2.5 pt-2.5 shrink-0">
+            <VideoPlayer
+              src={nativeVideoUrl}
+              posterUrl={nativeVideo.thumbnailUrl}
+              durationSeconds={nativeVideo.durationSeconds}
+              title={listing.title}
+              autoplayInView
+              className="aspect-video rounded-sm"
+            />
+          </div>
+        ) : isLostPost ? (
           /* Lost post: a printed-poster look — SE BUSCA in red
              letters above the photo, the photo inset with a white
              margin on all sides, natural aspect. No category
              eyebrow — the heading says what it is. */
-          <>
-            {SE_BUSCA_HEADING}
-            <div className="relative shrink-0 px-4">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-none">
-                <Image src={primaryImage} alt={listing.title} fill className="object-cover grayscale"
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
-                {listing.status === 'sold' && soldOverlay}
-              </div>
+          <div className="relative shrink-0 px-4">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-none">
+              <Image src={primaryImage!} alt={listing.title} fill className="object-cover grayscale"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
+              {listing.status === 'sold' && soldOverlay}
             </div>
-          </>
+          </div>
         ) : (
           <div className="px-2.5 pt-2.5 shrink-0">
             <div className="relative aspect-video rounded-sm overflow-hidden">
-              <Image src={primaryImage} alt={listing.title} fill className="object-cover"
+              <Image src={primaryImage!} alt={listing.title} fill className="object-cover"
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
               {listing.status === 'sold' && soldOverlay}
             </div>

@@ -9,7 +9,7 @@ import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import { useReportModal } from '@/lib/report/report-modal-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
 import {
-  Check, CircleUserRound, Flag, Home, LogOut, MessageCircle, PenLine, Settings,
+  Check, CircleUserRound, Clock, Flag, Home, LogOut, MessageCircle, PenLine, Settings,
   Store, Tag, TrendingUp, User, UserCircle, X,
 } from 'lucide-react'
 
@@ -139,6 +139,9 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
           </Link>
           <Link href="/businesses" onClick={onClose} className={rowClass('/businesses')}>
             <Store className="h-5 w-5 text-zinc-400" />Negocios
+          </Link>
+          <Link href="/garita" onClick={onClose} className={rowClass('/garita')}>
+            <Clock className="h-5 w-5 text-zinc-400" />Garita
           </Link>
           {user && (
             <Link href="/messages" onClick={onClose} className={rowClass('/messages')}>

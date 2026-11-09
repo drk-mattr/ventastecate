@@ -262,3 +262,46 @@ export type ReportNote = {
   body: string
   created_at: string
 }
+
+/** La Garita (migration 049): community border-line reports.
+ *  Only the three lanes that exist at Tecate — there is NO
+ *  SENTRI / Ready Lane. CBP measures into the US only, so
+ *  'sur' waits exist only as community reports. */
+export type BorderLane = 'auto' | 'peatonal' | 'comercial'
+export type BorderDirection = 'norte' | 'sur'
+export type BorderReportStatus = 'en_fila' | 'ya_cruce'
+
+export type BorderLineReport = {
+  id: string
+  user_id: string
+  port: string
+  lane: BorderLane
+  direction: BorderDirection
+  wait_minutes: number
+  /** en_fila = minutes waited so far (a lower bound);
+   *  ya_cruce = total minutes (the real wait). */
+  status: BorderReportStatus
+  note?: string | null
+  photo_url?: string | null
+  created_at: string
+}
+
+export type BorderLineSnapshot = {
+  id: string
+  port: string
+  lane: BorderLane
+  source: string
+  delay_minutes: number | null
+  lanes_open: number | null
+  operational_status: string | null
+  cbp_update_time: string | null
+  fetched_at: string
+}
+
+export type BorderLineVote = {
+  id: string
+  report_id: string
+  user_id: string
+  vote: 'confirma' | 'niega'
+  created_at: string
+}

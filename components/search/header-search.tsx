@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Search } from 'lucide-react'
 import { useTranslations } from '@/lib/hooks/use-translations'
+import { LocationSelector } from '@/components/layout/location-selector'
 
 interface SuggestListing {
   id: string
@@ -149,6 +150,13 @@ export function HeaderSearch() {
         }}
         className="flex items-center bg-white border rounded-lg h-11 sm:h-9 overflow-hidden focus-within:ring-2 focus-within:ring-gray-900 focus-within:border-gray-900"
       >
+        {/* Location is the bar's leading segment (pin + town +
+            divider), not a separate header control — the town
+            scopes the search, so it sits where the search lives.
+            The selector is a type="button" trigger and its menu is
+            a portal, so it never submits the form or gets clipped
+            by the bar's overflow-hidden. */}
+        <LocationSelector />
         <Search className="ml-2.5 h-3.5 w-3.5 text-gray-400 shrink-0 pointer-events-none" />
         {/* Never drop below text-base (16px): iOS Safari auto-zooms any
             smaller text field on focus. */}

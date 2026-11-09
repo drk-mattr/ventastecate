@@ -4,11 +4,14 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
-import { Bell, Heart, MessageCircle, UserPlus } from 'lucide-react'
+import { Bell, Heart, MessageCircle, UserPlus, Megaphone } from 'lucide-react'
 
 type BellItem = {
   id: string
-  type: 'like' | 'comment' | 'follow' | 'message'
+  // reporter_post (migration 050): a user you follow published a
+  // news post. Bell only in v1, no email. The notifications table
+  // CHECK was extended with the type in the same migration.
+  type: 'like' | 'comment' | 'follow' | 'message' | 'reporter_post'
   actor: string
   actorUsername?: string
   title: string
@@ -137,10 +140,11 @@ export function NotificationBell() {
   const icon = (type: BellItem['type']) =>
     type === 'like' ? <Heart className="h-4 w-4 text-gray-900 shrink-0" />
     : type === 'comment' || type === 'message' ? <MessageCircle className="h-4 w-4 text-gray-900 shrink-0" />
+    : type === 'reporter_post' ? <Megaphone className="h-4 w-4 text-gray-900 shrink-0" />
     : <UserPlus className="h-4 w-4 text-gray-900 shrink-0" />
 
   const verb = (type: BellItem['type']) =>
-    type === 'like' ? 'le dio me gusta a' : type === 'comment' ? 'comentó en' : type === 'message' ? 'te escribió sobre' : ''
+    type === 'like' ? 'le dio me gusta a' : type === 'comment' ? 'comentó en' : type === 'message' ? 'te escribió sobre' : type === 'reporter_post' ? 'publicó' : ''
 
   return (
     <div ref={ref} className="relative">

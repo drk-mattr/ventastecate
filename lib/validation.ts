@@ -5,6 +5,16 @@
  */
 import { z } from 'zod'
 import type { ListingType } from '@/lib/types/database'
+import { VIDEO_MAX_SECONDS, VIDEO_MAX_BYTES } from '@/lib/video/validate'
+
+// ── Native video (migration 050) ────────────────────────────────────────────
+// One native clip per news post: <=60s, <=50MB, MP4/MOV/WebM, in the
+// `listing-videos` bucket via the TUS resumable path. The caps live
+// in lib/video/validate.ts (size/MIME/duration are checked against
+// the File there); this schema enforces the form-level rules: one
+// video per post (upload XOR link) and the "Lo grabé yo mismo"
+// declaration for uploads.
+export { VIDEO_MAX_SECONDS, VIDEO_MAX_BYTES }
 
 // ── Listings ────────────────────────────────────────────────────────────────
 
@@ -45,11 +55,26 @@ export const listingInputSchema = z.object({
     .max(500)
     .optional()
     .or(z.literal('')),
+  // Native video upload (migration 050): set when the poster picked
+  // a clip file. The file itself is checked in lib/video/validate.ts;
+  // the schema only gates the declaration + the XOR with the link.
+  hasVideoUpload: z.boolean().optional(),
+  selfFilmed: z.boolean().optional(),
 }).superRefine((data, ctx) => {
   const descOptional =
     data.listingType === 'product' || data.listingType === 'service' || data.listingType === 'event'
   if (!descOptional && !data.description.trim()) {
     ctx.addIssue({ code: 'custom', path: ['description'], message: 'La descripción es obligatoria' })
+  }
+  // One video per post: an upload OR a link, never both.
+  if (data.hasVideoUpload && data.videoUrl?.trim()) {
+    ctx.addIssue({ code: 'custom', path: ['videoUrl'], message: 'Elige un video o pega un enlace, no los dos' })
+  }
+  // "Lo grabé yo mismo" is a declaration, not a proof — but it
+  // changes the poster's stance and gives the moderator a clear
+  // line on fake/staged clips. Required for uploads.
+  if (data.hasVideoUpload && !data.selfFilmed) {
+    ctx.addIssue({ code: 'custom', path: ['selfFilmed'], message: 'Confirma que grabaste este video' })
   }
 })
 
@@ -62,6 +87,8 @@ export function firstListingError(input: {
   price: number
   videoUrl?: string
   listingType?: ListingType
+  hasVideoUpload?: boolean
+  selfFilmed?: boolean
 }): string | null {
   const result = listingInputSchema.safeParse(input)
   if (result.success) return null

@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
-import { useUnreadMessages } from '@/lib/hooks/use-unread-messages'
 import { Bell, Heart, MessageCircle, UserPlus, Megaphone } from 'lucide-react'
 
 type BellItem = {
@@ -18,34 +17,6 @@ type BellItem = {
   title: string
   href: string
   created_at: string
-}
-
-// One row of GET /api/messages/conversations (the same shape the
-// /messages page renders): the other participant, the listing or
-// business the thread is about, the unread count, and the latest
-// message. The route already orders by updated_at desc.
-type ConversationRow = {
-  id: string
-  buyer_id: string
-  seller_id: string
-  updated_at: string
-  listing_title?: string | null
-  listing?: { title: string } | null
-  business?: { name: string } | null
-  buyer?: { display_name?: string } | null
-  seller?: { display_name?: string } | null
-  unread_count?: number
-  last_message?: { content: string; created_at: string } | null
-}
-
-type MessageThread = {
-  id: string
-  otherName: string
-  title: string
-  preview: string
-  unread: number
-  created_at: string
-  href: string
 }
 
 function formatTimeAgo(dateStr: string): string {
@@ -64,33 +35,33 @@ function formatTimeAgo(dateStr: string): string {
 // it falls back to the original listing_likes / listing_comments /
 // follows queries, so the bell never breaks on a missing migration.
 //
-// Since the 2026-11-09 header cleanup this is the ONE header icon
-// for messages + notifications: a single Bell with ONE badge (unread
-// notifications + unread messages) opening ONE panel — "Mensajes" on
-// top, "Notificaciones" below. The old separate messages bubble is
-// gone; the mobile bottom-bar Mensajes tab is untouched.
+// Since the 2026-11-09 header follow-up the bell is ACTIVITY
+// NOTIFICATIONS ONLY — one list, newest first, all types including
+// 'message' rows ("greganthony te escribió sobre Mesita"). The old
+// "Mensajes" threads section is gone: threads live in the avatar
+// dropdown menu (header.tsx, with its own unread pill) and in the
+// mobile bottom-bar Mensajes tab.
 //
-// Dedupe (2026-11-06): 'message' rows are excluded from the
-// notifications query. A new message badges here through the
-// unread-messages count instead, so one event is one badge. The
-// notify_message trigger still writes its rows — they are inert
-// now; dropping the trigger is future housekeeping, not this change.
+// BADGE SEMANTICS (do not change): the badge is the count of UNREAD
+// notification rows, all types, nothing else. It must NOT add the
+// thread unread count (useUnreadMessages) on top — one unread message
+// would otherwise count twice, once as its notification row and once
+// as the thread. Opening the panel marks notification rows read; the
+// thread's own unread state is separate and only clears when the
+// thread is actually read.
 //
-// READ STATE (do not change these semantics): opening the panel
-// marks NOTIFICATIONS read. It NEVER marks conversations read —
-// the unread message count only clears when a thread is actually
-// read, as before (the hook refreshes on route change + Realtime).
+// The 'message' rows were excluded by the PR #96 dedupe (2026-11-06),
+// when the separate messages bubble owned them. That exclusion is
+// removed here; the notify_message trigger already writes these rows
+// with listing_id set, so icon() + verb() below render them as
+// "te escribió sobre" with a link to the listing. No trigger or
+// migration change.
 
 export function NotificationBell() {
   const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<BellItem[]>([])
   const [unread, setUnread] = useState(0)
-  const [threads, setThreads] = useState<MessageThread[]>([])
-  // Shared unread-messages count (useUnreadMessages): the same
-  // value the mobile bottom-bar Mensajes tab shows, so both badges
-  // agree. The header's old messages bubble used to own this hook.
-  const unreadMessages = useUnreadMessages()
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -102,7 +73,6 @@ export function NotificationBell() {
         .from('notifications')
         .select('id, type, actor_id, listing_id, read, created_at')
         .eq('recipient_id', user.id)
-        .neq('type', 'message')
         .order('created_at', { ascending: false })
         .limit(30)
       if (!error && notifs) {
@@ -172,53 +142,17 @@ export function NotificationBell() {
 
   if (!user) return null
 
-  // Recent threads for the Mensajes section, loaded lazily when
-  // the panel opens (the badge count comes from the hook, so the
-  // panel doesn't need this on every page load). Unread first,
-  // then newest — the route already orders by updated_at desc.
-  const loadThreads = async () => {
-    try {
-      const res = await fetch('/api/messages/conversations?page=1&limit=5')
-      if (!res.ok) return
-      const json: { conversations?: ConversationRow[] } = await res.json()
-      const shaped: MessageThread[] = (json.conversations ?? []).map((c) => {
-        const other = c.buyer_id === user.id ? c.seller : c.buyer
-        const title = c.business?.name ?? c.listing?.title ?? c.listing_title ?? 'Conversación'
-        const preview = c.last_message?.content ?? ''
-        return {
-          id: c.id,
-          otherName: other?.display_name ?? 'Usuario',
-          title,
-          preview,
-          unread: c.unread_count ?? 0,
-          created_at: c.last_message?.created_at ?? c.updated_at,
-          href: `/messages?conversation=${c.id}`,
-        }
-      })
-      shaped.sort(
-        (a, b) =>
-          (b.unread > 0 ? 1 : 0) - (a.unread > 0 ? 1 : 0) ||
-          +new Date(b.created_at) - +new Date(a.created_at),
-      )
-      setThreads(shaped)
-    } catch {
-      // Silent: the messages section falls back to its empty state.
-    }
-  }
-
   const togglePanel = () => {
     const opening = !open
     setOpen(opening)
     if (opening) {
-      // Notifications read on open — conversations are NOT touched.
+      // Notifications read on open. Threads are NOT touched — their
+      // unread state only clears when a thread is actually read.
       setUnread(0)
       const supabase = createClient()
       void supabase.from('notifications').update({ read: true }).eq('recipient_id', user?.id).eq('read', false)
-      void loadThreads()
     }
   }
-
-  const totalUnread = unread + unreadMessages
 
   const icon = (type: BellItem['type']) =>
     type === 'like' ? <Heart className="h-4 w-4 text-gray-900 shrink-0" />
@@ -234,68 +168,25 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={togglePanel}
-        aria-label="Mensajes y notificaciones"
-        title="Mensajes y notificaciones"
+        aria-label="Notificaciones"
+        title="Notificaciones"
         className="relative h-8 w-8 inline-flex items-center justify-center rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100"
       >
         <Bell className="h-[18px] w-[18px]" />
-        {totalUnread > 0 && (
+        {unread > 0 && (
           <span className="absolute top-0.5 right-0.5 h-4 min-w-4 px-1 rounded-full bg-gray-900 text-white text-[10px] font-semibold flex items-center justify-center">
-            {totalUnread > 99 ? '99+' : totalUnread}
+            {unread > 99 ? '99+' : unread}
           </span>
         )}
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border bg-white shadow-lg z-50 overflow-hidden">
-          <div className="max-h-96 overflow-y-auto">
-            {/* Mensajes on top. */}
-            <div className="flex items-center justify-between px-4 py-3 border-b">
-              <p className="text-sm font-semibold text-gray-900">Mensajes</p>
-              <Link
-                href="/messages"
-                onClick={() => setOpen(false)}
-                className="text-xs text-gray-500 hover:text-gray-900"
-              >
-                Ver todo
-              </Link>
-            </div>
-            {threads.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-gray-500">Aún no tienes mensajes.</p>
-            ) : (
-              threads.map((thread) => (
-                <Link
-                  key={thread.id}
-                  href={thread.href}
-                  onClick={() => setOpen(false)}
-                  className="flex gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100"
-                >
-                  <MessageCircle className="h-4 w-4 text-gray-900 shrink-0 mt-0.5" />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className={`block text-sm text-gray-900 leading-snug truncate ${thread.unread > 0 ? 'font-semibold' : ''}`}>
-                        {thread.otherName}
-                      </span>
-                      {thread.unread > 0 && (
-                        <span className="shrink-0 h-4 min-w-4 px-1 rounded-full bg-gray-900 text-white text-[10px] font-semibold inline-flex items-center justify-center">
-                          {thread.unread > 99 ? '99+' : thread.unread}
-                        </span>
-                      )}
-                    </span>
-                    <span className="block text-sm text-gray-500 leading-snug truncate">
-                      {thread.preview ? `${thread.title} · ${thread.preview}` : thread.title}
-                    </span>
-                    <span className="block text-xs text-gray-400 mt-0.5">{formatTimeAgo(thread.created_at)}</span>
-                  </span>
-                </Link>
-              ))
-            )}
-
-            {/* Notificaciones below — the existing bell list, unchanged. */}
-            <p className="px-4 py-3 text-sm font-semibold text-gray-900 border-t border-b">Notificaciones</p>
-            {items.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-gray-500">Aún no tienes notificaciones.</p>
-            ) : (
-              items.map((item) => (
+          <p className="px-4 py-3 text-sm font-semibold text-gray-900 border-b">Notificaciones</p>
+          {items.length === 0 ? (
+            <p className="px-4 py-6 text-sm text-gray-500">Aún no tienes notificaciones.</p>
+          ) : (
+            <div className="max-h-96 overflow-y-auto">
+              {items.map((item) => (
                 <Link key={`${item.type}-${item.id}`} href={item.href} onClick={() => setOpen(false)} className="flex gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0">
                   {icon(item.type)}
                   <span className="min-w-0">
@@ -306,9 +197,9 @@ export function NotificationBell() {
                     <span className="block text-xs text-gray-400 mt-0.5">{formatTimeAgo(item.created_at)}</span>
                   </span>
                 </Link>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

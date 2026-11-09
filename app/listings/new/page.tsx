@@ -18,6 +18,13 @@ import { CARD_COLORS, type CardColorId } from '@/lib/listings/card-colors'
 import { normalizeTownName, LOCATION_COOKIE, TOWN_REGIONS, townsForLocation } from '@/lib/business-regions'
 import { compressImage } from '@/lib/images/compress'
 import { suggestCategory } from '@/lib/listings/suggest-category'
+import { logPostingFunnel } from '@/lib/listings/posting-funnel'
+// Native video (migration 050): TUS resumable upload + client-side
+// validation/poster capture. The installed supabase-js does NOT
+// expose resumable uploads — tus-upload.ts drives the storage TUS
+// endpoint directly (proven live 2026-11-09: 40 MB survived a drop).
+import { validateVideoFile, captureVideoPoster, formatVideoDuration, formatVideoSize, VIDEO_MAX_PER_DAY } from '@/lib/video/validate'
+import { uploadVideoResumable } from '@/lib/video/tus-upload'
 import { humanizePostError } from '@/lib/errors'
 import { useListingDraft, draftKeyForUser } from '@/lib/hooks/use-listing-draft'
 import Image from 'next/image'
@@ -129,6 +136,17 @@ function categoriesForType(type: ListingType): string[] {
   return PRODUCT_CATEGORIES
 }
 
+const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+// Short date for the Paso 3 review line ("12 nov · 15:00"). Parses
+// as local time — this is display-only, never stored.
+function formatShortDate(date: string, time: string): string {
+  const d = new Date(`${date}T00:00:00`)
+  if (Number.isNaN(d.getTime())) return date
+  const base = `${d.getDate()} ${MONTHS_ES[d.getMonth()]}`
+  return time ? `${base} · ${time}` : base
+}
+
 function NewListingForm() {
   const [listingType, setListingType] = useState<ListingType>('product')
   const [title, setTitle] = useState('')
@@ -164,6 +182,17 @@ function NewListingForm() {
   const [images, setImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [videoUrl, setVideoUrl] = useState('')
+  // Native video (migration 050, news only): one clip per post.
+  // The file never enters the device draft (like photos) — a
+  // restored draft asks the reporter to re-pick it, said in the UI.
+  const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null)
+  const [videoDuration, setVideoDuration] = useState<number | null>(null)
+  const [videoSelfFilmed, setVideoSelfFilmed] = useState(false)
+  // Clip upload progress in bytes (the image progress is counts —
+  // video keeps its own state so the two never mix).
+  const [videoProgress, setVideoProgress] = useState<{ loaded: number; total: number } | null>(null)
+  const [videoFailed, setVideoFailed] = useState(false)
   const [taggedBusiness, setTaggedBusiness] = useState<Business | null>(null)
   // Items engine (§8, 034B): optional offering tags for the tagged
   // business. First selected = primary, the rest secondary.
@@ -194,6 +223,18 @@ function NewListingForm() {
   const [whatsappOptIn, setWhatsappOptIn] = useState(false)
   const [whatsappNumber, setWhatsappNumber] = useState('')
   const [draftRestored, setDraftRestored] = useState(false)
+  // 3-step flow (proposal 2026-11-09): 1 type, 2 details, 3 photos /
+  // location / publish. All state stays in this component; the steps
+  // are pure conditional render below — nothing remounts between steps.
+  const [step, setStep] = useState(1)
+  // News canvas autosave indicator ("Guardando…" → "Guardado ✓").
+  // The draft hook autosaves silently; this only surfaces its state.
+  const [draftSaveState, setDraftSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const draftSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const descriptionRef = useRef<HTMLTextAreaElement | null>(null)
+  // Funnel counters (migration 048): draft_started fires once, when
+  // the seller first reaches Paso 2 with a type chosen.
+  const funnelStartedRef = useRef(false)
 
   // Real estate metadata
   const [propertyType, setPropertyType] = useState('casa')
@@ -215,6 +256,7 @@ function NewListingForm() {
   const [doors, setDoors] = useState('4')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { user, profile, activeStore } = useAuth()
   const t = useTranslations()
@@ -229,10 +271,41 @@ function NewListingForm() {
   const isRealEstate = storeType === 'real_estate' || REAL_ESTATE_CATEGORIES.includes(category)
   const isAutomotive = storeType === 'automotive' || category === 'Vehículos'
 
+  // Store users have a fixed type, so they never see Paso 1 — they
+  // land on Paso 2. Derived, never synced with an effect: the step
+  // state itself stays 1-based and the clamp lives here.
+  const effectiveStep = storeType === 'general' ? step : 2
+  const totalSteps = storeType === 'general' ? 3 : 2
+  const displayStep = storeType === 'general' ? effectiveStep : effectiveStep - 1
+
+  // News canvas word count (computed, no state).
+  const wordCount = description.trim() ? description.trim().split(/\s+/).length : 0
+
+  // Paso 3 review line — one line, Eventbrite's preview lesson in
+  // miniature: "Evento · Jazz en el CEART · 12 nov".
+  const reviewLine = (() => {
+    const typeShort = { product: 'Producto', service: 'Servicio', event: 'Evento', news: 'Noticia' }[listingType]
+    const parts = [typeShort, title.trim() || 'Sin título']
+    if (listingType === 'event' && eventStartDate) parts.push(formatShortDate(eventStartDate, eventStartTime))
+    if (showPrice && !priceConsultar && !isFree && price) parts.push(`$${price} ${currency}`)
+    if (showPrice && isFree) parts.push('Gratis')
+    return parts.join(' · ')
+  })()
+
+  // The news body grows as you type (canvas feel). Direct DOM style
+  // only — no React state involved.
+  const autoGrowDescription = () => {
+    const el = descriptionRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 480)}px`
+  }
+
   // ── Device draft (P0-1) ──
   // The draft value is the whole form; the hook debounces the
-  // localStorage write. Photos are excluded (File objects can't
-  // serialize) — the text is what a draft saves.
+  // localStorage write. Photos and the video file are excluded
+  // (File objects can't serialize) — the text is what a draft
+  // saves; a restored draft asks the reporter to re-pick the video.
   const draftValue = {
     listingType, title, description, price, priceConsultar, currency, isFree, cardColor, category,
     location, city, stateRegion, countryCode, videoUrl,
@@ -242,6 +315,9 @@ function NewListingForm() {
     propertyType, transactionType, bedrooms, bathrooms, constructionM2,
     lotM2, parkingSpots, make, model, year, mileageKm, transmission,
     fuelType, color, doors, whatsappOptIn, whatsappNumber, showAdvanced,
+    // 3-step flow: the step the seller left on, so a returning draft
+    // lands where they were (missing → 1, defensively).
+    step,
   }
   const restoreDraft = (d: typeof draftValue) => {
     setListingType((d.listingType as ListingType) || 'product')
@@ -283,6 +359,9 @@ function NewListingForm() {
     setWhatsappOptIn(!!d.whatsappOptIn)
     setWhatsappNumber(d.whatsappNumber || '')
     setShowAdvanced(!!d.showAdvanced)
+    // Drafts saved before the 3-step flow have no step — land on 1.
+    // A step outside 1–3 (corrupt value) also lands on 1.
+    setStep(typeof d.step === 'number' && d.step >= 1 && d.step <= 3 ? d.step : 1)
     if (d.taggedBusinessId) {
       // Restore the full business row so the picker has a real object.
       createClient().from('businesses').select('*').eq('id', d.taggedBusinessId).single()
@@ -439,9 +518,14 @@ function NewListingForm() {
     setWhatsappOptIn(false); setWhatsappNumber('')
     imagePreviews.forEach((u) => URL.revokeObjectURL(u))
     setImages([]); setImagePreviews([])
+    if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl)
+    setVideoFile(null); setVideoPreviewUrl(null); setVideoDuration(null)
+    setVideoSelfFilmed(false); setVideoProgress(null); setVideoFailed(false)
+    if (videoInputRef.current) videoInputRef.current.value = ''
     setFieldErrors({}); setError(''); setDraftRestored(false)
     setPublishedListingId(null); setFailedImages([]); setTagWarning(null)
     setUploadProgress(null)
+    setStep(1); setDraftSaveState('idle')
     prefillLocationFromRegion()
   }
 
@@ -455,6 +539,11 @@ function NewListingForm() {
     if (listingType === 'news' && !description.trim()) errors.description = 'Escribe una descripción'
     if (showPrice && !priceConsultar && !isFree && !price) errors.price = 'Escribe un precio, o marca Precio a consultar / Gratis'
     if (storeType === 'general' && !category) errors.category = 'Elige una categoría'
+    // Native video (migration 050): one video per post, and the
+    // self-filmed declaration is required for uploads. The file's
+    // size / MIME / duration were checked when it was picked.
+    if (videoFile && videoUrl.trim()) errors.video = 'Elige un video o pega un enlace, no los dos'
+    if (videoFile && !videoSelfFilmed) errors.selfFilmed = 'Confirma que grabaste este video'
     // Events need a date — it is the whole point of the post. Time,
     // end date, venue, and ticket link stay optional.
     if (listingType === 'event') {
@@ -482,7 +571,11 @@ function NewListingForm() {
                 ? 'event-end-date'
                 : errors.eventTicketUrl
                   ? 'event-ticket-url'
-                  : null
+                  : errors.video
+                    ? 'video-field'
+                    : errors.selfFilmed
+                      ? 'video-self-filmed'
+                      : null
     return { errors, firstId }
   }
 
@@ -497,6 +590,50 @@ function NewListingForm() {
       delete next[key]
       return next
     })
+  }
+
+  // ── 3-step navigation ──
+  // Steps are conditional render inside this one component — the form
+  // never remounts between steps, so focus, scroll position and the
+  // compression state all survive. Back never loses data.
+  const goToStep = (next: number, funnelType?: ListingType) => {
+    setStep(next)
+    setFieldErrors({})
+    setError('')
+    // Funnel counter (migration 048): reaching Paso 2 with a type
+    // chosen is a started draft. Fires once per form mount. The
+    // caller passes the type just chosen — state hasn't applied yet
+    // when a type card is tapped, so the stale value would be logged.
+    if (next === 2 && !funnelStartedRef.current) {
+      funnelStartedRef.current = true
+      logPostingFunnel(supabase, 'draft_started', funnelType ?? listingType)
+    }
+    window.scrollTo(0, 0)
+  }
+
+  // Paso 2 validation: the same checks as validateForm — every field
+  // it checks lives on Paso 2 — plus the automotive year/make/model
+  // check that submit enforces. Never stricter than submit.
+  const validateStep2 = (): { errors: Record<string, string>; firstId: string | null } => {
+    const { errors, firstId } = validateForm()
+    if (isAutomotive && (!year || !make.trim() || !model.trim())) {
+      if (!year) errors.year = 'Falta el año'
+      if (!make.trim()) errors.make = 'Falta la marca'
+      if (!model.trim()) errors.model = 'Falta el modelo'
+      return { errors, firstId: firstId ?? 'auto-fields' }
+    }
+    return { errors, firstId }
+  }
+
+  const handleNextFromStep2 = () => {
+    const { errors, firstId } = validateStep2()
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      setError('Revisa los datos marcados')
+      if (firstId) scrollToField(firstId)
+      return
+    }
+    goToStep(3)
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -529,6 +666,54 @@ function NewListingForm() {
     setImages(images.filter((_, i) => i !== index))
     setImagePreviews(imagePreviews.filter((_, i) => i !== index))
   }
+
+  // ── Native video (migration 050, news only) ──
+  // Size / MIME / duration are checked on pick, not at submit —
+  // a 50 MB clip that fails at publish time is a wasted upload.
+  // Picking a clip does NOT clear a pasted link (and vice versa):
+  // the submit validation errors with "one or the other" instead
+  // of silently discarding what the reporter typed or picked.
+  const handleVideoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const check = await validateVideoFile(file)
+    if (!check.ok) {
+      setFieldErrors((prev) => ({ ...prev, video: check.error }))
+      e.target.value = ''
+      return
+    }
+    if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl)
+    setVideoFile(file)
+    setVideoPreviewUrl(URL.createObjectURL(file))
+    setVideoDuration(check.durationSeconds)
+    setVideoSelfFilmed(false)
+    setVideoFailed(false)
+    clearFieldError('video')
+  }
+
+  const removeVideo = () => {
+    if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl)
+    setVideoFile(null)
+    setVideoPreviewUrl(null)
+    setVideoDuration(null)
+    setVideoSelfFilmed(false)
+    setVideoProgress(null)
+    setVideoFailed(false)
+    clearFieldError('video')
+    clearFieldError('selfFilmed')
+    if (videoInputRef.current) videoInputRef.current.value = ''
+  }
+
+  // Revoke the clip preview URL on unmount (same pattern as the
+  // photo previews above).
+  const videoPreviewRef = useRef<string | null>(null)
+  videoPreviewRef.current = videoPreviewUrl
+  useEffect(() => {
+    const ref = videoPreviewRef
+    return () => {
+      if (ref.current) URL.revokeObjectURL(ref.current)
+    }
+  }, [])
 
   // Revoke preview object URLs on unmount so long posting sessions
   // don't leak memory (previews are revoked individually on remove).
@@ -661,6 +846,99 @@ function NewListingForm() {
     }
   }
 
+  // ── Native video upload (migration 050) ──
+  // 5/day cap (proposal §4): count today's video posts by this
+  // user. The UTC day boundary is a cap, not a legal boundary.
+  // Pre-050 the video_storage_path column does not exist (42703) —
+  // fall back to counting links only, so the cap never blocks the
+  // publish over a missing column.
+  const checkVideoDailyCap = async (): Promise<boolean> => {
+    if (!user) return false
+    const todayStart = new Date()
+    todayStart.setUTCHours(0, 0, 0, 0)
+    const base = supabase
+      .from('listings')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', todayStart.toISOString())
+    const withNative = await base.or('video_storage_path.not.is.null,video_url.not.is.null')
+    if (!withNative.error) return (withNative.count ?? 0) < VIDEO_MAX_PER_DAY
+    const linksOnly = await base.not('video_url', 'is', null)
+    return (linksOnly.count ?? 0) < VIDEO_MAX_PER_DAY
+  }
+
+  // Upload the picked clip for a live listing: poster frame first,
+  // then the resumable TUS upload, then link the three columns.
+  // Returns true on success. A failure keeps the listing (already
+  // live) and offers a retry — same pattern as photos.
+  const uploadVideoForListing = async (listingId: string): Promise<boolean> => {
+    if (!videoFile || !user) return false
+    try {
+      setVideoProgress({ loaded: 0, total: videoFile.size })
+      const ext = (videoFile.name.split('.').pop() || 'mp4').toLowerCase()
+      const objectPath = `${user.id}/${listingId}/${Date.now()}.${ext}`
+      // Poster frame: captured on-device, stored with the photos so
+      // the feed card and the moderator inbox have a thumbnail.
+      let thumbnailUrl: string | null = null
+      const posterBlob = await captureVideoPoster(videoFile)
+      if (posterBlob) {
+        const posterName = `${user.id}/${listingId}/poster-${Date.now()}.jpg`
+        const { error: posterError } = await supabase.storage
+          .from('listing-images')
+          .upload(posterName, posterBlob, { contentType: 'image/jpeg' })
+        if (!posterError) {
+          thumbnailUrl = supabase.storage.from('listing-images').getPublicUrl(posterName).data.publicUrl
+        }
+      }
+      await uploadVideoResumable({
+        supabase,
+        objectPath,
+        file: videoFile,
+        contentType: videoFile.type || 'video/mp4',
+        onProgress: (p) => setVideoProgress(p),
+      })
+      // Link the clip to the listing. Pre-050 the columns do not
+      // exist — a 42703 here means the clip is stored but unlinked;
+      // the listing stays live, the link is a re-run, not a block.
+      const { error: linkError } = await supabase
+        .from('listings')
+        .update({
+          video_storage_path: objectPath,
+          video_duration_seconds: videoDuration != null ? Math.round(videoDuration) : null,
+          video_thumbnail_url: thumbnailUrl,
+        })
+        .eq('id', listingId)
+      if (linkError) {
+        if (linkError.code === '42703' || linkError.code === 'PGRST204') {
+          console.error('video link skipped (pre-050):', linkError.message)
+        } else {
+          throw linkError
+        }
+      }
+      setVideoProgress(null)
+      return true
+    } catch (err) {
+      console.error('video upload failed:', err)
+      setVideoProgress(null)
+      return false
+    }
+  }
+
+  // Retry only the video that failed to upload for the live listing.
+  const retryVideoUpload = async () => {
+    if (!publishedListingId || !videoFile || !user) return
+    setLoading(true)
+    setError('')
+    const ok = await uploadVideoForListing(publishedListingId)
+    setLoading(false)
+    if (ok) {
+      setVideoFailed(false)
+      router.push(`/listings/${publishedListingId}`)
+    } else {
+      setError('Todavía no se pudo subir el video. Revisa tu conexión e inténtalo de nuevo.')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     // The listing already exists once published — the form must not
@@ -690,6 +968,17 @@ function NewListingForm() {
     setLoading(true)
     setError('')
     setFieldErrors({})
+
+    // Video cap (5/day, migration 050) — checked before the insert
+    // so a blocked post never creates a listing.
+    if (videoFile || videoUrl.trim()) {
+      const underCap = await checkVideoDailyCap()
+      if (!underCap) {
+        setError('Hoy ya publicaste 5 videos. Puedes publicar mañana, o publicar esta noticia sin video.')
+        setLoading(false)
+        return
+      }
+    }
 
     try {
       let metadata = null
@@ -742,6 +1031,8 @@ function NewListingForm() {
         price: finalPrice,
         videoUrl: videoUrl || undefined,
         listingType,
+        hasVideoUpload: !!videoFile,
+        selfFilmed: videoSelfFilmed,
       })
       if (validationError) {
         setError(validationError)
@@ -802,6 +1093,9 @@ function NewListingForm() {
       // The listing exists now: the draft has done its job.
       clearDraft()
       setPublishedListingId(listing.id)
+      // Funnel counter (migration 048): the draft completed. Best
+      // effort — a missing table never blocks the publish.
+      logPostingFunnel(supabase, 'draft_published', listingType)
 
       // WhatsApp opt-in (P1-6): save the number to the profile when
       // the seller asked for it. Best-effort — a failure here never
@@ -844,6 +1138,18 @@ function NewListingForm() {
         }
       }
 
+      // Native video (migration 050): upload after the photos, same
+      // pattern — the listing is already live, a failure offers a
+      // retry for the video only.
+      let videoFailedUpload = false
+      if (videoFile) {
+        const ok = await uploadVideoForListing(listing.id)
+        if (!ok) {
+          videoFailedUpload = true
+          setVideoFailed(true)
+        }
+      }
+
       // Items engine (§8, 034B): tag the listing's offerings through
       // the server route, which enforces ownership, business
       // consistency and attribution. Best-effort like the business
@@ -857,6 +1163,11 @@ function NewListingForm() {
 
       if (imagesFailed) {
         setError('Tu anuncio ya está publicado, pero no se pudieron subir todas las fotos. Revisa tu conexión y reintenta solo las fotos.')
+        setLoading(false)
+        return
+      }
+      if (videoFailedUpload) {
+        setError('Tu anuncio ya está publicado, pero no se pudo subir el video. Revisa tu conexión y reintenta solo el video.')
         setLoading(false)
         return
       }
@@ -883,6 +1194,346 @@ function NewListingForm() {
     () => suggestCategory(title, categories),
     [title, categories],
   )
+
+  // ── Paso 2 field blocks ──
+  // The step bodies are pure render: every piece of state lives in
+  // this component. Field order is the design (proposal §3) — each
+  // type composes the SAME blocks in its own order in the Paso 2
+  // section below, so the B3 suggestion (title + category on the same
+  // step) and every validation message survive the restructure.
+  const titleField = (
+    <div className="space-y-1.5">
+      <Label htmlFor="title" className="text-sm">
+        {listingType === 'news' ? 'Titular' : 'Título'} <span className="text-red-400">*</span>
+      </Label>
+      <Input
+        id="title"
+        value={title}
+        onChange={(e) => { setTitle(e.target.value); clearFieldError('title') }}
+        required
+        maxLength={LISTING_TITLE_MAX}
+        placeholder={config.titlePlaceholder}
+        className="border-gray-300 text-base"
+      />
+      {fieldErrors.title && <p className="text-xs text-red-500">{fieldErrors.title}</p>}
+    </div>
+  )
+
+  const descriptionField = (
+    <div className="space-y-1.5">
+      <Label htmlFor="description" className="text-sm">
+        Descripción {listingType === 'news'
+          ? <span className="text-red-400">*</span>
+          : <span className="text-gray-500 font-normal">(opcional)</span>}
+      </Label>
+      <Textarea
+        id="description"
+        ref={descriptionRef}
+        value={description}
+        onChange={(e) => {
+          setDescription(e.target.value); clearFieldError('description')
+          // News canvas autosave indicator: the draft hook autosaves
+          // silently (debounced 400ms); show the state so the writer
+          // trusts the canvas.
+          setDraftSaveState('saving')
+          if (draftSaveTimerRef.current) clearTimeout(draftSaveTimerRef.current)
+          draftSaveTimerRef.current = setTimeout(() => setDraftSaveState('saved'), 600)
+        }}
+        onInput={listingType === 'news' ? autoGrowDescription : undefined}
+        onFocus={listingType === 'news' ? autoGrowDescription : undefined}
+        required={listingType === 'news'}
+        maxLength={LISTING_DESC_MAX}
+        placeholder={
+          listingType === 'news' && category === 'Objetos Perdidos'
+            ? 'Describe lo que se perdió, dónde y cuándo…'
+            : listingType === 'news'
+              ? '¿Qué pasó? Cuéntalo aquí, o súbelo en video en el siguiente paso.'
+              : config.descPlaceholder
+        }
+        rows={listingType === 'news' ? 8 : 4}
+        className={`border-gray-300 resize-none ${listingType === 'news' ? 'leading-relaxed' : ''}`}
+      />
+      {listingType === 'news' && (
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-gray-500">~{wordCount} {wordCount === 1 ? 'palabra' : 'palabras'}</p>
+          <p className="text-xs text-gray-500">
+            {draftSaveState === 'saving' ? 'Guardando…' : draftSaveState === 'saved' ? 'Guardado ✓' : ''}
+          </p>
+        </div>
+      )}
+      {fieldErrors.description && <p className="text-xs text-red-500">{fieldErrors.description}</p>}
+    </div>
+  )
+
+  const priceField = showPrice ? (
+    <div className="space-y-1.5">
+      <Label htmlFor="price" className="text-sm">
+        Precio {(!priceConsultar && !isFree) && <span className="text-red-400">*</span>}
+      </Label>
+      <div className="flex gap-2">
+        <div className="min-w-0 flex-1">
+          <Input className="border-gray-300"
+            id="price"
+            type="number"
+            step="0.01"
+            min="0"
+            value={price}
+            onChange={(e) => { setPrice(e.target.value); clearFieldError('price') }}
+            required={!priceConsultar && !isFree}
+            disabled={priceConsultar || isFree}
+            placeholder={isFree ? 'Gratis' : priceConsultar ? 'A consultar' : '0.00'}
+          />
+        </div>
+        {/* Currency — MXN default; USD for cars, rent, etc. */}
+        <div className="flex shrink-0 rounded-lg border border-gray-300 bg-white p-0.5" role="group" aria-label="Moneda">
+          {(['MXN', 'USD'] as const).map((cur) => (
+            <button
+              key={cur}
+              type="button"
+              onClick={() => setCurrency(cur)}
+              aria-pressed={currency === cur}
+              className={`px-2.5 py-1.5 rounded-md text-xs font-medium ${currency === cur ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
+            >
+              {cur}
+            </button>
+          ))}
+        </div>
+      </div>
+      {fieldErrors.price && <p className="text-xs text-red-500">{fieldErrors.price}</p>}
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={priceConsultar}
+            onChange={(e) => { setPriceConsultar(e.target.checked); if (e.target.checked) { setPrice(''); setIsFree(false) } }}
+            className="rounded border-gray-300"
+          />
+          Precio a consultar
+        </label>
+        <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={isFree}
+            onChange={(e) => { setIsFree(e.target.checked); if (e.target.checked) { setPrice(''); setPriceConsultar(false) } }}
+            className="rounded border-gray-300"
+          />
+          Gratis
+        </label>
+      </div>
+    </div>
+  ) : null
+
+  const categoryField = storeType === 'general' ? (
+    <div className="space-y-1.5" id="category-field">
+      <Label htmlFor="category" className="text-sm">
+        Categoría <span className="text-red-400">*</span>
+      </Label>
+      <Select value={category} onValueChange={(v) => { setCategory(v); clearFieldError('category') }} required>
+        <SelectTrigger className="border-gray-300">
+          <SelectValue placeholder="Elige una categoría" />
+        </SelectTrigger>
+        <SelectContent>
+          {categories.map((cat) => (
+            <SelectItem key={cat} value={cat}>
+              {t.categories.find(c => c.value === cat)?.label ?? cat}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {/* B3: tappable category suggestion from the title.
+          Only while no category is chosen — tap to fill the
+          Select, ignore it to pick any other category. */}
+      {suggestedCategory && !category && (
+        <button
+          type="button"
+          onClick={() => { setCategory(suggestedCategory); clearFieldError('category') }}
+          className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-gray-50 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-100"
+        >
+          ¿{t.categories.find(c => c.value === suggestedCategory)?.label ?? suggestedCategory}?
+          <span className="text-gray-500">Sugerencia por tu título</span>
+        </button>
+      )}
+      {fieldErrors.category && <p className="text-xs text-red-500">{fieldErrors.category}</p>}
+    </div>
+  ) : storeType === 'real_estate' ? (
+    <div className="space-y-1.5">
+      <Label className="text-sm">Tipo de Operación *</Label>
+      <Select value={transactionType} onValueChange={setTransactionType}>
+        <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="venta">Venta</SelectItem>
+          <SelectItem value="renta">Renta</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  ) : null
+
+  // Fecha y lugar — events only (migration 043). The date is what
+  // the card and the detail page show; the time is optional, and a
+  // date with no time shows as a day only.
+  const eventFields = (
+    <div className="space-y-4">
+      <div>
+        <p className="text-base font-semibold text-gray-900">Fecha y lugar</p>
+        <p className="text-xs text-gray-500 mt-0.5">
+          La fecha se muestra en la tarjeta y en la página del evento. Si no pones hora, solo se muestra el día.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="event-start-date" className="text-sm">
+            Fecha de inicio <span className="text-red-400">*</span>
+          </Label>
+          <Input className="border-gray-300"
+            id="event-start-date"
+            type="date"
+            value={eventStartDate}
+            onChange={(e) => { setEventStartDate(e.target.value); clearFieldError('eventStartDate') }}
+            required
+          />
+          {fieldErrors.eventStartDate && <p className="text-xs text-red-500">{fieldErrors.eventStartDate}</p>}
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="event-start-time" className="text-sm">Hora</Label>
+          <Input className="border-gray-300"
+            id="event-start-time"
+            type="time"
+            value={eventStartTime}
+            onChange={(e) => setEventStartTime(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="event-end-date" className="text-sm">Fecha de término</Label>
+          <Input className="border-gray-300"
+            id="event-end-date"
+            type="date"
+            value={eventEndDate}
+            onChange={(e) => { setEventEndDate(e.target.value); clearFieldError('eventEndDate') }}
+          />
+          {fieldErrors.eventEndDate && <p className="text-xs text-red-500">{fieldErrors.eventEndDate}</p>}
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="event-end-time" className="text-sm">Hora</Label>
+          <Input className="border-gray-300"
+            id="event-end-time"
+            type="time"
+            value={eventEndTime}
+            onChange={(e) => setEventEndTime(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="event-venue" className="text-sm">Lugar / sede</Label>
+        <Input className="border-gray-300"
+          id="event-venue"
+          value={eventVenue}
+          onChange={(e) => setEventVenue(e.target.value)}
+          maxLength={120}
+          placeholder="Ej: Arena Tecate, Unidad Deportiva CREA…"
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="event-ticket-url" className="text-sm">Enlace de boletos</Label>
+        <Input className="border-gray-300"
+          id="event-ticket-url"
+          type="url"
+          inputMode="url"
+          value={eventTicketUrl}
+          onChange={(e) => { setEventTicketUrl(e.target.value); clearFieldError('eventTicketUrl') }}
+          placeholder="https://…"
+        />
+        {fieldErrors.eventTicketUrl && <p className="text-xs text-red-500">{fieldErrors.eventTicketUrl}</p>}
+      </div>
+    </div>
+  )
+
+  // Type-specific fields — only when they apply (real estate /
+  // automotive categories or typed stores).
+  const typeSpecificFields = (isRealEstate || isAutomotive) ? (
+    <div className="space-y-5">
+      <p className="text-base font-semibold text-gray-900">
+        {isRealEstate ? 'Detalles de la propiedad' : 'Detalles del vehículo'}
+      </p>
+      {isRealEstate && (
+        <>
+          <div className="space-y-1.5">
+            <Label className="text-sm">Tipo de Propiedad *</Label>
+            <Select value={propertyType} onValueChange={setPropertyType}>
+              <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="casa">Casa</SelectItem>
+                <SelectItem value="departamento">Departamento</SelectItem>
+                <SelectItem value="terreno">Terreno</SelectItem>
+                <SelectItem value="local">Local Comercial</SelectItem>
+                <SelectItem value="oficina">Oficina</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="space-y-1.5"><Label className="text-sm">Recámaras</Label><Input className="border-gray-300" type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} placeholder="3" /></div>
+            <div className="space-y-1.5"><Label className="text-sm">Baños</Label><Input className="border-gray-300" type="number" min="0" step="0.5" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} placeholder="2" /></div>
+            <div className="space-y-1.5"><Label className="text-sm">Estacionamientos</Label><Input className="border-gray-300" type="number" min="0" value={parkingSpots} onChange={(e) => setParkingSpots(e.target.value)} placeholder="2" /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5"><Label className="text-sm">m² Construidos</Label><Input className="border-gray-300" type="number" min="0" value={constructionM2} onChange={(e) => setConstructionM2(e.target.value)} placeholder="120" /></div>
+            <div className="space-y-1.5"><Label className="text-sm">m² Terreno</Label><Input className="border-gray-300" type="number" min="0" value={lotM2} onChange={(e) => setLotM2(e.target.value)} placeholder="200" /></div>
+          </div>
+        </>
+      )}
+      {isAutomotive && (
+        <div id="auto-fields" className="space-y-5">
+          <div className="space-y-1.5">
+            <Label htmlFor="auto-year" className="text-sm">Año *</Label>
+            <Input className="border-gray-300" id="auto-year" type="number" min="1950" max="2027" value={year} onChange={(e) => { setYear(e.target.value); clearFieldError('year') }} required placeholder="2024" />
+            {fieldErrors.year && <p className="text-xs text-red-500">{fieldErrors.year}</p>}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5"><Label htmlFor="auto-make" className="text-sm">Marca *</Label><Input className="border-gray-300" id="auto-make" value={make} onChange={(e) => { setMake(e.target.value); clearFieldError('make') }} required placeholder="Toyota" />{fieldErrors.make && <p className="text-xs text-red-500">{fieldErrors.make}</p>}</div>
+            <div className="space-y-1.5"><Label htmlFor="auto-model" className="text-sm">Modelo *</Label><Input className="border-gray-300" id="auto-model" value={model} onChange={(e) => { setModel(e.target.value); clearFieldError('model') }} required placeholder="Tacoma" />{fieldErrors.model && <p className="text-xs text-red-500">{fieldErrors.model}</p>}</div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="space-y-1.5"><Label className="text-sm">Kilómetros</Label><Input className="border-gray-300" type="number" min="0" value={mileageKm} onChange={(e) => setMileageKm(e.target.value)} placeholder="45000" /></div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Transmisión</Label>
+              <Select value={transmission} onValueChange={setTransmission}>
+                <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="automatica">Automática</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Combustible</Label>
+              <Select value={fuelType} onValueChange={setFuelType}>
+                <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gasolina">Gasolina</SelectItem>
+                  <SelectItem value="diesel">Diésel</SelectItem>
+                  <SelectItem value="electrico">Eléctrico</SelectItem>
+                  <SelectItem value="hibrido">Híbrido</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5"><Label className="text-sm">Color</Label><Input className="border-gray-300" value={color} onChange={(e) => setColor(e.target.value)} placeholder="Blanco" /></div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Puertas</Label>
+              <Select value={doors} onValueChange={setDoors}>
+                <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="2">2 puertas</SelectItem>
+                  <SelectItem value="4">4 puertas</SelectItem>
+                  <SelectItem value="5">5 puertas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  ) : null
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -912,12 +1563,29 @@ function NewListingForm() {
           )}
         </div>
 
+        {/* 3-step progress — "Paso X de 3" + thin bar. Store users
+            have a fixed type, so they see 2 steps (details, finish). */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-gray-900">Paso {displayStep} de {totalSteps}</p>
+            <p className="text-xs text-gray-500">
+              {displayStep === 1 ? '¿Qué quieres compartir?' : displayStep === 2 ? 'Los datos' : 'Fotos, lugar y publicar'}
+            </p>
+          </div>
+          <div className="h-1 bg-gray-200 rounded-full mt-2">
+            <div
+              className="h-1 bg-gray-900 rounded-full transition-all"
+              style={{ width: `${(displayStep / totalSteps) * 100}%` }}
+            />
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="divide-y divide-gray-200">
 
           {/* ══════════════════════════════════════════════
               TYPE — what are you sharing?
               ══════════════════════════════════════════════ */}
-          {storeType === 'general' && (
+          {storeType === 'general' && step === 1 && (
           <div className="py-6 first:pt-0 space-y-5">
             <div className="space-y-2.5">
               <p className="text-base font-semibold text-gray-900">
@@ -939,6 +1607,9 @@ function NewListingForm() {
                         // Keep the category when it exists in the new
                         // type's list; only clear when it doesn't apply.
                         setCategory((prev) => (prev && categoriesForType(type).includes(prev) ? prev : ''))
+                        // Tapping a type card advances — no separate
+                        // Siguiente tap on Paso 1.
+                        goToStep(2, type)
                       }}
                       className={`
                         relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all
@@ -970,6 +1641,9 @@ function NewListingForm() {
                         setListingType(shortcut.type)
                         clearFieldError('description')
                         setCategory(shortcut.category)
+                        // A shortcut sets type + category in one tap
+                        // and jumps straight to Paso 2.
+                        goToStep(2, shortcut.type)
                       }}
                       className={`
                         inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium
@@ -991,10 +1665,21 @@ function NewListingForm() {
           )}
 
           {/* ══════════════════════════════════════════════
-              PHOTOS — visual first
+              PASO 3 — Fotos, lugar y publicar
+              (photos first, then card color below)
               ══════════════════════════════════════════════ */}
+          {effectiveStep === 3 && (
+          <>
+          {/* PHOTOS + VIDEO — visual first. The section is "Fotos y
+              video" (migration 050): photos as before, then one
+              native clip for news, then the link field moved out of
+              the collapsed extras. */}
           <div className="py-6 first:pt-0">
-            <p className="text-base font-semibold text-gray-900 mb-3">Fotos</p>
+            <p className="text-base font-semibold text-gray-900 mb-3">
+              Fotos y video {(listingType === 'news' || listingType === 'event') && (
+                <span className="text-gray-500 font-normal text-sm">(opcional)</span>
+              )}
+            </p>
             <div
               onDrop={handleDrop}
               onDragOver={handleDragOver}
@@ -1086,6 +1771,122 @@ function NewListingForm() {
                 </div>
               </div>
             )}
+
+            {/* NATIVE VIDEO — news only (migration 050). One clip per
+                post, <=60s / <=50MB, uploaded with the TUS resumable
+                path so a dropped connection resumes instead of
+                restarting. No `capture` attribute: the picker must
+                offer the library, not force the camera (PR #99). */}
+            {listingType === 'news' && (
+              <div className="mt-5 space-y-2" id="video-field">
+                <Label className="text-sm flex items-center gap-1.5">
+                  <Video className="h-3.5 w-3.5 text-gray-500" />
+                  Video <span className="text-gray-500 font-normal">(opcional)</span>
+                </Label>
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept="video/mp4,video/quicktime,video/webm"
+                  onChange={handleVideoChange}
+                  className="hidden"
+                />
+                {!videoFile ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => videoInputRef.current?.click()}
+                      className="w-full rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100/50 transition-all px-4 py-6 flex flex-col items-center gap-1"
+                    >
+                      <Video className="h-6 w-6 text-gray-500" />
+                      <span className="text-sm font-medium text-gray-700">Graba o elige un video</span>
+                      <span className="text-xs text-gray-500">Hasta 60 segundos · 50 MB · MP4, MOV o WebM</span>
+                    </button>
+                    {videoUrl.trim() && (
+                      <p className="text-[11px] text-gray-500">
+                        Ya pegaste un enlace de video abajo — quítalo para subir un clip en su lugar.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-2">
+                    {videoPreviewUrl && (
+                      <video src={videoPreviewUrl} controls playsInline preload="metadata" className="w-full rounded-lg bg-black max-h-64" />
+                    )}
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-gray-500 truncate">
+                        {videoFile.name}
+                        {videoDuration != null && ` · ${formatVideoDuration(videoDuration) ?? ''}`}
+                        {` · ${formatVideoSize(videoFile.size)}`}
+                      </p>
+                      <button type="button" onClick={removeVideo} className="text-xs text-gray-500 underline shrink-0">
+                        Quitar
+                      </button>
+                    </div>
+                    {videoProgress && (
+                      <div>
+                        <p className="text-xs text-gray-500">
+                          Subiendo video {Math.round((videoProgress.loaded / videoProgress.total) * 100)}%…
+                        </p>
+                        <div className="h-1 bg-gray-200 rounded-full mt-1.5">
+                          <div
+                            className="h-1 bg-gray-900 rounded-full transition-all"
+                            style={{ width: `${(videoProgress.loaded / videoProgress.total) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer select-none" id="video-self-filmed">
+                      <input
+                        type="checkbox"
+                        checked={videoSelfFilmed}
+                        onChange={(e) => { setVideoSelfFilmed(e.target.checked); clearFieldError('selfFilmed') }}
+                        className="rounded border-gray-300 mt-0.5"
+                      />
+                      Lo grabé yo mismo
+                    </label>
+                    {fieldErrors.selfFilmed && <p className="text-xs text-red-500">{fieldErrors.selfFilmed}</p>}
+                    <p className="text-[11px] text-gray-500">
+                      El video se publica con tu nombre. Si sales del formulario, el video no se guarda en el borrador — lo eliges de nuevo.
+                    </p>
+                  </div>
+                )}
+                {fieldErrors.video && <p className="text-xs text-red-500">{fieldErrors.video}</p>}
+              </div>
+            )}
+
+            {/* VIDEO LINK — moved out of the collapsed extras
+                (migration 050): a video that already lives elsewhere
+                is the alternative to uploading a clip, never both. */}
+            <div className="mt-5 space-y-1.5">
+              <Label htmlFor="videoUrl" className="flex items-center gap-1.5 text-sm">
+                <Video className="h-3.5 w-3.5 text-gray-500" />
+                O pega un enlace de video
+              </Label>
+              <Input className="border-gray-300"
+                id="videoUrl"
+                type="url"
+                value={videoUrl}
+                onChange={(e) => { setVideoUrl(e.target.value); clearFieldError('videoUrl') }}
+                onBlur={() => {
+                  if (!videoUrl.trim()) { clearFieldError('videoUrl'); return }
+                  try {
+                    const host = new URL(videoUrl.trim()).hostname.replace(/^www\./, '')
+                    if (!/(youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com)$/.test(host)) {
+                      setFieldErrors((prev) => ({ ...prev, videoUrl: 'Pega un enlace válido de YouTube, Facebook o TikTok' }))
+                    } else {
+                      clearFieldError('videoUrl')
+                    }
+                  } catch {
+                    setFieldErrors((prev) => ({ ...prev, videoUrl: 'El enlace de video no es válido' }))
+                  }
+                }}
+                placeholder="https://youtube.com/watch?v=... o link de Facebook/TikTok"
+              />
+              {fieldErrors.videoUrl && <p className="text-xs text-red-500">{fieldErrors.videoUrl}</p>}
+              <p className="text-[11px] text-gray-500">
+                YouTube, Facebook o TikTok — en lugar de subir un clip.
+              </p>
+            </div>
           </div>
 
           {/* Title-card color — news/event only. The card only renders
@@ -1114,241 +1915,56 @@ function NewListingForm() {
               </div>
             </div>
           )}
-
-          {/* Fecha y lugar — events only (migration 043). The date is
-              what the card and the detail page show; the time is
-              optional, and a date with no time shows as a day only. */}
-          {listingType === 'event' && (
-            <div className="py-6 first:pt-0 space-y-4">
-              <div>
-                <p className="text-base font-semibold text-gray-900">Fecha y lugar</p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  La fecha se muestra en la tarjeta y en la página del evento. Si no pones hora, solo se muestra el día.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="event-start-date" className="text-sm">
-                    Fecha de inicio <span className="text-red-400">*</span>
-                  </Label>
-                  <Input className="border-gray-300"
-                    id="event-start-date"
-                    type="date"
-                    value={eventStartDate}
-                    onChange={(e) => { setEventStartDate(e.target.value); clearFieldError('eventStartDate') }}
-                    required
-                  />
-                  {fieldErrors.eventStartDate && <p className="text-xs text-red-500">{fieldErrors.eventStartDate}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="event-start-time" className="text-sm">Hora</Label>
-                  <Input className="border-gray-300"
-                    id="event-start-time"
-                    type="time"
-                    value={eventStartTime}
-                    onChange={(e) => setEventStartTime(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="event-end-date" className="text-sm">Fecha de término</Label>
-                  <Input className="border-gray-300"
-                    id="event-end-date"
-                    type="date"
-                    value={eventEndDate}
-                    onChange={(e) => { setEventEndDate(e.target.value); clearFieldError('eventEndDate') }}
-                  />
-                  {fieldErrors.eventEndDate && <p className="text-xs text-red-500">{fieldErrors.eventEndDate}</p>}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="event-end-time" className="text-sm">Hora</Label>
-                  <Input className="border-gray-300"
-                    id="event-end-time"
-                    type="time"
-                    value={eventEndTime}
-                    onChange={(e) => setEventEndTime(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="event-venue" className="text-sm">Lugar / sede</Label>
-                <Input className="border-gray-300"
-                  id="event-venue"
-                  value={eventVenue}
-                  onChange={(e) => setEventVenue(e.target.value)}
-                  maxLength={120}
-                  placeholder="Ej: Arena Tecate, Unidad Deportiva CREA…"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="event-ticket-url" className="text-sm">Enlace de boletos</Label>
-                <Input className="border-gray-300"
-                  id="event-ticket-url"
-                  type="url"
-                  inputMode="url"
-                  value={eventTicketUrl}
-                  onChange={(e) => { setEventTicketUrl(e.target.value); clearFieldError('eventTicketUrl') }}
-                  placeholder="https://…"
-                />
-                {fieldErrors.eventTicketUrl && <p className="text-xs text-red-500">{fieldErrors.eventTicketUrl}</p>}
-              </div>
-            </div>
+          </>
           )}
 
           {/* ══════════════════════════════════════════════
-              CORE DETAILS — title, description, price, category
+              PASO 2 — Los datos (type-specific — field order is
+              the design: product in Marketplace order, event
+              date-first, news writing-first)
               ══════════════════════════════════════════════ */}
+          {effectiveStep === 2 && (
           <div className="py-6 first:pt-0 space-y-5">
-            <p className="text-base font-semibold text-gray-900">Detalles</p>
-            {/* Title */}
-            <div className="space-y-1.5">
-              <Label htmlFor="title" className="text-sm">
-                {listingType === 'news' ? 'Titular' : 'Título'} <span className="text-red-400">*</span>
-              </Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => { setTitle(e.target.value); clearFieldError('title') }}
-                required
-                maxLength={LISTING_TITLE_MAX}
-                placeholder={config.titlePlaceholder}
-                className="border-gray-300 text-base"
-              />
-              {fieldErrors.title && <p className="text-xs text-red-500">{fieldErrors.title}</p>}
-            </div>
-
-            {/* Description — required only for news (B2); optional
-                for product / service / event. */}
-            <div className="space-y-1.5">
-              <Label htmlFor="description" className="text-sm">
-                Descripción {listingType === 'news'
-                  ? <span className="text-red-400">*</span>
-                  : <span className="text-gray-500 font-normal">(opcional)</span>}
-              </Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => { setDescription(e.target.value); clearFieldError('description') }}
-                required={listingType === 'news'}
-                maxLength={LISTING_DESC_MAX}
-                placeholder={config.descPlaceholder}
-                rows={listingType === 'news' ? 6 : 4}
-                className="border-gray-300 resize-none"
-              />
-              {fieldErrors.description && <p className="text-xs text-red-500">{fieldErrors.description}</p>}
-            </div>
-
-            {/* Price + Category row (contextual) */}
-            <div className={`grid gap-4 ${showPrice ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-              {/* Price — only for non-news */}
-              {showPrice && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="price" className="text-sm">
-                    Precio {(!priceConsultar && !isFree) && <span className="text-red-400">*</span>}
-                  </Label>
-                  <div className="flex gap-2">
-                    <div className="min-w-0 flex-1">
-                      <Input className="border-gray-300"
-                        id="price"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={price}
-                        onChange={(e) => { setPrice(e.target.value); clearFieldError('price') }}
-                        required={!priceConsultar && !isFree}
-                        disabled={priceConsultar || isFree}
-                        placeholder={isFree ? 'Gratis' : priceConsultar ? 'A consultar' : '0.00'}
-                      />
-                    </div>
-                    {/* Currency — MXN default; USD for cars, rent, etc. */}
-                    <div className="flex shrink-0 rounded-lg border border-gray-300 bg-white p-0.5" role="group" aria-label="Moneda">
-                      {(['MXN', 'USD'] as const).map((cur) => (
-                        <button
-                          key={cur}
-                          type="button"
-                          onClick={() => setCurrency(cur)}
-                          aria-pressed={currency === cur}
-                          className={`px-2.5 py-1.5 rounded-md text-xs font-medium ${currency === cur ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
-                        >
-                          {cur}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {fieldErrors.price && <p className="text-xs text-red-500">{fieldErrors.price}</p>}
-                  <div className="flex flex-wrap gap-x-4 gap-y-1">
-                    <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={priceConsultar}
-                        onChange={(e) => { setPriceConsultar(e.target.checked); if (e.target.checked) { setPrice(''); setIsFree(false) } }}
-                        className="rounded border-gray-300"
-                      />
-                      Precio a consultar
-                    </label>
-                    <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={isFree}
-                        onChange={(e) => { setIsFree(e.target.checked); if (e.target.checked) { setPrice(''); setPriceConsultar(false) } }}
-                        className="rounded border-gray-300"
-                      />
-                      Gratis
-                    </label>
-                  </div>
+            <p className="text-base font-semibold text-gray-900">Los datos</p>
+            {listingType === 'event' ? (
+              <>
+                {titleField}
+                {eventFields}
+                {/* Price is kept for events (the current form collects
+                    it) even though the proposal's event order omits
+                    it — dropping the field would change the submit
+                    payload. It sits after the ticket link. */}
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+                  {priceField}
+                  {categoryField}
                 </div>
-              )}
-
-              {/* Category */}
-              {storeType === 'general' ? (
-                <div className="space-y-1.5" id="category-field">
-                  <Label htmlFor="category" className="text-sm">
-                    Categoría <span className="text-red-400">*</span>
-                  </Label>
-                  <Select value={category} onValueChange={(v) => { setCategory(v); clearFieldError('category') }} required>
-                    <SelectTrigger className="border-gray-300">
-                      <SelectValue placeholder="Elige una categoría" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
-                          {t.categories.find(c => c.value === cat)?.label ?? cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {/* B3: tappable category suggestion from the title.
-                      Only while no category is chosen — tap to fill the
-                      Select, ignore it to pick any other category. */}
-                  {suggestedCategory && !category && (
-                    <button
-                      type="button"
-                      onClick={() => { setCategory(suggestedCategory); clearFieldError('category') }}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-gray-50 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-100"
-                    >
-                      ¿{t.categories.find(c => c.value === suggestedCategory)?.label ?? suggestedCategory}?
-                      <span className="text-gray-500">Sugerencia por tu título</span>
-                    </button>
-                  )}
-                  {fieldErrors.category && <p className="text-xs text-red-500">{fieldErrors.category}</p>}
+                {descriptionField}
+              </>
+            ) : listingType === 'news' ? (
+              <>
+                {titleField}
+                {descriptionField}
+                {categoryField}
+              </>
+            ) : (
+              <>
+                {titleField}
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+                  {priceField}
+                  {categoryField}
                 </div>
-              ) : storeType === 'real_estate' ? (
-                <div className="space-y-1.5">
-                  <Label className="text-sm">Tipo de Operación *</Label>
-                  <Select value={transactionType} onValueChange={setTransactionType}>
-                    <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="venta">Venta</SelectItem>
-                      <SelectItem value="renta">Renta</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : null}
-            </div>
+                {descriptionField}
+                {typeSpecificFields}
+              </>
+            )}
           </div>
+          )}
 
           {/* ══════════════════════════════════════════════
               LOCATION
               ══════════════════════════════════════════════ */}
+          {effectiveStep === 3 && (
+          <>
           <div className="py-6 first:pt-0 space-y-4">
             <p className="text-base font-semibold text-gray-900">Ubicación</p>
             <LocationPicker
@@ -1403,102 +2019,14 @@ function NewListingForm() {
             )}
           </div>
           )}
-
-          {/* ══════════════════════════════════════════════
-              TYPE-SPECIFIC FIELDS — only when they apply
-              ══════════════════════════════════════════════ */}
-          {(isRealEstate || isAutomotive) && (
-          <div className="py-6 first:pt-0 space-y-5">
-            <p className="text-base font-semibold text-gray-900">
-              {isRealEstate ? 'Detalles de la propiedad' : 'Detalles del vehículo'}
-            </p>
-            {/* Real Estate Fields — only for real-estate categories/stores */}
-            {isRealEstate && (
-              <>
-                <div className="space-y-1.5">
-                  <Label className="text-sm">Tipo de Propiedad *</Label>
-                  <Select value={propertyType} onValueChange={setPropertyType}>
-                    <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="casa">Casa</SelectItem>
-                      <SelectItem value="departamento">Departamento</SelectItem>
-                      <SelectItem value="terreno">Terreno</SelectItem>
-                      <SelectItem value="local">Local Comercial</SelectItem>
-                      <SelectItem value="oficina">Oficina</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="space-y-1.5"><Label className="text-sm">Recámaras</Label><Input className="border-gray-300" type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} placeholder="3" /></div>
-                  <div className="space-y-1.5"><Label className="text-sm">Baños</Label><Input className="border-gray-300" type="number" min="0" step="0.5" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} placeholder="2" /></div>
-                  <div className="space-y-1.5"><Label className="text-sm">Estacionamientos</Label><Input className="border-gray-300" type="number" min="0" value={parkingSpots} onChange={(e) => setParkingSpots(e.target.value)} placeholder="2" /></div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5"><Label className="text-sm">m² Construidos</Label><Input className="border-gray-300" type="number" min="0" value={constructionM2} onChange={(e) => setConstructionM2(e.target.value)} placeholder="120" /></div>
-                  <div className="space-y-1.5"><Label className="text-sm">m² Terreno</Label><Input className="border-gray-300" type="number" min="0" value={lotM2} onChange={(e) => setLotM2(e.target.value)} placeholder="200" /></div>
-                </div>
-              </>
-            )}
-
-            {/* Automotive Fields — only for vehicles */}
-            {isAutomotive && (
-              <div id="auto-fields" className="space-y-5">
-                <div className="space-y-1.5">
-                  <Label htmlFor="auto-year" className="text-sm">Año *</Label>
-                  <Input className="border-gray-300" id="auto-year" type="number" min="1950" max="2027" value={year} onChange={(e) => { setYear(e.target.value); clearFieldError('year') }} required placeholder="2024" />
-                  {fieldErrors.year && <p className="text-xs text-red-500">{fieldErrors.year}</p>}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5"><Label htmlFor="auto-make" className="text-sm">Marca *</Label><Input className="border-gray-300" id="auto-make" value={make} onChange={(e) => { setMake(e.target.value); clearFieldError('make') }} required placeholder="Toyota" />{fieldErrors.make && <p className="text-xs text-red-500">{fieldErrors.make}</p>}</div>
-                  <div className="space-y-1.5"><Label htmlFor="auto-model" className="text-sm">Modelo *</Label><Input className="border-gray-300" id="auto-model" value={model} onChange={(e) => { setModel(e.target.value); clearFieldError('model') }} required placeholder="Tacoma" />{fieldErrors.model && <p className="text-xs text-red-500">{fieldErrors.model}</p>}</div>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="space-y-1.5"><Label className="text-sm">Kilómetros</Label><Input className="border-gray-300" type="number" min="0" value={mileageKm} onChange={(e) => setMileageKm(e.target.value)} placeholder="45000" /></div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm">Transmisión</Label>
-                    <Select value={transmission} onValueChange={setTransmission}>
-                      <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="automatica">Automática</SelectItem>
-                        <SelectItem value="manual">Manual</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm">Combustible</Label>
-                    <Select value={fuelType} onValueChange={setFuelType}>
-                      <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="gasolina">Gasolina</SelectItem>
-                        <SelectItem value="diesel">Diésel</SelectItem>
-                        <SelectItem value="electrico">Eléctrico</SelectItem>
-                        <SelectItem value="hibrido">Híbrido</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5"><Label className="text-sm">Color</Label><Input className="border-gray-300" value={color} onChange={(e) => setColor(e.target.value)} placeholder="Blanco" /></div>
-                  <div className="space-y-1.5">
-                    <Label className="text-sm">Puertas</Label>
-                    <Select value={doors} onValueChange={setDoors}>
-                      <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="2">2 puertas</SelectItem>
-                        <SelectItem value="4">4 puertas</SelectItem>
-                        <SelectItem value="5">5 puertas</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          </>
           )}
 
           {/* ══════════════════════════════════════════════
               EXTRAS (collapsible — reduce overwhelm)
               ══════════════════════════════════════════════ */}
+          {effectiveStep === 3 && (
+          <>
           <div className="py-6 first:pt-0">
             <button
               type="button"
@@ -1516,38 +2044,6 @@ function NewListingForm() {
 
             {showAdvanced && (
               <div className="pb-2 space-y-5 border-t border-gray-200 pt-4">
-                {/* Video URL */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="videoUrl" className="flex items-center gap-1.5 text-sm">
-                    <Video className="h-3.5 w-3.5 text-gray-500" />
-                    Video
-                  </Label>
-                  <Input className="border-gray-300"
-                    id="videoUrl"
-                    type="url"
-                    value={videoUrl}
-                    onChange={(e) => { setVideoUrl(e.target.value); clearFieldError('videoUrl') }}
-                    onBlur={() => {
-                      if (!videoUrl.trim()) { clearFieldError('videoUrl'); return }
-                      try {
-                        const host = new URL(videoUrl.trim()).hostname.replace(/^www\./, '')
-                        if (!/(youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com)$/.test(host)) {
-                          setFieldErrors((prev) => ({ ...prev, videoUrl: 'Pega un enlace válido de YouTube, Facebook o TikTok' }))
-                        } else {
-                          clearFieldError('videoUrl')
-                        }
-                      } catch {
-                        setFieldErrors((prev) => ({ ...prev, videoUrl: 'El enlace de video no es válido' }))
-                      }
-                    }}
-                    placeholder="https://youtube.com/watch?v=... o link de Facebook/TikTok"
-                  />
-                  {fieldErrors.videoUrl && <p className="text-xs text-red-500">{fieldErrors.videoUrl}</p>}
-                  <p className="text-[11px] text-gray-500">
-                    Pega un enlace de YouTube, Facebook o TikTok
-                  </p>
-                </div>
-
                 {/* Business Tag */}
                 <BusinessTagPicker
                   value={taggedBusiness}
@@ -1572,6 +2068,18 @@ function NewListingForm() {
               </div>
             )}
           </div>
+
+          {/* Review line — one line, Eventbrite's preview lesson in
+              miniature: "Evento · Jazz en el CEART · 12 nov". The
+              cheapest possible check against a wrong-type or
+              wrong-date mistake before it goes live. */}
+          <div className="py-4">
+            <p className="text-sm text-gray-700">
+              Vas a publicar: <span className="font-medium text-gray-900">{reviewLine}</span>
+            </p>
+          </div>
+          </>
+          )}
 
           {/* ══════════════════════════════════════════════
               STICKY PUBLISH BAR — the action is always visible
@@ -1605,6 +2113,19 @@ function NewListingForm() {
                     </button>
                   </div>
                 )}
+                {videoFailed && (
+                  <div className="text-sm bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 text-gray-700 mb-3">
+                    Falta el video por subir.
+                    <button
+                      type="button"
+                      onClick={retryVideoUpload}
+                      disabled={loading}
+                      className="ml-2 underline font-medium"
+                    >
+                      Reintentar video
+                    </button>
+                  </div>
+                )}
                 {error && (
                   <div className="text-sm text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl mb-3">
                     {error}
@@ -1627,16 +2148,51 @@ function NewListingForm() {
                   </div>
                 )}
                 <div className="flex gap-3">
-                  <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading} className="h-12 px-5 rounded-xl">
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={loading} className="flex-1 h-12 text-base font-medium rounded-xl">
-                    {loading
-                      ? uploadProgress
-                        ? `Subiendo ${uploadProgress.done + 1} de ${uploadProgress.total}…`
-                        : 'Publicando...'
-                      : 'Publicar'}
-                  </Button>
+                  {/* Paso 1: type cards advance by tapping — the
+                      Siguiente here is only a fallback for anyone
+                      who misses that the cards are tappable. */}
+                  {effectiveStep === 1 && (
+                    <>
+                      <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading} className="h-12 px-5 rounded-xl">
+                        Cancelar
+                      </Button>
+                      <Button type="button" onClick={() => goToStep(2)} disabled={loading} className="flex-1 h-12 text-base font-medium rounded-xl">
+                        Siguiente
+                      </Button>
+                    </>
+                  )}
+                  {/* Paso 2: Atrás returns to the type picker (general
+                      users only — store users never see Paso 1);
+                      Siguiente validates only this step's fields. */}
+                  {effectiveStep === 2 && (
+                    <>
+                      {storeType === 'general' && (
+                        <Button type="button" variant="outline" onClick={() => goToStep(1)} disabled={loading} className="h-12 px-5 rounded-xl">
+                          Atrás
+                        </Button>
+                      )}
+                      <Button type="button" onClick={handleNextFromStep2} disabled={loading} className="flex-1 h-12 text-base font-medium rounded-xl">
+                        Siguiente
+                      </Button>
+                    </>
+                  )}
+                  {/* Paso 3: the publish action, same as before. */}
+                  {effectiveStep === 3 && (
+                    <>
+                      <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading} className="h-12 px-5 rounded-xl">
+                        Cancelar
+                      </Button>
+                      <Button type="submit" disabled={loading} className="flex-1 h-12 text-base font-medium rounded-xl">
+                        {loading
+                          ? videoProgress
+                            ? `Subiendo video ${Math.round((videoProgress.loaded / videoProgress.total) * 100)}%…`
+                            : uploadProgress
+                              ? `Subiendo ${uploadProgress.done + 1} de ${uploadProgress.total}…`
+                              : 'Publicando...'
+                          : 'Publicar'}
+                      </Button>
+                    </>
+                  )}
                 </div>
               </>
             )}

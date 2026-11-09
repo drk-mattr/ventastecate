@@ -16,6 +16,14 @@ import { LOCATION_OPTIONS, LOCATION_COOKIE } from '@/lib/business-regions'
 // header and every browsable feed follows it. Persisted in a cookie so
 // server components can read it; a ?region= param on /businesses still
 // overrides it for that shared link only.
+//
+// Since the 2026-11-09 header cleanup this lives INSIDE the search
+// bar (HeaderSearch) as its leading segment — pin + town + divider —
+// instead of taking its own slot in the header. The trigger is a
+// plain button (type="button") so it never submits the search form,
+// and the menu is a Radix portal, so the form's overflow-hidden
+// never clips it. The menu aligns start (it opens rightward from
+// the bar's left edge) instead of end.
 export function LocationSelector() {
   const router = useRouter()
   const [selected, setSelected] = useState('Tecate')
@@ -38,16 +46,23 @@ export function LocationSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 px-2 gap-1 text-xs text-gray-700 hover:text-gray-900" aria-label="Ubicación" title="Ubicación">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-full px-2.5 gap-1 text-xs text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-none border-r border-gray-200 shrink-0"
+          aria-label="Ubicación"
+          title="Ubicación"
+        >
           <MapPin className="h-4 w-4 shrink-0" />
           {/* Town name visible on mobile too (was hidden sm:inline):
               OfferUp shows the town beside search — the name is the
               control here, not just a pin. Truncated so long names
-              (Valle de Guadalupe) don't squeeze the bell/avatar. */}
+              (Valle de Guadalupe) don't squeeze the search input. */}
           <span className="max-w-[110px] truncate">{selected}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="start" className="w-48">
         {LOCATION_OPTIONS.map((o) => (
           <DropdownMenuItem key={o.label} onClick={() => select(o.label)} className="text-xs flex items-center justify-between">
             <span>{o.label}</span>

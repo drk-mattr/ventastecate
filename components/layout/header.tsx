@@ -8,10 +8,9 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import { useReportModal } from '@/lib/report/report-modal-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
-import { useUnreadMessages } from '@/lib/hooks/use-unread-messages'
 import { Button } from '@/components/ui/button'
 import { HeaderSearch } from '@/components/search/header-search'
-import { LocationSelector } from '@/components/layout/location-selector'
+import { GaritaHeaderChip } from '@/components/border/garita-header-chip'
 import { NotificationBell } from '@/components/layout/notification-bell'
 import { MobileSidebar } from '@/components/layout/mobile-sidebar'
 import {
@@ -22,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Check, CircleUserRound, Store, User, Menu, UserCircle, Tag, MessageCircle } from 'lucide-react'
+import { Check, CircleUserRound, Store, User, Menu, UserCircle, Tag } from 'lucide-react'
 
 export function Header() {
   const { user, profile, stores, activeStore, setActiveStore, signOut, loading, recentStoreIds } = useAuth()
@@ -37,9 +36,6 @@ export function Header() {
     pathname === '/businesses' || (pathname?.startsWith('/businesses/') ?? false)
   const t = useTranslations()
   const [menuOpen, setMenuOpen] = useState(false)
-  // Shared unread count (useUnreadMessages): the same value the
-  // mobile bottom-bar Mensajes tab shows, so both badges agree.
-  const unreadMessages = useUnreadMessages()
 
   // Keep the avatar dropdown clean: surface the active store + the most recent
   // few, and push the rest behind a link to the full "Mis Tiendas" page so the
@@ -98,24 +94,25 @@ export function Header() {
           <Link href="/businesses" className="hidden sm:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900">
             Negocios
           </Link>
-          <Link href="/garita" className="hidden sm:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900">
-            Garita
-          </Link>
         </div>
 
         {/* Search lives in the nav bar on every page except business
             views, including the homepage — the old big hero search was
-            removed 2026-11-04. */}
+            removed 2026-11-04. The Garita chip rides in this same
+            cluster, immediately right of the search bar (desktop
+            only), so it hides together with the search on business
+            views — business pages keep their clean header, and the
+            avatar dropdown still links Garita there. */}
         {!hideHeaderSearch && (
-          <div className="order-3 sm:order-2 basis-full sm:basis-auto flex-1 min-w-0 mt-2 sm:mt-0">
+          <div className="order-3 sm:order-2 basis-full sm:basis-auto flex-1 min-w-0 mt-2 sm:mt-0 flex items-center gap-3">
             <Suspense fallback={<div className="flex-1 max-w-2xl mx-4" />}>
               <HeaderSearch />
             </Suspense>
+            <GaritaHeaderChip />
           </div>
         )}
 
         <div className="order-2 sm:order-3 flex items-center gap-2 shrink-0">
-          <LocationSelector />
           {loading ? null : user ? (
             <>
               {/* Publish CTA — same orange pill as the homepage, not an outline button,
@@ -123,19 +120,12 @@ export function Header() {
               <Button asChild size="sm" className="hidden md:inline-flex h-8 px-4 text-xs font-semibold rounded-full bg-orange-600 hover:bg-orange-700 text-white">
                 <Link href="/listings/new">{t.nav.publish}</Link>
               </Button>
-              {/* Quick-access icons (desktop; mobile uses the bottom action bar) */}
+              {/* Quick-access icons (desktop; mobile uses the bottom action bar).
+                  Messages + notifications live in ONE bell now (see
+                  NotificationBell): a single badge, one panel with
+                  Mensajes on top and Notificaciones below. */}
               <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex h-8 w-8 text-gray-600 hover:text-gray-900" aria-label={t.nav.myListings} title={t.nav.myListings}>
                 <Link href="/my-listings"><Tag className="h-[18px] w-[18px]" /></Link>
-              </Button>
-              <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex h-8 w-8 text-gray-600 hover:text-gray-900 relative" aria-label={t.nav.messages} title={t.nav.messages}>
-                <Link href="/messages">
-                  <MessageCircle className="h-[18px] w-[18px]" />
-                  {unreadMessages > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-gray-900 text-white text-[10px] font-semibold flex items-center justify-center">
-                      {unreadMessages > 99 ? '99+' : unreadMessages}
-                    </span>
-                  )}
-                </Link>
               </Button>
               <NotificationBell />
               {activeStore && (

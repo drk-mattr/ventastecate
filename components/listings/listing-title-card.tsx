@@ -38,8 +38,14 @@ export function ListingTitleCard({
       className={`flex flex-col items-center justify-center overflow-hidden ${className}`}
       style={{ backgroundColor: color.hex }}
     >
+      {/* w-full on both text lines: the clamped text is a flex item,
+          and without a width pin its line box can lay out wider than
+          the card, so long titles get hard-clipped mid-word at the
+          card edge instead of wrapping cleanly (observed on the
+          Gastronómico title card, 2026-11-09). w-full pins the line
+          box to the card width; centering is unchanged. */}
       <p
-        className={`text-white font-bold text-center leading-snug ${
+        className={`w-full text-white font-bold text-center leading-snug ${
           size === 'hero'
             ? 'text-2xl sm:text-3xl line-clamp-4 px-6 py-8'
             : 'text-base line-clamp-4 px-3'
@@ -48,7 +54,7 @@ export function ListingTitleCard({
         {title}
       </p>
       {subtitle && size === 'card' && (
-        <p className="mt-1.5 px-3 text-center text-xs font-medium leading-snug text-white/80 line-clamp-2">
+        <p className="mt-1.5 px-3 w-full text-center text-xs font-medium leading-snug text-white/80 line-clamp-2">
           {subtitle}
         </p>
       )}

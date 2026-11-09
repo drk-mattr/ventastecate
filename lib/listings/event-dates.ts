@@ -160,6 +160,34 @@ export function isEventPast(
 }
 
 /**
+ * True when a listing is a past event — the archive rule's predicate.
+ * Only `listing_type === 'event'` rows can be archived; every other
+ * type is never past, and an event with no dates at all stays visible
+ * (fail open — never hide for missing data). The "past" test is the
+ * same `isEventPast` the Terminado chip uses, so the feed and the
+ * chip can never disagree about an event.
+ */
+export function isArchivedEvent(
+  listing: EventFields & { listing_type?: string | null },
+  now = Date.now(),
+): boolean {
+  if (listing.listing_type !== 'event') return false
+  return isEventPast(listing.event_starts_at ?? null, listing.event_ends_at ?? null, now)
+}
+
+/**
+ * Drop past events from a list (home feed, trending strip). Returns a
+ * new array; the input is untouched. Computes `now` once so every row
+ * in the list is judged against the same instant.
+ */
+export function excludePastEvents<T extends EventFields & { listing_type?: string | null }>(
+  listings: T[],
+): T[] {
+  const now = Date.now()
+  return listings.filter((l) => !isArchivedEvent(l, now))
+}
+
+/**
  * Upcoming-first ordering for event-filtered views: upcoming events
  * by start date, then undated (newest first), then past events
  * (most recent first). Pre-043 every row is undated, so the result

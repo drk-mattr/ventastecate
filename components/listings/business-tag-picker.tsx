@@ -127,20 +127,20 @@ export function BusinessTagPicker({ value, onChange, location, category }: Busin
           <Store className="h-3.5 w-3.5 text-gray-500" />
           Negocio / Restaurante
         </Label>
-        <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-md px-3 py-2">
-          <Store className="h-4 w-4 text-orange-600 shrink-0" />
-          <span className="text-sm font-medium text-orange-900 flex-1 truncate">
+        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md px-3 py-2">
+          <Store className="h-4 w-4 text-gray-500 shrink-0" />
+          <span className="text-sm font-medium text-gray-900 flex-1 truncate">
             {value.name}
           </span>
           {value.mention_count > 0 && (
-            <span className="text-[10px] text-orange-500 bg-orange-100 px-1.5 py-0.5 rounded-full">
+            <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
               {value.mention_count} {value.mention_count === 1 ? 'mención' : 'menciones'}
             </span>
           )}
           <button
             type="button"
             onClick={clearSelection}
-            className="text-orange-400 hover:text-orange-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -208,15 +208,15 @@ export function BusinessTagPicker({ value, onChange, location, category }: Busin
               type="button"
               onClick={createAndSelect}
               disabled={creating}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-orange-50 transition-colors bg-gray-50 border-t border-gray-100"
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-gray-50 transition-colors bg-gray-50 border-t border-gray-100"
             >
               {creating ? (
-                <Loader2 className="h-4 w-4 text-orange-500 animate-spin shrink-0" />
+                <Loader2 className="h-4 w-4 text-gray-500 animate-spin shrink-0" />
               ) : (
-                <Plus className="h-4 w-4 text-orange-500 shrink-0" />
+                <Plus className="h-4 w-4 text-gray-500 shrink-0" />
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-orange-600">
+                <p className="text-sm font-medium text-gray-900">
                   Crear &quot;{trimmedQuery}&quot;
                 </p>
                 <p className="text-[10px] text-gray-400">

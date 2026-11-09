@@ -387,7 +387,7 @@ export function BusinessActivityFeed({
 
       {!currentUserId && (
         <Link
-          href={`/login?redirect=/businesses/${businessId}`}
+          href={`/login?redirect=/businesses/${businessId}?review=1`}
           className="text-sm text-gray-500 underline hover:text-gray-700"
         >
           Inicia sesión para opinar

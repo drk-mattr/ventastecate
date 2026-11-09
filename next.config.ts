@@ -8,6 +8,16 @@ const nextConfig: NextConfig = {
         destination: "/signup",
         permanent: true,
       },
+      {
+        source: "/terminos",
+        destination: "/terms",
+        permanent: true,
+      },
+      {
+        source: "/privacidad",
+        destination: "/privacy",
+        permanent: true,
+      },
     ];
   },
   /* config options here */

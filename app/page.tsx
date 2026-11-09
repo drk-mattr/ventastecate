@@ -16,6 +16,7 @@ import { FirstVisit } from '@/components/home/first-visit'
 import { StoriesRail } from '@/components/stories/stories-rail'
 import { ListingWithImages, StoryWithAuthor } from '@/lib/types/database'
 import { getEngagementCounts, attachEngagementCounts } from '@/lib/listings/engagement-counts'
+import { excludePastEvents } from '@/lib/listings/event-dates'
 import { getTranslations } from '@/lib/i18n'
 import { resolveCountry } from '@/lib/mvp-config'
 
@@ -168,10 +169,17 @@ export default async function Home({ searchParams }: HomeProps) {
   // Newest first — simple, honest ordering for the local marketplace.
   feedQuery = feedQuery.order('created_at', { ascending: false })
 
-  const { data: feedRaw } = await feedQuery.limit(30)
+  // Past events leave the feed automatically (archive rule, 2026-11-09):
+  // the exclusion is a JS filter on the fetched rows because the
+  // date-only end-of-day rule lives in isEventPast and has no
+  // PostgREST equivalent. Over-fetch (60) keeps the feed full at 30
+  // after the filter; the detail page and search are untouched, so
+  // past events stay live and findable.
+  const { data: feedRaw } = await feedQuery.limit(60)
+  const feedFresh = excludePastEvents(feedRaw || [])
   // If only businesses are followed, the seller feed must start empty —
   // otherwise the unfiltered newest-30 would leak into Siguiendo.
-  let feedListings = showFollowing && followingIds.length === 0 ? [] : feedRaw
+  let feedListings = showFollowing && followingIds.length === 0 ? [] : feedFresh
   // Following a business adds its mentions to Siguiendo: listings tagged with
   // it, or linked via the junction table, merged and re-sorted newest first.
   if (showFollowing && followedBusinessIds.length > 0) {
@@ -187,7 +195,7 @@ export default async function Home({ searchParams }: HomeProps) {
     }
     const byId = new Map<string, NonNullable<typeof feedRaw>[number]>()
     for (const l of [...(feedListings || []), ...(bizListings || [])]) byId.set(l.id, l)
-    feedListings = [...byId.values()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 30)
+    feedListings = excludePastEvents([...byId.values()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())).slice(0, 30)
   }
 
   // ── Trending: engagement-ranked, so good posts actually get seen ──
@@ -204,7 +212,11 @@ export default async function Home({ searchParams }: HomeProps) {
     .order('ranking_score', { ascending: false })
     .order('created_at', { ascending: false })
 
-  const { data: trendingRaw } = await trendingQuery.limit(12)
+  const { data: trendingRaw } = await trendingQuery.limit(24)
+  // Past events leave the trending strip too (archive rule) — same
+  // predicate as the feed, so a past event can never trend. The
+  // engagement filter below then keeps the strip to the best 12.
+  const trendingFresh = excludePastEvents(trendingRaw || [])
 
   // Primary item mention per trending listing, for the # tag chip
   // (kind wins over category when present). listing_item_tags is
@@ -212,7 +224,7 @@ export default async function Home({ searchParams }: HomeProps) {
   // (034 RLS), so the anon client can run this — no admin needed.
   // At cold start (0 mentions) this is empty and every chip falls
   // back to the listing's category.
-  const trendingIds = (trendingRaw || []).map((l) => l.id)
+  const trendingIds = (trendingFresh || []).map((l) => l.id)
   const primaryKinds: Record<string, { name: string; slug: string }> = {}
   if (trendingIds.length > 0) {
     const { data: primaryTags } = await supabase
@@ -258,7 +270,7 @@ export default async function Home({ searchParams }: HomeProps) {
   // below would always see 0 and the strip could never render.
   const homeEngagement = await getEngagementCounts(
     supabase,
-    [...(feedListings || []).map((l) => l.id), ...(trendingRaw || []).map((l) => l.id)],
+    [...(feedListings || []).map((l) => l.id), ...(trendingFresh || []).map((l) => l.id)],
   )
 
   const listings: ListingWithImages[] = attachEngagementCounts(
@@ -267,9 +279,11 @@ export default async function Home({ searchParams }: HomeProps) {
   )
 
   const trending: ListingWithImages[] = attachEngagementCounts(
-    trendingRaw || [],
+    trendingFresh,
     homeEngagement,
-  ).filter((l) => l.likes_count + l.saves_count + l.comments_count > 0)
+  )
+    .filter((l) => l.likes_count + l.saves_count + l.comments_count > 0)
+    .slice(0, 12)
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

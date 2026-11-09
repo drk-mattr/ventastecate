@@ -302,8 +302,10 @@ export default async function Home({ searchParams }: HomeProps) {
           <TypeShortcuts />
         </Suspense>
 
-        {/* Trending: only when engagement exists, so it never shows an empty row */}
-        {trending.length > 0 && <TrendingStrip items={trending} locationLabel={cookieStore.get(LOCATION_COOKIE)?.value || 'Tecate'} primaryKinds={primaryKinds} />}
+        {/* Trending: only when at least 3 posts have engagement — one
+            engaged post in a full-width strip reads as an empty row, so
+            the strip stays hidden until it has enough to show. */}
+        {trending.length >= 3 && <TrendingStrip items={trending} locationLabel={cookieStore.get(LOCATION_COOKIE)?.value || 'Tecate'} primaryKinds={primaryKinds} />}
         {/* Trending items: only when the §11.3 gate passes, so it never shows an empty row */}
         {trendingItems.cards.length > 0 && <ItemCarousel items={trendingItems.cards} />}
         <TopBusinesses items={topBusinesses} />

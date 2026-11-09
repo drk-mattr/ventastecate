@@ -98,6 +98,9 @@ export function Header() {
           <Link href="/businesses" className="hidden sm:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900">
             Negocios
           </Link>
+          <Link href="/garita" className="hidden sm:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900">
+            Garita
+          </Link>
         </div>
 
         {/* Search lives in the nav bar on every page except business
@@ -246,6 +249,9 @@ export function Header() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild className="text-xs">
                     <Link href="/businesses">Negocios</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="text-xs">
+                    <Link href="/garita">Garita</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="text-xs">
                     <Link href="/profile/edit">{t.nav.settings}</Link>

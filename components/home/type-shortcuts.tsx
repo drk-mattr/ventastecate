@@ -47,7 +47,7 @@ const TABS = [
   { label: 'Noticias', match: (p: URLSearchParams) => p.get('type') === 'news', set: { type: 'news', category: null } },
 ]
 
-export function TypeShortcuts() {
+export function TypeShortcuts({ hideMobileTabs = false }: { hideMobileTabs?: boolean }) {
   const params = useSearchParams()
   const hasFilter = params.get('type') || params.get('category')
 
@@ -62,7 +62,12 @@ export function TypeShortcuts() {
   }
 
   return (
-    <div className="border-b bg-white">
+    // hideMobileTabs (home only): the whole mobile row — tabs + the
+    // Categorías sheet trigger — leaves the home page; the Filtros
+    // button in the feed header replaces it. The root hides on mobile
+    // so it leaves no stray border behind; desktop pills are
+    // untouched. /search passes nothing and keeps its tabs.
+    <div className={`border-b bg-white ${hideMobileTabs ? 'hidden sm:block' : ''}`}>
       {/* Desktop pills — sm+ only, restored from before PR #139. */}
       <div className="container mx-auto px-4 py-2 hidden sm:flex gap-2 overflow-x-auto sm:justify-center" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {SHORTCUTS.map((s) => {
@@ -87,7 +92,9 @@ export function TypeShortcuts() {
         })}
       </div>
 
-      {/* Mobile tabs — base only, from PR #139. */}
+      {/* Mobile tabs — base only, from PR #139. Skipped on home
+          when hideMobileTabs is set (see above). */}
+      {!hideMobileTabs && (
       <div className="container mx-auto px-4 flex sm:hidden items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {TABS.map((t) => {
           // Todo is the default: active only when no type/category filter is set.
@@ -115,6 +122,7 @@ export function TypeShortcuts() {
           <CategoriesSheet />
         </div>
       </div>
+      )}
     </div>
   )
 }

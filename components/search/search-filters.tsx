@@ -39,6 +39,15 @@ interface SearchFiltersProps {
   // through untouched when filters are applied.
   preserveParams?: Record<string, string | undefined>
   onApply?: () => void
+  // Home Filtros sheet: hide the keyword field (home already has search
+  // in the header; the sheet opens straight at Tipo) and the location
+  // section (location is the site-wide header setting, never duplicated
+  // inside the panel).
+  hideQuery?: boolean
+  hideLocation?: boolean
+  // Home Filtros sheet: render the sections bare (no bordered card
+  // wrapper) — the bottom sheet is already the container.
+  bare?: boolean
 }
 
 const REAL_ESTATE_CATEGORIES = ['Casas en Renta', 'Casas en Venta']
@@ -74,6 +83,9 @@ export function SearchFilters({
   regionLabel = 'Tecate',
   preserveParams = {},
   onApply,
+  hideQuery = false,
+  hideLocation = false,
+  bare = false,
 }: SearchFiltersProps) {
   const t = useTranslations()
 
@@ -187,7 +199,7 @@ export function SearchFilters({
     }`
 
   return (
-    <div className="rounded-xl border border-gray-100 bg-white p-5 lg:sticky lg:top-20">
+    <div className={bare ? '' : 'rounded-xl border border-gray-100 bg-white p-5 lg:sticky lg:top-20'}>
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-sm font-semibold text-gray-900">{t.search.filters}</h2>
         {hasActiveFilters && (
@@ -203,7 +215,8 @@ export function SearchFilters({
 
       <div className="space-y-5">
         {/* Keyword — editable on the results page (the old inline bar
-            had no query field at all). */}
+            had no query field at all). Hidden in the home sheet. */}
+        {!hideQuery && (
         <div className="space-y-1.5">
           <Label htmlFor="search-query" className="text-xs font-medium text-gray-500">{t.hero.search}</Label>
           <Input
@@ -215,6 +228,7 @@ export function SearchFilters({
             className="h-10 text-sm"
           />
         </div>
+        )}
 
         {/* Type — was homepage-only; now changeable from /search. */}
         <div className="space-y-1.5">
@@ -310,7 +324,9 @@ export function SearchFilters({
 
         {/* Location — free text + GPS detect button. An explicit
             location overrides the site-wide region; say so, and offer
-            a one-tap clear back to the region scope. */}
+            a one-tap clear back to the region scope. Hidden in the
+            home sheet: location is the site-wide header setting. */}
+        {!hideLocation && (
         <div className="space-y-1.5">
           <Label htmlFor="location" className="text-xs font-medium text-gray-500">{t.search.location}</Label>
           <div className="relative">
@@ -352,6 +368,7 @@ export function SearchFilters({
             </p>
           )}
         </div>
+        )}
 
         {/* Price */}
         <div className="space-y-1.5">

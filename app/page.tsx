@@ -14,6 +14,8 @@ import { fetchTrendingItems } from '@/lib/items/carousel'
 import { TopBusinesses, TopBusiness } from '@/components/businesses/top-businesses'
 import { FirstVisit } from '@/components/home/first-visit'
 import { StoriesRail } from '@/components/stories/stories-rail'
+import { AddStoryButton } from '@/components/stories/add-story-button'
+import { HomeFilterButton } from '@/components/home/home-filter-button'
 import { ListingWithImages, StoryWithAuthor } from '@/lib/types/database'
 import { getEngagementCounts, attachEngagementCounts } from '@/lib/listings/engagement-counts'
 import { excludePastEvents } from '@/lib/listings/event-dates'
@@ -287,17 +289,20 @@ export default async function Home({ searchParams }: HomeProps) {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
       <main className="flex-1">
-        {/* Stories: circles at the top, WhatsApp/Instagram pattern.
-            Renders nothing until a real story exists (or someone is
-            signed in and can add one). */}
+        {/* Stories: compact circles at the top, WhatsApp/Instagram
+            pattern. The rail renders only when a real story exists —
+            with zero stories it costs 0px, and the add-story "+" moves
+            to the feed header row next to Filtros. */}
         <StoriesRail stories={stories} signedIn={Boolean(currentUser)} currentUserId={currentUser?.id ?? null} />
         {/* No hero anymore: search lives in the header nav bar, and this
             slim row keeps the type/category shortcuts. The space the
             hero took is now the Top section below. */}
         {/* TypeShortcuts reads the URL for its selected pill, so it
-            needs a Suspense boundary (useSearchParams). */}
+            needs a Suspense boundary (useSearchParams). hideMobileTabs:
+            on home the mobile tab row leaves (Filtros in the feed
+            header replaces it); desktop pills and /search tabs stay. */}
         <Suspense>
-          <TypeShortcuts />
+          <TypeShortcuts hideMobileTabs />
         </Suspense>
 
         {/* Trending: only when at least 3 posts have engagement — one
@@ -318,6 +323,14 @@ export default async function Home({ searchParams }: HomeProps) {
             <Link href="/?feed=siguiendo" className={`pb-2 text-sm font-semibold ${showFollowing ? 'text-gray-900 border-b-2 border-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>
               Siguiendo
             </Link>
+            {/* Mobile home: add-story "+" (only while the rail is
+                hidden — no real stories) + Filtros, right-aligned.
+                sm:hidden: desktop keeps the tabs-only row. The "+"
+                opens the same composer as the rail's add circle. */}
+            <div className="ml-auto flex sm:hidden items-center gap-2">
+              {currentUser && stories.length === 0 && <AddStoryButton variant="header" />}
+              <HomeFilterButton />
+            </div>
           </div>
           {/* No heading here: the tabs above already say
               "Anuncios Recientes" / "Siguiendo" — repeating it as an

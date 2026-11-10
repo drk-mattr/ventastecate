@@ -4,7 +4,7 @@ import { Header } from '@/components/layout/header'
 import { createClient } from '@/lib/supabase/server'
 import { BorderChart } from '@/components/border/border-chart'
 import { GaritaPageClient } from '@/components/border/garita-page-client'
-import type { LaneSummaryCell } from '@/components/border/border-lane-summary'
+import type { LaneSummaryCell } from '@/components/border/border-lane-cards'
 import type { ActivityEntry } from '@/components/border/border-activity-feed'
 import {
   PORT_CLOSE_HOUR,
@@ -165,9 +165,9 @@ export default async function GaritaPage() {
     )
   }
 
-  // The answer as one table: the three norte estimates in row
-  // order (Auto / A pie / Camiones) for the client shell, which
-  // renders the compact table + the feed.
+  // The answer as three cards: the three norte estimates in
+  // lane order (Auto / A pie / Camiones) for the client shell,
+  // which renders the lane cards above the map + the feed.
   const estimateCells: LaneSummaryCell[] = []
   for (const lane of LANES) {
     estimateCells.push({
@@ -308,10 +308,10 @@ export default async function GaritaPage() {
         )}
 
         {/* The answer + the evidence, in one client shell: the
-            map first, then the compact lane table, the dynamics
+            three lane cards first, then the map, the dynamics
             line, and the unified "Actividad" feed. One filter
-            state drives table + feed — tapping a table cell
-            filters the feed. Reporting lives in the nav dropdown
+            state drives cards + feed — tapping a card filters
+            the feed. Reporting lives in the nav dropdown
             (desktop) and the sidebar row (mobile), not on this
             page. */}
         <div className="mt-4">
@@ -320,6 +320,7 @@ export default async function GaritaPage() {
             dynamics={dynamics}
             activityEntries={activityEntries}
             userVotes={userVotes}
+            portOpen={open}
           />
         </div>
 

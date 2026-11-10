@@ -1,9 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Flag, X } from 'lucide-react'
+import { ChevronDown, Flag, Heart, X } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import {
@@ -74,6 +82,139 @@ const DIRECTION_FILTERS: { id: DirectionFilter; label: string }[] = [
   { id: 'sur', label: 'A México' },
 ]
 
+// One quiet filter dropdown — a text link with a chevron, not a
+// pill row (2026-11-10 polish: the two chip rows took too much
+// space and shouted). The trigger shows the active selection; the
+// menu is a single-select radio list. Same options, same shared
+// filter state as the pills had — only the presentation changed.
+function FilterDropdown<T extends string>({
+  label,
+  options,
+  value,
+  onSelect,
+  ariaLabel,
+}: {
+  label: string
+  options: { id: T; label: string }[]
+  value: T
+  onSelect: (value: T) => void
+  ariaLabel: string
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label={ariaLabel}
+          className="inline-flex items-center gap-0.5 text-sm text-gray-600 hover:text-gray-900"
+        >
+          {label}
+          <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        <DropdownMenuRadioGroup value={value} onValueChange={(v) => onSelect(v as T)}>
+          {options.map((o) => (
+            <DropdownMenuRadioItem key={o.id} value={o.id} className="text-sm">
+              {o.label}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+/** The like toggle on a user report — a heart + confirms count,
+ *  same visual language as the listing LikeButton (monochrome,
+ *  filled when liked, small pop on tap). One tap confirms the
+ *  report ("sigue así"); tap again removes it. Liking posts
+ *  'confirma' to the existing /api/border/confirm; unliking
+ *  deletes the user's own vote row via Supabase — that delete
+ *  needs an owner-delete RLS policy on border_line_votes, which
+ *  does not exist yet (migration 049 grants insert + select
+ *  only), so an unlike tap reverts until that one-policy
+ *  migration lands. There is no 'niega' path left in the UI: a
+ *  stale report leaves the estimate by aging out of the
+ *  30-minute window. */
+function BorderLikeButton({
+  reportId,
+  initialLiked,
+  initialCount,
+}: {
+  reportId: string
+  initialLiked: boolean
+  initialCount: number
+}) {
+  const { user } = useAuth()
+  const { openAuth } = useAuthModal()
+  const router = useRouter()
+  const [liked, setLiked] = useState(initialLiked)
+  const [count, setCount] = useState(initialCount)
+  const [animating, setAnimating] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const supabase = createClient()
+
+  const toggle = () => {
+    if (!user) {
+      openAuth('login')
+      return
+    }
+    if (isPending) return
+    const wasLiked = liked
+    setLiked(!wasLiked)
+    setCount((prev) => (wasLiked ? Math.max(prev - 1, 0) : prev + 1))
+    if (!wasLiked) {
+      setAnimating(true)
+      setTimeout(() => setAnimating(false), 400)
+    }
+    startTransition(async () => {
+      try {
+        if (wasLiked) {
+          const { error } = await supabase
+            .from('border_line_votes')
+            .delete()
+            .eq('report_id', reportId)
+            .eq('user_id', user.id)
+          if (error) throw error
+        } else {
+          const res = await fetch('/api/border/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ report_id: reportId, vote: 'confirma' }),
+          })
+          if (!res.ok) throw new Error('confirm_failed')
+        }
+        router.refresh()
+      } catch {
+        // A failed toggle just doesn't land; revert the optimistic
+        // update so the heart never shows a wrong state.
+        setLiked(wasLiked)
+        setCount((prev) => (wasLiked ? prev + 1 : Math.max(prev - 1, 0)))
+      }
+    })
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      disabled={isPending}
+      aria-label={liked ? 'Quitar me gusta' : 'Me gusta'}
+      className={`flex items-center gap-1 text-xs transition-all duration-150 ${
+        liked ? 'text-gray-900' : 'text-gray-400 hover:text-gray-900'
+      }`}
+    >
+      <Heart
+        className={`h-4 w-4 transition-transform duration-300 ${
+          animating ? 'scale-125' : 'scale-100'
+        } ${liked ? 'fill-current' : ''}`}
+      />
+      {count > 0 && <span className="tabular-nums">{count}</span>}
+    </button>
+  )
+}
+
 // La Garita as one activity feed (vertical redesign 2026-11-10):
 // the old community-only "La fila, en vivo" list and the CBP
 // numbers in the table are now one chronological list — official
@@ -83,10 +224,10 @@ const DIRECTION_FILTERS: { id: DirectionFilter; label: string }[] = [
 // read-only — no vote, no flag, no author; official data is not
 // user content. User entries stay compact (text-lg minutes, a
 // thumbnail instead of a full-width photo) but keep every
-// interaction: confirm/deny votes, flag, photo expand, pace/tail,
-// note. A photo never weighs in the estimate; the vote row is
-// the agreement display, and a denied post stays visible — it
-// just leaves the estimate.
+// interaction: a like toggle (confirm), flag, photo expand,
+// pace/tail, note. A photo never weighs in the estimate; the like
+// row is the agreement display, and a report with no likes just
+// ages out of the estimate.
 export function BorderActivityFeed({
   entries,
   userVotes,
@@ -105,7 +246,6 @@ export function BorderActivityFeed({
 }) {
   const { user } = useAuth()
   const { openAuth } = useAuthModal()
-  const router = useRouter()
   const [internalLaneFilter, setInternalLaneFilter] = useState<LaneFilter>('all')
   const [internalDirectionFilter, setInternalDirectionFilter] =
     useState<DirectionFilter>('all')
@@ -119,7 +259,6 @@ export function BorderActivityFeed({
     if (onFilterChange) onFilterChange(laneFilter, value)
     else setInternalDirectionFilter(value)
   }
-  const [pendingId, setPendingId] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [reportingId, setReportingId] = useState<string | null>(null)
   const [reportedIds, setReportedIds] = useState<Set<string>>(new Set())
@@ -134,26 +273,6 @@ export function BorderActivityFeed({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [expandedId])
-
-  const vote = async (reportId: string, v: 'confirma' | 'niega') => {
-    if (!user) {
-      openAuth('login')
-      return
-    }
-    if (pendingId) return
-    setPendingId(reportId)
-    try {
-      await fetch('/api/border/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ report_id: reportId, vote: v }),
-      })
-      router.refresh()
-    } catch {
-      // A failed vote just doesn't land; the feed stays as-is.
-    }
-    setPendingId(null)
-  }
 
   const flag = async (reportId: string, reason: string) => {
     if (!user) {
@@ -171,7 +290,7 @@ export function BorderActivityFeed({
     }
   }
 
-  // Chips filter both entry kinds; CBP entries are norte-only,
+  // The dropdowns filter both entry kinds; CBP entries are norte-only,
   // so "A México" shows community reports only.
   const filtered = entries.filter(
     (e) =>
@@ -185,38 +304,25 @@ export function BorderActivityFeed({
         ) as ActivityUserEntry | undefined)
       : undefined
 
-  const chipClass = (active: boolean) =>
-    `rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-      active
-        ? 'border-gray-900 bg-gray-900 text-white'
-        : 'border-gray-300 bg-white text-gray-900 hover:border-gray-900'
-    }`
-
   return (
     <div>
-      <div className="flex flex-wrap gap-2">
-        {LANE_FILTERS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setLaneFilter(f.id)}
-            className={chipClass(laneFilter === f.id)}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {DIRECTION_FILTERS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setDirectionFilter(f.id)}
-            className={chipClass(directionFilter === f.id)}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="flex items-center gap-4">
+        <FilterDropdown
+          label={LANE_FILTERS.find((f) => f.id === laneFilter)?.label ?? 'Todos'}
+          options={LANE_FILTERS}
+          value={laneFilter}
+          onSelect={setLaneFilter}
+          ariaLabel="Filtrar actividad por carril"
+        />
+        <FilterDropdown
+          label={
+            DIRECTION_FILTERS.find((f) => f.id === directionFilter)?.label ?? 'Ambas'
+          }
+          options={DIRECTION_FILTERS}
+          value={directionFilter}
+          onSelect={setDirectionFilter}
+          ariaLabel="Filtrar actividad por dirección"
+        />
       </div>
       {directionFilter === 'sur' && (
         <p className="mt-3 text-xs text-gray-500">
@@ -235,7 +341,7 @@ export function BorderActivityFeed({
             : 'Aún no hay actividad hoy con ese filtro — sé el primero.'}
         </p>
       ) : (
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 space-y-2">
           {filtered.map((entry) => {
             if (entry.kind === 'cbp') {
               // Official entry, read-only: age + source, minutes +
@@ -243,12 +349,12 @@ export function BorderActivityFeed({
               // No vote, no flag — official data is not user
               // content.
               return (
-                <article key={entry.id} className="rounded-xl border bg-white p-4">
+                <article key={entry.id} className="rounded-xl border bg-white p-3">
                   <p className="text-sm">
                     <span className="text-gray-500">{entry.ageLabel} · </span>
                     <span className="font-semibold text-gray-900">CBP oficial</span>
                   </p>
-                  <p className="mt-1.5 text-lg font-bold text-gray-900">
+                  <p className="mt-1 text-lg font-bold text-gray-900">
                     {entry.wait_minutes <= 0
                       ? 'Sin espera'
                       : `${entry.wait_minutes} min de espera`}
@@ -285,7 +391,7 @@ export function BorderActivityFeed({
               <article
                 key={r.id}
                 id={`border-report-${r.id}`}
-                className="rounded-xl border bg-white p-4"
+                className="rounded-xl border bg-white p-3"
               >
                 <div className="flex items-baseline justify-between gap-2">
                   <p className="text-sm text-gray-900">
@@ -296,7 +402,7 @@ export function BorderActivityFeed({
                     {LANE_LABELS[r.lane]} · {DIRECTION_LABELS[r.direction]}
                   </span>
                 </div>
-                <p className="mt-2 text-lg font-bold text-gray-900">
+                <p className="mt-1.5 text-lg font-bold text-gray-900">
                   {formatWait(r.wait_minutes)}
                   {r.status === 'en_fila' && (
                     <span className="ml-2 text-sm font-medium text-gray-500">y contando</span>
@@ -331,36 +437,12 @@ export function BorderActivityFeed({
                     />
                   </button>
                 )}
-                <div className="mt-3 flex items-center justify-between gap-2">
-                  <div className="flex shrink-0 items-center gap-1">
-                    <span className="text-xs text-gray-500">¿Sigue así?</span>
-                    <button
-                      type="button"
-                      disabled={pendingId === r.id}
-                      onClick={() => vote(r.id, 'confirma')}
-                      aria-label="Confirmar que sigue así"
-                      className={`rounded-full border px-2 py-1 text-xs font-medium ${
-                        mine === 'confirma'
-                          ? 'border-gray-900 bg-gray-900 text-white'
-                          : 'border-gray-300 bg-white text-gray-700 hover:border-gray-900'
-                      }`}
-                    >
-                      ✓{r.confirms > 0 ? ` ${r.confirms}` : ''}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={pendingId === r.id}
-                      onClick={() => vote(r.id, 'niega')}
-                      aria-label="Negar que sigue así"
-                      className={`rounded-full border px-2 py-1 text-xs font-medium ${
-                        mine === 'niega'
-                          ? 'border-gray-900 bg-gray-900 text-white'
-                          : 'border-gray-300 bg-white text-gray-700 hover:border-gray-900'
-                      }`}
-                    >
-                      ✗{r.denies > 0 ? ` ${r.denies}` : ''}
-                    </button>
-                  </div>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <BorderLikeButton
+                    reportId={r.id}
+                    initialLiked={mine === 'confirma'}
+                    initialCount={r.confirms}
+                  />
                   {/* Flag: opens a review in /admin/reports, never
                       hides the post. "Reportar" (wrong/offensive)
                       and "niega" (the wait is no longer true) are
@@ -400,13 +482,6 @@ export function BorderActivityFeed({
                       </button>
                     ))}
                 </div>
-                {r.denies > 0 && (
-                  <p className="mt-2 text-xs text-gray-500">
-                    {r.denies === 1
-                      ? '1 persona dice que ya no es así'
-                      : `${r.denies} personas dicen que ya no es así`}
-                  </p>
-                )}
               </article>
             )
           })}

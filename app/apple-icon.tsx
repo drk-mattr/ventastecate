@@ -3,6 +3,13 @@ import { ImageResponse } from 'next/og'
 export const size = { width: 180, height: 180 }
 export const contentType = 'image/png'
 
+// The real brand mark: white serif "vt" traced from the logo file
+// (same paths as app/icon.svg, #FA6408 background), so the favicon
+// and the Apple touch icon are one mark. Satori renders the inline
+// <svg>; no font is involved, so the glyphs are exact at any size.
+const VT_PATH =
+  'M3628 3760 c-40 -12 -55 -24 -230 -196 -165 -162 -227 -214 -353 -297 -82 -55 -108 -90 -130 -172 -29 -114 -3 -153 105 -157 l65 -3 -4 -200 c-10 -465 -4 -824 13 -906 66 -308 282 -466 621 -454 61 2 121 6 135 9 14 3 34 8 45 10 127 27 278 114 373 215 131 140 196 371 114 407 -49 21 -65 16 -148 -48 -90 -69 -163 -100 -245 -106 -138 -9 -220 51 -245 178 -8 43 -11 901 -3 906 3 2 104 4 224 4 234 2 262 7 308 58 47 51 61 162 27 205 -29 37 -59 40 -317 42 -127 0 -235 4 -239 8 -4 4 -8 109 -9 232 -1 211 -2 227 -21 245 -24 24 -49 30 -86 20z M820 3253 c-87 -27 -121 -65 -114 -125 5 -41 22 -59 104 -107 37 -22 79 -56 94 -76 22 -28 126 -235 126 -249 0 -2 20 -47 45 -100 25 -53 45 -98 45 -100 0 -2 18 -43 40 -90 22 -47 40 -88 40 -90 0 -2 15 -37 34 -78 18 -40 84 -188 146 -328 62 -140 132 -296 157 -346 73 -152 140 -193 308 -189 128 4 176 18 229 71 45 46 37 27 301 704 136 350 280 702 302 739 28 49 82 105 133 140 110 74 108 197 -3 221 -91 20 -543 10 -590 -14 -91 -45 -83 -127 20 -190 127 -77 128 -74 -72 -611 -67 -181 -126 -341 -130 -354 -10 -33 -16 -23 -89 152 -36 86 -96 228 -132 315 -119 284 -134 324 -134 364 0 62 21 91 99 132 97 51 127 106 86 160 -38 51 -85 55 -575 55 -250 -1 -462 -3 -470 -6z'
+
 export default function AppleIcon() {
   return new ImageResponse(
     (
@@ -10,26 +17,19 @@ export default function AppleIcon() {
         style={{
           width: 180,
           height: 180,
-          background: '#111111',
-          borderRadius: 36,
+          background: '#FA6408',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <span
-          style={{
-            color: '#ffffff',
-            fontSize: 80,
-            fontWeight: 800,
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            letterSpacing: '-2px',
-          }}
-        >
-          VT
-        </span>
+        <svg width="180" height="180" viewBox="0 0 512 512">
+          <g transform="translate(0,512) scale(0.1,-0.1)" fill="#ffffff">
+            <path d={VT_PATH} />
+          </g>
+        </svg>
       </div>
     ),
-    { ...size }
+    { ...size },
   )
 }

@@ -62,7 +62,7 @@ export function GaritaHeaderChip() {
   return (
     <Link
       href="/garita"
-      className="hidden sm:inline-flex items-center gap-1 shrink-0 whitespace-nowrap text-sm text-gray-700 hover:text-gray-900"
+      className="hidden lg:inline-flex items-center gap-1 shrink-0 whitespace-nowrap text-sm text-gray-700 hover:text-gray-900"
       aria-label="Garita — tiempos de espera en la frontera"
     >
       <span className="font-medium">Garita</span>
@@ -70,9 +70,9 @@ export function GaritaHeaderChip() {
         <>
           <span className="font-semibold text-gray-900">· {current.minutes} min</span>
           {current.isCounting && (
-            <span className="text-gray-500">y contando</span>
+            <span className="hidden text-gray-500 xl:inline">y contando</span>
           )}
-          <span className="text-gray-500">({formatAge(current.ageMinutes)})</span>
+          <span className="hidden text-gray-500 xl:inline">({formatAge(current.ageMinutes)})</span>
         </>
       )}
     </Link>

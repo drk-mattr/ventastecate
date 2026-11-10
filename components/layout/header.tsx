@@ -77,7 +77,7 @@ export function Header() {
           below. One row on mobile squeezed the search input to a few
           characters wide (the 2026-11-04 screenshot showed just "B").
           Desktop keeps the single row. */}
-      <div className="container mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between">
+      <div className="container mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-x-3">
         <div className="order-1 flex items-center gap-2 shrink-0">
           {/* Mobile: hamburger opens the black left sidebar (Muse-app
               style) — the same drawer the avatar and the bottom-bar
@@ -96,7 +96,7 @@ export function Header() {
           <Link href="/" className="text-xl sm:text-2xl font-forum font-bold lowercase">
             ventastecate.com
           </Link>
-          <Link href="/businesses" className="hidden sm:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900">
+          <Link href="/businesses" className="hidden lg:inline-flex text-sm font-medium text-gray-700 hover:text-gray-900">
             Negocios
           </Link>
         </div>
@@ -109,7 +109,7 @@ export function Header() {
             views — business pages keep their clean header, and the
             avatar dropdown still links Garita there. */}
         {!hideHeaderSearch && (
-          <div className="order-3 sm:order-2 basis-full sm:basis-auto flex-1 min-w-0 mt-2 sm:mt-0 flex items-center gap-3">
+          <div className="order-3 sm:order-2 basis-full sm:basis-0 flex-1 min-w-0 mt-2 sm:mt-0 flex items-center gap-3">
             <Suspense fallback={<div className="flex-1 max-w-2xl mx-4" />}>
               <HeaderSearch />
             </Suspense>
@@ -129,12 +129,12 @@ export function Header() {
                   The bell is activity notifications only now (see
                   NotificationBell) — threads live in the avatar menu
                   below and in the mobile bottom-bar Mensajes tab. */}
-              <Button asChild variant="ghost" size="icon" className="hidden md:inline-flex h-8 w-8 text-gray-600 hover:text-gray-900" aria-label={t.nav.myListings} title={t.nav.myListings}>
+              <Button asChild variant="ghost" size="icon" className="hidden lg:inline-flex h-8 w-8 text-gray-600 hover:text-gray-900" aria-label={t.nav.myListings} title={t.nav.myListings}>
                 <Link href="/my-listings"><Tag className="h-[18px] w-[18px]" /></Link>
               </Button>
               <NotificationBell />
               {activeStore && (
-                <span className="text-[10px] text-gray-500 hidden sm:flex items-center gap-0.5 max-w-[100px] truncate" title={activeStore.name}>
+                <span className="text-[10px] text-gray-500 hidden xl:flex items-center gap-0.5 max-w-[100px] truncate" title={activeStore.name}>
                   <Store className="h-3 w-3 shrink-0" />{activeStore.name}
                 </span>
               )}

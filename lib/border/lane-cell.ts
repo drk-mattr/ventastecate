@@ -1,5 +1,5 @@
 // La Garita restructure — pure display rules for one cell of the
-// compact lane table (3 rows x 2 directions). Pure functions only
+// compact lane table (3 rows, A EUA only). Pure functions only
 // (no Next / Supabase imports) so they are unit-testable: the
 // table component renders what this returns, nothing more.
 //
@@ -60,8 +60,6 @@ export function laneCellDisplay(
   direction: BorderDirection,
   showAgreement: boolean,
 ): LaneCellDisplay {
-  const southTag = direction === 'sur' ? 'solo comunidad' : null
-
   if (estimate.state === 'none') {
     // A 'none' estimate can still carry last-known minutes
     // (shown demoted with its age); with nothing at all there
@@ -71,14 +69,14 @@ export function laneCellDisplay(
         minutesLabel: '— sin datos',
         minutesTone: 'none',
         sourceLine: `Último dato: ${formatWait(estimate.minutes)} · ${formatAge(estimate.ageMinutes)}`,
-        extraLines: southTag ? [southTag] : [],
+        extraLines: [],
         counting: false,
       }
     }
     return {
       minutesLabel: '— sin datos',
       minutesTone: 'none',
-      sourceLine: southTag,
+      sourceLine: null,
       extraLines: [],
       counting: false,
     }
@@ -92,7 +90,7 @@ export function laneCellDisplay(
         estimate.source === 'community'
           ? `Comunidad · ${formatAge(estimate.ageMinutes)}`
           : `CBP oficial · ${formatAge(estimate.ageMinutes)}`,
-      extraLines: southTag ? [southTag] : [],
+      extraLines: [],
       counting: false,
     }
   }
@@ -115,7 +113,7 @@ export function laneCellDisplay(
   // Official and community side by side, always (norte): when
   // the headline is community, the CBP reading stays visible
   // as one small line — the reader never loses the official
-  // number. Southbound has no CBP number anywhere.
+  // number.
   if (
     estimate.source === 'community' &&
     direction === 'norte' &&
@@ -126,7 +124,6 @@ export function laneCellDisplay(
       `CBP: ${formatWait(estimate.cbp.delay_minutes)} · ${formatAge(estimate.cbpAgeMinutes)}`,
     )
   }
-  if (southTag) extraLines.push(southTag)
   return {
     minutesLabel: formatWait(estimate.minutes ?? 0),
     minutesTone: 'big',

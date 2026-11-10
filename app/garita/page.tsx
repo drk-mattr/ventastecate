@@ -135,34 +135,26 @@ export default async function GaritaPage() {
 
   const estimates = new Map<string, BorderEstimate>()
   for (const lane of LANES) {
-    for (const direction of ['norte', 'sur'] as const) {
-      // CBP measures into the US only — sur never gets a CBP
-      // snapshot, so its cards can never imply an official number.
-      estimates.set(
-        `${lane}:${direction}`,
-        estimateLane(
-          lane,
-          direction,
-          reportInputs,
-          direction === 'norte' ? (cbpByLane.get(lane) ?? null) : null,
-          now,
-        ),
-      )
-    }
+    // A EUA only — the México column was dropped 2026-11-09
+    // (no official southbound source anywhere, zero southbound
+    // reports ever). CBP measures into the US only, so the
+    // snapshot is always the norte one.
+    estimates.set(
+      `${lane}:norte`,
+      estimateLane(lane, 'norte', reportInputs, cbpByLane.get(lane) ?? null, now),
+    )
   }
 
-  // The answer as one table: the six estimates in row order
-  // (Auto / A pie / Camiones x norte / sur) for the client
-  // shell, which renders the compact table + the feed.
+  // The answer as one table: the three norte estimates in row
+  // order (Auto / A pie / Camiones) for the client shell, which
+  // renders the compact table + the feed.
   const estimateCells: LaneSummaryCell[] = []
   for (const lane of LANES) {
-    for (const direction of ['norte', 'sur'] as const) {
-      estimateCells.push({
-        lane,
-        direction,
-        estimate: estimates.get(`${lane}:${direction}`)!,
-      })
-    }
+    estimateCells.push({
+      lane,
+      direction: 'norte',
+      estimate: estimates.get(`${lane}:norte`)!,
+    })
   }
 
   // Feed (migration 051): today's reports, newest first, last

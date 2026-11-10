@@ -535,7 +535,7 @@ function MessagesContent() {
 
   if (loading) {
     return (
-      <div className="flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-white md:h-dvh">
+      <div className="flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-white md:h-dvh">
         <Header />
         <div className="flex flex-1 items-center justify-center">
           <p className="text-gray-500">{f.loadingMessages}</p>
@@ -550,12 +550,12 @@ function MessagesContent() {
   // conversation never sprawls across a huge desktop. The message
   // column itself is max-w-2xl, centered — header, listing strip
   // and composer share that column.
-  // 4rem subtraction is the fixed mobile bottom bar, which the body
-  // reserves with pb-16 (see app/layout.tsx); desktop has no bar.
+  // 3.5rem subtraction is the fixed mobile bottom bar, which the body
+  // reserves with pb-14 (see app/layout.tsx); desktop has no bar.
   // On mobile only one pane shows at a time: list full-screen, then
   // thread full-screen with the back control.
   return (
-    <div className="flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-white md:h-dvh">
+    <div className="flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-white md:h-dvh">
       <Header />
       <main className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1">
         {/* Conversation rail */}
@@ -658,7 +658,7 @@ export default function MessagesPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-white md:h-dvh">
+        <div className="flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-white md:h-dvh">
           <Header />
           <div className="flex flex-1 items-center justify-center">
             <p className="text-gray-500">{f.loadingMessages}</p>

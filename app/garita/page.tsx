@@ -275,7 +275,7 @@ export default async function GaritaPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <main className="mx-auto w-full max-w-2xl px-4 pb-16">
+      <main className="mx-auto w-full max-w-2xl px-4 pb-14">
         <h1 className="pt-5 text-xl font-bold text-gray-900">La garita de Tecate</h1>
         <p className="mt-1 text-sm text-gray-500">
           {open

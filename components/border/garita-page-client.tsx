@@ -15,6 +15,7 @@ import {
   dynamicsLineParts,
   type DynamicsAggregate,
 } from '@/lib/border/estimate'
+import { GaritaTrafficMap } from '@/components/border/garita-traffic-map'
 
 // La Garita restructure — the client shell for /garita. One
 // filter state, two controls: the lane table (tap a cell) and
@@ -24,8 +25,8 @@ import {
 // Server component (page.tsx) computes everything — the six
 // estimates, the dynamics aggregate, the feed posts, the user's
 // votes — and this shell only holds the filter state and renders
-// the table + the feed section in its own place, second on the
-// page.
+// the table, the traffic map, and the feed section in its own
+// place, second on the page.
 export function GaritaPageClient({
   cells,
   dynamics,
@@ -67,6 +68,12 @@ export function GaritaPageClient({
         </p>
       )}
 
+      {/* Google traffic map: live traffic colors around the port,
+          under the table and above the feed. Lazy-loaded on
+          scroll; degrades to caption + link if the key is
+          missing. */}
+      <GaritaTrafficMap />
+
       <section className="mt-6">
         <h2 className="text-base font-semibold text-gray-900">La fila, en vivo</h2>
         <div className="mt-3">
@@ -82,3 +89,4 @@ export function GaritaPageClient({
     </>
   )
 }
+

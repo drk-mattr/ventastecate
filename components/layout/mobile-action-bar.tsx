@@ -56,7 +56,7 @@ export function MobileActionBar() {
 
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 h-16 bg-white border-t border-gray-200 flex items-stretch px-1 pb-[env(safe-area-inset-bottom)]">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 h-14 bg-white border-t border-gray-200 flex items-stretch px-1 pb-[env(safe-area-inset-bottom)]">
         <Link href="/" className={itemClass('/')} aria-label="Inicio">
           <Home className="h-5 w-5" />
           <span>Inicio</span>
@@ -75,7 +75,7 @@ export function MobileActionBar() {
           className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full"
           aria-label="Publicar anuncio"
         >
-          <span className="-mt-5 flex items-center justify-center h-12 w-12 rounded-full bg-orange-600 border border-orange-600 text-white shadow-md">
+          <span className="-mt-4 flex items-center justify-center h-11 w-11 rounded-full bg-orange-600 border border-orange-600 text-white shadow-md">
             <Plus className="h-6 w-6" />
           </span>
           <span className="text-[10px] font-semibold text-orange-700">Publicar</span>

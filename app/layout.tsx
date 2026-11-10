@@ -99,7 +99,7 @@ export default async function RootLayout({
         <GoogleAnalytics />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} antialiased pb-16 md:pb-0`}
+        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} antialiased pb-14 md:pb-0`}
       >
         <AuthProvider>
           <BrandProvider brandName={brandName}>

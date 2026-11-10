@@ -6,7 +6,8 @@ import { X } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import { compressImage } from '@/lib/images/compress'
-import type { BorderDirection, BorderLane, BorderReportStatus } from '@/lib/border/estimate'
+import type { BorderDirection, BorderLane, BorderPace, BorderReportStatus, TailMarker } from '@/lib/border/estimate'
+import { PACE_LABELS, TAIL_MARKER_LABELS } from '@/lib/border/estimate'
 
 // 3-tap report sheet for La Garita (proposal §2): lane ->
 // direction -> time chips + "¿Ya cruzaste o sigues en la
@@ -48,6 +49,12 @@ export function BorderReportSheet({ portOpen }: { portOpen: boolean }) {
   const [minutes, setMinutes] = useState<number | null>(null)
   const [exactMinutes, setExactMinutes] = useState('')
   const [status, setStatus] = useState<BorderReportStatus | null>(null)
+  // Dynamics (migration 052): two optional one-tap picks, never
+  // a gate — canSubmit is unchanged (lane + status + minutes
+  // only). Pace is for every lane; the tail is auto + en_fila
+  // only (different lines, different approaches).
+  const [pace, setPace] = useState<BorderPace | null>(null)
+  const [tailMarker, setTailMarker] = useState<TailMarker | null>(null)
   const [note, setNote] = useState('')
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
@@ -136,6 +143,11 @@ export function BorderReportSheet({ portOpen }: { portOpen: boolean }) {
           wait_minutes: Math.round(effectiveMinutes),
           status,
           note: note.trim() || undefined,
+          pace: pace ?? undefined,
+          // The tail only counts for auto + en_fila — never
+          // send a stale pick from a lane/status switch.
+          tail_marker:
+            lane === 'auto' && status === 'en_fila' ? (tailMarker ?? undefined) : undefined,
           image,
         }),
       })
@@ -150,6 +162,8 @@ export function BorderReportSheet({ portOpen }: { portOpen: boolean }) {
       setMinutes(null)
       setExactMinutes('')
       setStatus(null)
+      setPace(null)
+      setTailMarker(null)
       setNote('')
       removePhoto()
       router.refresh()
@@ -223,7 +237,10 @@ export function BorderReportSheet({ portOpen }: { portOpen: boolean }) {
                 <button
                   key={l.id}
                   type="button"
-                  onClick={() => setLane(l.id)}
+                  onClick={() => {
+                    setLane(l.id)
+                    if (l.id !== 'auto') setTailMarker(null)
+                  }}
                   className={chipClass(lane === l.id)}
                 >
                   {l.label}
@@ -294,7 +311,10 @@ export function BorderReportSheet({ portOpen }: { portOpen: boolean }) {
             <div className="mt-2 flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => setStatus('ya_cruce')}
+                onClick={() => {
+                  setStatus('ya_cruce')
+                  setTailMarker(null)
+                }}
                 className={chipClass(status === 'ya_cruce')}
               >
                 Ya crucé
@@ -313,13 +333,49 @@ export function BorderReportSheet({ portOpen }: { portOpen: boolean }) {
               </p>
             )}
 
+            <p className="mt-5 text-xs font-medium uppercase tracking-wide text-gray-500">
+              ¿Cómo va? (opcional)
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {(Object.keys(PACE_LABELS) as BorderPace[]).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPace(pace === p ? null : p)}
+                  className={chipClass(pace === p)}
+                >
+                  {PACE_LABELS[p]}
+                </button>
+              ))}
+            </div>
+
+            {lane === 'auto' && status === 'en_fila' && (
+              <>
+                <p className="mt-5 text-xs font-medium uppercase tracking-wide text-gray-500">
+                  ¿Hasta dónde llega la fila? (opcional)
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {(Object.keys(TAIL_MARKER_LABELS) as TailMarker[]).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setTailMarker(tailMarker === t ? null : t)}
+                      className={chipClass(tailMarker === t)}
+                    >
+                      {TAIL_MARKER_LABELS[t]}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
             <label className="mt-5 block text-xs text-gray-500">
               Nota (opcional, 280 caracteres)
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value.slice(0, 280))}
                 rows={2}
-                placeholder="Ej. La fila llega hasta la glorieta"
+                placeholder="Ej. Hay revisión antes de la garita"
                 className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-base text-gray-900"
               />
             </label>

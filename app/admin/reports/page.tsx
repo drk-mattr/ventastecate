@@ -21,6 +21,8 @@ const TYPE_LABEL: Record<string, string> = {
   item_comment_prohibited: 'Comentario (artículo): contenido prohibido', item_comment_other: 'Comentario (artículo): otro motivo',
   business_review_spam: 'Opinión (negocio): spam', business_review_offensive: 'Opinión (negocio): contenido ofensivo',
   business_review_prohibited: 'Opinión (negocio): contenido prohibido', business_review_other: 'Opinión (negocio): otro motivo',
+  border_spam: 'Garita: spam', border_offensive: 'Garita: contenido ofensivo',
+  border_other: 'Garita: otro motivo',
 }
 
 // B7: one-tap flags on a business offering land in `item_reports`,
@@ -67,7 +69,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
   const supabase = await createClient()
   // Pre-042 the business_review_id column does not exist yet and the
   // select errors — retry without it so the inbox still lists reports.
-  const baseSelect = 'id, type, description, email, listing_id, listing_title, conversation_id, story_id, item_comment_id, reporter_label, status, created_at'
+  const baseSelect = 'id, type, description, email, listing_id, listing_title, conversation_id, story_id, item_comment_id, border_report_id, reporter_label, status, created_at'
   async function fetchReports(withReview: boolean): Promise<Report[] | null> {
     // A computed select string makes the query builder's inferred row
     // type collapse, so the result is cast back to Report rows.
@@ -140,6 +142,25 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
     }
   }
 
+  // Garita flags (migration 051): enrich border entries with
+  // the flagged post (lane, minutes, hidden state), via a plain
+  // query + JS join. Pre-051 the column does not exist — the
+  // query errors and the enrichment is skipped, never breaking
+  // the inbox.
+  const borderById = new Map<string, { hidden_at: string | null }>()
+  const reportBorderIds = [...new Set(list.map((r) => r.border_report_id).filter((v): v is string => v !== null))]
+  if (reportBorderIds.length > 0) {
+    const { data: borderPosts, error: borderError } = await supabase
+      .from('border_line_reports')
+      .select('id, hidden_at')
+      .in('id', reportBorderIds)
+    if (!borderError && borderPosts) {
+      for (const b of borderPosts as unknown as { id: string; hidden_at: string | null }[]) {
+        borderById.set(b.id, b)
+      }
+    }
+  }
+
   const entries: InboxEntry[] = [
     ...list.map((r): InboxEntry => ({
       key: `report-${r.id}`,
@@ -147,8 +168,8 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
       typeLabel: TYPE_LABEL[r.type] || r.type,
       status: r.status,
       createdAt: r.created_at,
-      description: r.description || r.listing_title || (r.story_id ? 'Historia reportada' : r.item_comment_id ? 'Comentario de artículo reportado' : r.business_review_id ? 'Opinión de negocio reportada' : 'Sin descripción'),
-      meta: `${r.reporter_label || 'Anónimo'}${r.listing_title ? ` · ${r.listing_title}` : ''}${r.email ? ` · ${r.email}` : ''}`,
+      description: r.description || r.listing_title || (r.story_id ? 'Historia reportada' : r.item_comment_id ? 'Comentario de artículo reportado' : r.business_review_id ? 'Opinión de negocio reportada' : r.border_report_id ? 'Reporte de garita' : 'Sin descripción'),
+      meta: `${r.reporter_label || 'Anónimo'}${r.listing_title ? ` · ${r.listing_title}` : ''}${r.email ? ` · ${r.email}` : ''}${r.border_report_id && borderById.get(r.border_report_id)?.hidden_at ? ' · Oculto del feed' : ''}`,
       video: r.listing_id ? videoByListingId.get(r.listing_id) : undefined,
     })),
     ...itemFlags.map((f): InboxEntry => {

@@ -1,22 +1,19 @@
 import type { Metadata } from 'next'
+import { ChevronDown } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { createClient } from '@/lib/supabase/server'
 import { BorderReportSheet } from '@/components/border/border-report-sheet'
 import { BorderChart } from '@/components/border/border-chart'
+import { GaritaPageClient } from '@/components/border/garita-page-client'
+import type { LaneSummaryCell } from '@/components/border/border-lane-summary'
+import type { FeedBorderReport } from '@/components/border/border-feed'
 import {
-  BorderReportsList,
-  type RecentBorderReport,
-} from '@/components/border/border-reports-list'
-import {
-  DIRECTION_LABELS,
-  LANE_LABELS,
   PORT_CLOSE_HOUR,
   PORT_OPEN_HOUR,
   WEEKDAY_NAMES,
   daysCollecting,
   estimateLane,
   formatAge,
-  formatWait,
   hourlyToday,
   isPortOpen,
   projectionForHour,
@@ -52,6 +49,8 @@ type ReportRow = {
   direction: BorderDirection
   wait_minutes: number
   status: 'en_fila' | 'ya_cruce'
+  note: string | null
+  photo_url: string | null
   created_at: string
   user_id: string
 }
@@ -75,117 +74,6 @@ async function safeRows<T>(promise: PromiseLike<{ data: T[] | null; error: unkno
   }
 }
 
-function LaneCard({
-  lane,
-  direction,
-  estimate,
-}: {
-  lane: BorderLane
-  direction: BorderDirection
-  estimate: BorderEstimate
-}) {
-  const cbp = estimate.cbp
-  return (
-    <article className="rounded-xl border bg-white p-4">
-      <h3 className="text-[15px] font-semibold text-gray-900">
-        {LANE_LABELS[lane]} — {DIRECTION_LABELS[direction]}
-      </h3>
-
-      {estimate.state === 'current' && estimate.minutes !== null && (
-        <>
-          <p className="mt-2 text-3xl font-bold text-gray-900">
-            {formatWait(estimate.minutes)}
-            {estimate.isCounting && (
-              <span className="ml-2 text-base font-medium text-gray-500">y contando</span>
-            )}
-          </p>
-          {estimate.source === 'community' ? (
-            <p className="mt-1 text-xs text-gray-500">
-              Comunidad · {formatAge(estimate.ageMinutes)} · {estimate.reportCount}{' '}
-              {estimate.reportCount === 1 ? 'persona' : 'personas'}
-            </p>
-          ) : (
-            <p className="mt-1 text-xs text-gray-500">
-              CBP oficial · {formatAge(estimate.ageMinutes)}
-              {cbp?.lanes_open !== null && cbp?.lanes_open !== undefined
-                ? ` · ${cbp.lanes_open} ${cbp.lanes_open === 1 ? 'carril abierto' : 'carriles abiertos'}`
-                : ''}
-            </p>
-          )}
-          {estimate.agreement && (
-            <p className="mt-1 text-xs text-gray-500">{estimate.agreement}</p>
-          )}
-          {estimate.isCounting && (
-            <p className="mt-1 text-xs text-gray-500">
-              Gente aún en la fila — es lo que llevan esperando, no el total.
-            </p>
-          )}
-          {estimate.ageMinutes !== null && estimate.ageMinutes >= 30 && (
-            <p className="mt-1 text-xs text-gray-500">
-              Último dato {formatAge(estimate.ageMinutes)} — puede haber cambiado.
-            </p>
-          )}
-        </>
-      )}
-
-      {estimate.state === 'last-known' && estimate.minutes !== null && (
-        <>
-          <p className="mt-2 text-xl font-semibold text-gray-900">
-            Último dato conocido: {formatWait(estimate.minutes)}
-          </p>
-          <p className="mt-1 text-xs text-gray-500">
-            {estimate.source === 'community' ? 'Comunidad' : 'CBP oficial'} ·{' '}
-            {formatAge(estimate.ageMinutes)} — puede haber cambiado.
-          </p>
-          <p className="mt-1 text-xs text-gray-500">¿Estás en la fila? Repórtala.</p>
-        </>
-      )}
-
-      {estimate.state === 'none' && (
-        <>
-          <p className="mt-2 text-xl font-semibold text-gray-900">Sin datos recientes</p>
-          {estimate.minutes !== null ? (
-            <p className="mt-1 text-xs text-gray-500">
-              Último dato: {formatWait(estimate.minutes)} · {formatAge(estimate.ageMinutes)}.
-            </p>
-          ) : (
-            <p className="mt-1 text-xs text-gray-500">
-              No hay un número actual para este carril.
-            </p>
-          )}
-          <p className="mt-1 text-xs text-gray-500">¿Estás en la fila? Repórtala.</p>
-        </>
-      )}
-
-      {/* Official and community side by side, always (norte).
-          Southbound has no official number anywhere — say so. */}
-      {direction === 'norte' && estimate.source === 'community' && (
-        <p className="mt-3 border-t border-gray-100 pt-2 text-xs text-gray-500">
-          {cbp && cbp.delay_minutes !== null
-            ? `Oficial CBP: ${formatWait(cbp.delay_minutes)} · ${formatAge(
-                estimate.cbpAgeMinutes,
-              )}${
-                cbp.lanes_open !== null && cbp.lanes_open !== undefined
-                  ? ` · ${cbp.lanes_open} ${cbp.lanes_open === 1 ? 'carril abierto' : 'carriles abiertos'}`
-                  : ''
-              }`
-            : 'CBP no reporta este carril ahora.'}
-        </p>
-      )}
-      {direction === 'norte' && estimate.source !== 'community' && cbp === null && (
-        <p className="mt-3 border-t border-gray-100 pt-2 text-xs text-gray-500">
-          CBP sin actualizar todavía.
-        </p>
-      )}
-      {direction === 'sur' && (
-        <p className="mt-3 border-t border-gray-100 pt-2 text-xs text-gray-500">
-          Solo reportes de la comunidad — no hay dato oficial para entrar a México.
-        </p>
-      )}
-    </article>
-  )
-}
-
 export default async function GaritaPage() {
   const now = new Date()
   const supabase = await createClient()
@@ -204,7 +92,11 @@ export default async function GaritaPage() {
     safeRows<ReportRow>(
       supabase
         .from('border_line_reports')
-        .select('id, lane, direction, wait_minutes, status, created_at, user_id')
+        .select('id, lane, direction, wait_minutes, status, note, photo_url, created_at, user_id')
+        // Moderator-hidden posts leave the feed AND the estimate
+        // inputs (migration 051). The column exists once 051 is
+        // applied, which happens before this code deploys.
+        .is('hidden_at', null)
         .order('created_at', { ascending: false })
         .limit(200),
     ),
@@ -259,9 +151,47 @@ export default async function GaritaPage() {
     }
   }
 
-  // Recent reports (last 10) with author handles + vote counts.
-  const recent = reports.slice(0, 10)
-  const authorIds = [...new Set(recent.map((r) => r.user_id))]
+  // The answer as one table: the six estimates in row order
+  // (Auto / A pie / Camiones x norte / sur) for the client
+  // shell, which renders the compact table + the feed.
+  const estimateCells: LaneSummaryCell[] = []
+  for (const lane of LANES) {
+    for (const direction of ['norte', 'sur'] as const) {
+      estimateCells.push({
+        lane,
+        direction,
+        estimate: estimates.get(`${lane}:${direction}`)!,
+      })
+    }
+  }
+
+  // Feed (migration 051): today's reports, newest first, last
+  // 50 — a post IS a border report rendered as a card. The
+  // estimate above reads the same rows through its own 30-minute
+  // vote window; the cards show ALL votes on each post, so an
+  // older post does not read as unconfirmed.
+  const todayKey = tijuanaParts(now).dateKey
+  const feedRows = reports
+    .filter((r) => tijuanaParts(new Date(r.created_at)).dateKey === todayKey)
+    .slice(0, 50)
+  const feedIds = feedRows.map((r) => r.id)
+  const feedVotesByReport = new Map<string, { confirms: number; denies: number }>()
+  if (feedIds.length > 0) {
+    const feedVoteRows = await safeRows<VoteRow>(
+      supabase
+        .from('border_line_votes')
+        .select('report_id, vote, created_at')
+        .in('report_id', feedIds)
+        .limit(2000),
+    )
+    for (const v of feedVoteRows) {
+      const entry = feedVotesByReport.get(v.report_id) ?? { confirms: 0, denies: 0 }
+      if (v.vote === 'confirma') entry.confirms += 1
+      else entry.denies += 1
+      feedVotesByReport.set(v.report_id, entry)
+    }
+  }
+  const authorIds = [...new Set(feedRows.map((r) => r.user_id))]
   const authors = new Map<string, { username: string; display_name: string }>()
   if (authorIds.length > 0) {
     const rows = await safeRows<{ id: string; username: string; display_name: string }>(
@@ -270,20 +200,17 @@ export default async function GaritaPage() {
     for (const row of rows) authors.set(row.id, row)
   }
   const userVotes: Record<string, 'confirma' | 'niega'> = {}
-  if (user && recent.length > 0) {
+  if (user && feedRows.length > 0) {
     const rows = await safeRows<{ report_id: string; vote: 'confirma' | 'niega' }>(
       supabase
         .from('border_line_votes')
         .select('report_id, vote')
         .eq('user_id', user.id)
-        .in(
-          'report_id',
-          recent.map((r) => r.id),
-        ),
+        .in('report_id', feedIds),
     )
     for (const row of rows) userVotes[row.report_id] = row.vote
   }
-  const recentReports: RecentBorderReport[] = recent.map((r) => {
+  const feedReports: FeedBorderReport[] = feedRows.map((r) => {
     const ageMinutes = Math.max(
       0,
       Math.floor((now.getTime() - new Date(r.created_at).getTime()) / 60000),
@@ -291,6 +218,7 @@ export default async function GaritaPage() {
     const author = authors.get(r.user_id)
     return {
       id: r.id,
+      user_id: r.user_id,
       lane: r.lane,
       direction: r.direction,
       wait_minutes: r.wait_minutes,
@@ -299,8 +227,10 @@ export default async function GaritaPage() {
       ageLabel: formatAge(ageMinutes),
       username: author?.username ?? 'usuario',
       display_name: author?.display_name ?? 'Usuario',
-      confirms: votesByReport.get(r.id)?.confirms ?? 0,
-      denies: votesByReport.get(r.id)?.denies ?? 0,
+      note: r.note,
+      photo_url: r.photo_url,
+      confirms: feedVotesByReport.get(r.id)?.confirms ?? 0,
+      denies: feedVotesByReport.get(r.id)?.denies ?? 0,
     }
   })
 
@@ -351,106 +281,109 @@ export default async function GaritaPage() {
             desktop (one row). If the button ever tucks under the
             header on a phone, these are the two numbers to adjust. */}
         <div className="sticky top-[104px] z-30 bg-gray-50 py-2 md:top-[57px]">
-          <BorderReportSheet />
+          <BorderReportSheet portOpen={open} />
         </div>
 
-        <h2 className="mt-4 text-base font-semibold text-gray-900">A EUA</h2>
-        <div className="mt-2 grid gap-3">
-          {LANES.map((lane) => (
-            <LaneCard
-              key={lane}
-              lane={lane}
-              direction="norte"
-              estimate={estimates.get(`${lane}:norte`)!}
-            />
-          ))}
+        {/* The answer + the evidence, in one client shell: the
+            compact lane table first, then the feed in its own
+            place ("La fila, en vivo"). One filter state drives
+            both — tapping a table cell filters the feed. */}
+        <div className="mt-4">
+          <GaritaPageClient
+            cells={estimateCells}
+            feedReports={feedReports}
+            userVotes={userVotes}
+          />
         </div>
 
-        <h2 className="mt-6 text-base font-semibold text-gray-900">A México</h2>
-        <div className="mt-2 grid gap-3">
-          {LANES.map((lane) => (
-            <LaneCard
-              key={lane}
-              lane={lane}
-              direction="sur"
-              estimate={estimates.get(`${lane}:sur`)!}
-            />
-          ))}
-        </div>
-
-        <section className="mt-6 rounded-xl border bg-white p-4">
-          <h2 className="text-base font-semibold text-gray-900">Hoy vs. un día normal</h2>
-          <p className="text-xs text-gray-500">Auto general · a EUA</p>
-          <div className="mt-3">
-            <BorderChart today={todayPoints} average={averagePoints} daysCollecting={days} />
-          </div>
-          <div className="mt-4 border-t border-gray-100 pt-3">
-            {projection ? (
-              <p className="text-sm text-gray-900">
-                Para las {projection.hour}:00: entre {projection.low} y {projection.high} min,
-                según los últimos {projection.samples}{' '}
-                {weekdayPlural(projection.weekdayName)} a esa hora.
-              </p>
-            ) : (
-              <p className="text-sm text-gray-500">
-                Aún no hay suficiente historial para proyectar — se necesitan 3{' '}
-                {projectionWeekday} con datos a esa hora
-                {days > 0 ? ` (llevamos ${days} ${days === 1 ? 'día' : 'días'} recolectando)` : ''}
-                .
-              </p>
-            )}
-          </div>
-        </section>
-
-        <section className="mt-6 rounded-xl border bg-white p-4">
-          <h2 className="text-base font-semibold text-gray-900">Reportes recientes</h2>
-          <div className="mt-3">
-            <BorderReportsList reports={recentReports} userVotes={userVotes} />
-          </div>
-        </section>
-
-        <section className="mt-6 rounded-xl border bg-white p-4">
-          <h2 className="text-base font-semibold text-gray-900">Esta semana</h2>
-          <p className="text-xs text-gray-500">Auto general · a EUA · últimos 7 días</p>
-          {week.busiestHour || week.quietestHour ? (
-            <div className="mt-3 space-y-2 text-sm text-gray-900">
-              {week.busiestHour && (
-                <p>
-                  Hora más pesada: {week.busiestHour.hour}:00 ({week.busiestHour.minutes} min en
-                  promedio)
-                </p>
-              )}
-              {week.quietestHour && (
-                <p>
-                  Hora más tranquila: {week.quietestHour.hour}:00 (
-                  {week.quietestHour.minutes} min en promedio)
-                </p>
-              )}
-              <div className="space-y-1.5 pt-2">
-                {week.byWeekday.map((d) => (
-                  <div key={d.weekday} className="flex items-center gap-2">
-                    <span className="w-8 shrink-0 text-xs text-gray-500">
-                      {WEEKDAY_SHORT[d.weekday]}
-                    </span>
-                    <span
-                      className="h-2 rounded bg-gray-900"
-                      style={{
-                        width: `${d.minutes !== null && weekMax > 0 ? Math.max(4, (d.minutes / weekMax) * 100) : 0}%`,
-                      }}
-                    />
-                    <span className="text-xs text-gray-500">
-                      {d.minutes !== null ? `${d.minutes} min` : 'sin datos'}
-                    </span>
-                  </div>
-                ))}
+        {/* Analytics — collapsed until they have data. The
+            projection needs 3 same-weekday samples (~3 weeks)
+            and "Esta semana" needs 7 days; until then this is
+            one row, not ~500 px of empty states. Auto-expands
+            once daysCollecting >= 3. */}
+        <details
+          open={days >= 3}
+          className="group mt-6 overflow-hidden rounded-xl border bg-white"
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3">
+            <span>
+              <span className="block text-base font-semibold text-gray-900">
+                Datos y proyecciones
+              </span>
+              <span className="block text-xs text-gray-500">
+                Hoy vs. un día normal · Esta semana
+              </span>
+            </span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-gray-500 transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="space-y-6 border-t border-gray-100 px-4 py-4">
+            <section>
+              <h2 className="text-base font-semibold text-gray-900">Hoy vs. un día normal</h2>
+              <p className="text-xs text-gray-500">Auto general · a EUA</p>
+              <div className="mt-3">
+                <BorderChart today={todayPoints} average={averagePoints} daysCollecting={days} />
               </div>
-            </div>
-          ) : (
-            <p className="mt-3 text-sm text-gray-500">
-              Aún no hay historial de esta semana.
-            </p>
-          )}
-        </section>
+              <div className="mt-4 border-t border-gray-100 pt-3">
+                {projection ? (
+                  <p className="text-sm text-gray-900">
+                    Para las {projection.hour}:00: entre {projection.low} y {projection.high} min,
+                    según los últimos {projection.samples}{' '}
+                    {weekdayPlural(projection.weekdayName)} a esa hora.
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    Aún no hay suficiente historial para proyectar — se necesitan 3{' '}
+                    {projectionWeekday} con datos a esa hora
+                    {days > 0 ? ` (llevamos ${days} ${days === 1 ? 'día' : 'días'} recolectando)` : ''}
+                    .
+                  </p>
+                )}
+              </div>
+            </section>
+            <section className="border-t border-gray-100 pt-4">
+              <h2 className="text-base font-semibold text-gray-900">Esta semana</h2>
+              <p className="text-xs text-gray-500">Auto general · a EUA · últimos 7 días</p>
+              {week.busiestHour || week.quietestHour ? (
+                <div className="mt-3 space-y-2 text-sm text-gray-900">
+                  {week.busiestHour && (
+                    <p>
+                      Hora más pesada: {week.busiestHour.hour}:00 ({week.busiestHour.minutes} min en
+                      promedio)
+                    </p>
+                  )}
+                  {week.quietestHour && (
+                    <p>
+                      Hora más tranquila: {week.quietestHour.hour}:00 (
+                      {week.quietestHour.minutes} min en promedio)
+                    </p>
+                  )}
+                  <div className="space-y-1.5 pt-2">
+                    {week.byWeekday.map((d) => (
+                      <div key={d.weekday} className="flex items-center gap-2">
+                        <span className="w-8 shrink-0 text-xs text-gray-500">
+                          {WEEKDAY_SHORT[d.weekday]}
+                        </span>
+                        <span
+                          className="h-2 rounded bg-gray-900"
+                          style={{
+                            width: `${d.minutes !== null && weekMax > 0 ? Math.max(4, (d.minutes / weekMax) * 100) : 0}%`,
+                          }}
+                        />
+                        <span className="text-xs text-gray-500">
+                          {d.minutes !== null ? `${d.minutes} min` : 'sin datos'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-gray-500">
+                  Aún no hay historial de esta semana.
+                </p>
+              )}
+            </section>
+          </div>
+        </details>
 
         <footer className="mt-6 text-xs leading-relaxed text-gray-500">
           <p>
@@ -458,15 +391,24 @@ export default async function GaritaPage() {
             usuarios de ventasTecate.
           </p>
           <p className="mt-2">
-            Cómo calculamos el tiempo: si dos o más personas que ya cruzaron coinciden en los
-            últimos 60 minutos, el número es su mediana; si solo hay un reporte reciente, se
-            muestra tal cual, con el conteo a la vista; si la gente sigue en la fila, el número
-            es lo que llevan esperando, no el total. Sin reportes recientes, se muestra el dato
-            oficial de CBP si tiene menos de 60 minutos. Pasados 60 minutos el dato se marca
-            como último conocido, y pasadas 3 horas ya no se muestra ningún número actual. Los
-            reportes con 2 o más votos en contra, y los de más de 4 horas, nunca entran al
-            cálculo.
+            Los reportes con 2 o más votos en contra no entran al cálculo, pero siguen visibles
+            con sus votos.
           </p>
+          <details className="group mt-2">
+            <summary className="cursor-pointer list-none font-medium text-gray-700">
+              Cómo calculamos el tiempo
+              <ChevronDown className="ml-1 inline h-3.5 w-3.5 text-gray-500 transition-transform group-open:rotate-180" />
+            </summary>
+            <p className="mt-2">
+              Si dos o más personas que ya cruzaron coinciden en los últimos 60 minutos, el
+              número es su mediana; si solo hay un reporte reciente, se muestra tal cual, con el
+              conteo a la vista; si la gente sigue en la fila, el número es lo que llevan
+              esperando, no el total. Sin reportes recientes, se muestra el dato oficial de CBP
+              si tiene menos de 60 minutos. Pasados 60 minutos el dato se marca como último
+              conocido, y pasadas 3 horas ya no se muestra ningún número actual. Los reportes
+              con 2 o más votos en contra, y los de más de 4 horas, nunca entran al cálculo.
+            </p>
+          </details>
         </footer>
       </main>
     </div>

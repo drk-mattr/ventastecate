@@ -2,18 +2,18 @@
 
 import { useState } from 'react'
 import {
-  BorderFeed,
-  type DirectionFilter,
-  type FeedBorderReport,
-  type LaneFilter,
-} from '@/components/border/border-feed'
+  BorderActivityFeed,
+  type ActivityEntry,
+} from '@/components/border/border-activity-feed'
 import {
   BorderLaneSummary,
   type LaneSummaryCell,
 } from '@/components/border/border-lane-summary'
 import {
   dynamicsLineParts,
+  type DirectionFilter,
   type DynamicsAggregate,
+  type LaneFilter,
 } from '@/lib/border/estimate'
 import { GaritaTrafficMap } from '@/components/border/garita-traffic-map'
 
@@ -22,20 +22,20 @@ import { GaritaTrafficMap } from '@/components/border/garita-traffic-map'
 // the feed's own chips both set the same filter, so the numbers
 // and the evidence are one control, not two.
 //
-// Server component (page.tsx) computes everything — the six
-// estimates, the dynamics aggregate, the feed posts, the user's
-// votes — and this shell only holds the filter state and renders
-// the table, the traffic map, and the feed section in its own
-// place, second on the page.
+// Server component (page.tsx) computes everything — the three
+// estimates, the dynamics aggregate, the activity entries, the
+// user's votes — and this shell only holds the filter state and
+// renders the page top to bottom: map first, then the compact
+// table, the dynamics line, and the unified "Actividad" feed.
 export function GaritaPageClient({
   cells,
   dynamics,
-  feedReports,
+  activityEntries,
   userVotes,
 }: {
   cells: LaneSummaryCell[]
   dynamics: DynamicsAggregate
-  feedReports: FeedBorderReport[]
+  activityEntries: ActivityEntry[]
   userVotes: Record<string, 'confirma' | 'niega'>
 }) {
   const [laneFilter, setLaneFilter] = useState<LaneFilter>('all')
@@ -50,12 +50,21 @@ export function GaritaPageClient({
 
   return (
     <>
-      <BorderLaneSummary
-        cells={cells}
-        laneFilter={laneFilter}
-        directionFilter={directionFilter}
-        onFilterChange={onFilterChange}
-      />
+      {/* Google traffic map: live traffic colors around the port,
+          first on the page. Lazy-loaded; the observer fires
+          immediately because the map is in view on load, so the
+          Maps JS + key fetch now cost on every /garita visit.
+          Degrades to caption + link if the key is missing. */}
+      <GaritaTrafficMap />
+
+      <div className="mt-4">
+        <BorderLaneSummary
+          cells={cells}
+          laneFilter={laneFilter}
+          directionFilter={directionFilter}
+          onFilterChange={onFilterChange}
+        />
+      </div>
 
       {/* Dynamic details (migration 052): one quiet line under
           the table — the page's live read, in the same breath as
@@ -68,17 +77,11 @@ export function GaritaPageClient({
         </p>
       )}
 
-      {/* Google traffic map: live traffic colors around the port,
-          under the table and above the feed. Lazy-loaded on
-          scroll; degrades to caption + link if the key is
-          missing. */}
-      <GaritaTrafficMap />
-
       <section className="mt-6">
-        <h2 className="text-base font-semibold text-gray-900">La fila, en vivo</h2>
+        <h2 className="text-base font-semibold text-gray-900">Actividad</h2>
         <div className="mt-3">
-          <BorderFeed
-            reports={feedReports}
+          <BorderActivityFeed
+            entries={activityEntries}
             userVotes={userVotes}
             laneFilter={laneFilter}
             directionFilter={directionFilter}
@@ -89,4 +92,3 @@ export function GaritaPageClient({
     </>
   )
 }
-

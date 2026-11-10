@@ -27,7 +27,7 @@ import {
 //
 // One drawer for everything: the header hamburger, the avatar and the
 // bottom-bar Cuenta tab all open this same sidebar.
-export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function MobileSidebar({ open, onClose, onReport }: { open: boolean; onClose: () => void; onReport: () => void }) {
   const pathname = usePathname()
   const { user, profile, stores, activeStore, setActiveStore, signOut, recentStoreIds } = useAuth()
   const { openAuth } = useAuthModal()
@@ -143,6 +143,17 @@ export function MobileSidebar({ open, onClose }: { open: boolean; onClose: () =>
           <Link href="/garita" onClick={onClose} className={rowClass('/garita')}>
             <Clock className="h-5 w-5 text-zinc-400" />Garita
           </Link>
+          {/* Reporting on mobile: the header chip is desktop-only,
+              so the sidebar carries the entry — same row style,
+              closes the sidebar, opens the report dialog (guests
+              get the auth modal first, via the shared opener). */}
+          <button
+            type="button"
+            onClick={() => { onClose(); onReport() }}
+            className={actionRowClass}
+          >
+            <PenLine className="h-5 w-5 text-zinc-400" />Reportar la fila
+          </button>
           {user && (
             <Link href="/messages" onClick={onClose} className={rowClass('/messages')}>
               <MessageCircle className="h-5 w-5 text-zinc-400" />Mensajes

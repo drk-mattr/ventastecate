@@ -6,7 +6,11 @@
 // A cell shows the headline from the same BorderEstimate the
 // page already computes — no new data, no new scoring. The table
 // is one object; the cell is one glance: minutes, source + age,
-// and at most two extra lines (agreement, CBP side-by-side).
+// and at most one extra line (the CBP side-by-side, when the
+// headline is community). The agreement detail left the cell in
+// the 2026-11-10 vertical redesign — the dynamics quiet line
+// under the table already expresses agreement when it exists,
+// and a one-line row has no room for it.
 
 // Type-only import: erased at compile time, so it needs no
 // runtime resolution. The two display formatters below are
@@ -36,10 +40,11 @@ export type LaneCellDisplay = {
    *  'small' for a demoted last-known number, 'none' when there
    *  is no number at all. */
   minutesTone: 'big' | 'small' | 'none'
-  /** Source + age line, or null. */
+  /** Source + age line, or null. Short form — it renders
+   *  inline after the minutes on the one-line row. */
   sourceLine: string | null
-  /** Extra lines, in order: agreement, then the CBP side-by-side
-   *  (Auto/norte only, when the headline is community). */
+  /** Extra lines, in order: only the CBP side-by-side (Auto/
+   *  norte only, when the headline is community). */
   extraLines: string[]
   /** True when the headline is an en_fila median — people still
    *  in line, a lower bound; rendered inline as "y contando". */
@@ -51,14 +56,13 @@ function plural(n: number, one: string, many: string): string {
 }
 
 /**
- * Display rules for one table cell. `showAgreement` is true only
- * for the Auto/norte cell — the agreement line ("2 de 3
- * coinciden…") belongs there once, not once per cell.
+ * Display rules for one table cell. Short source strings — the
+ * row is one line, so the long form (with "oficial" and
+ * "carriles abiertos") is now "CBP · hace 11 min · 2 carriles".
  */
 export function laneCellDisplay(
   estimate: BorderEstimate,
   direction: BorderDirection,
-  showAgreement: boolean,
 ): LaneCellDisplay {
   if (estimate.state === 'none') {
     // A 'none' estimate can still carry last-known minutes
@@ -89,7 +93,7 @@ export function laneCellDisplay(
       sourceLine:
         estimate.source === 'community'
           ? `Comunidad · ${formatAge(estimate.ageMinutes)}`
-          : `CBP oficial · ${formatAge(estimate.ageMinutes)}`,
+          : `CBP · ${formatAge(estimate.ageMinutes)}`,
       extraLines: [],
       counting: false,
     }
@@ -97,7 +101,6 @@ export function laneCellDisplay(
 
   // state === 'current'
   const extraLines: string[] = []
-  if (showAgreement && estimate.agreement) extraLines.push(estimate.agreement)
   const sourceLine =
     estimate.source === 'community'
       ? `Comunidad · ${formatAge(estimate.ageMinutes)} · ${estimate.reportCount} ${plural(
@@ -105,9 +108,9 @@ export function laneCellDisplay(
           'persona',
           'personas',
         )}`
-      : `CBP oficial · ${formatAge(estimate.ageMinutes)}${
+      : `CBP · ${formatAge(estimate.ageMinutes)}${
           estimate.cbp?.lanes_open !== null && estimate.cbp?.lanes_open !== undefined
-            ? ` · ${estimate.cbp.lanes_open} ${plural(estimate.cbp.lanes_open, 'carril abierto', 'carriles abiertos')}`
+            ? ` · ${estimate.cbp.lanes_open} ${plural(estimate.cbp.lanes_open, 'carril', 'carriles')}`
             : ''
         }`
   // Official and community side by side, always (norte): when

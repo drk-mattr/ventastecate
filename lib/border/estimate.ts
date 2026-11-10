@@ -23,6 +23,12 @@ export type BorderLane = 'auto' | 'peatonal' | 'comercial'
 export type BorderDirection = 'norte' | 'sur'
 export type BorderReportStatus = 'en_fila' | 'ya_cruce'
 
+/** The shared table ↔ feed filter (moved here from the deleted
+ *  border-feed.tsx — the table, the client shell, and the
+ *  activity feed all import it). */
+export type LaneFilter = 'all' | BorderLane
+export type DirectionFilter = 'all' | BorderDirection
+
 export type BorderReportInput = {
   id: string
   lane: BorderLane
@@ -549,6 +555,73 @@ export function dynamicsLineParts(
     : parts[0].charAt(0).toUpperCase() + parts[0].slice(1)
   const meta = `${agg.reportCount} ${agg.reportCount === 1 ? 'reporte' : 'reportes'}, ${formatAge(agg.ageMinutes)}`
   return { signal, meta }
+}
+
+// --- Unified activity feed: CBP entries (read-only projection) ---
+
+export type CbpFeedEntry = {
+  kind: 'cbp'
+  /** `cbp-${lane}-${fetched_at}` — stable across renders. */
+  id: string
+  /** Snapshot fetched_at (ISO) — the entry's timestamp. */
+  at: string
+  /** "hace 11 min" — computed server-side, never Date.now()
+   *  in render. */
+  ageLabel: string
+  lane: BorderLane
+  /** CBP measures northbound only, always. */
+  direction: 'norte'
+  wait_minutes: number
+  lanes_open: number | null
+  /** CBP's own "At 1:00 pm PST" label, stored as-is. */
+  cbp_label: string | null
+}
+
+/** Today's CBP entries for the unified "Actividad" feed: a
+ *  read-only projection of the stored snapshots — no new table,
+ *  no new fetch. The sync writes 3 rows every 30 min, so without
+ *  dedup the feed would print the same `60 min` all day. Rule:
+ *  one entry per (lane, sync) only when `delay_minutes` OR
+ *  `lanes_open` changed vs the previous snapshot for that lane.
+ *  Identical repeats produce no entry. The walk runs over the
+ *  full snapshot list (oldest first) so today's first snapshot
+ *  is correctly judged against yesterday's last one — a number
+ *  CBP held overnight is not a new entry in the morning.
+ *  Snapshots with no number (delay_minutes null) carry nothing
+ *  to show and are skipped. Returns newest first, today only
+ *  (Tijuana calendar day). */
+export function deriveCbpFeedEntries(
+  snapshots: CbpSnapshotInput[],
+  now: Date,
+): CbpFeedEntry[] {
+  const today = tijuanaParts(now).dateKey
+  const ordered = [...snapshots].sort(
+    (a, b) => new Date(a.fetched_at).getTime() - new Date(b.fetched_at).getTime(),
+  )
+  const lastSeen = new Map<BorderLane, { delay: number; lanes: number | null }>()
+  const entries: CbpFeedEntry[] = []
+  for (const s of ordered) {
+    if (s.delay_minutes === null) continue
+    const prev = lastSeen.get(s.lane)
+    const changed =
+      !prev || prev.delay !== s.delay_minutes || prev.lanes !== s.lanes_open
+    lastSeen.set(s.lane, { delay: s.delay_minutes, lanes: s.lanes_open })
+    if (!changed) continue
+    if (tijuanaParts(new Date(s.fetched_at)).dateKey !== today) continue
+    entries.push({
+      kind: 'cbp',
+      id: `cbp-${s.lane}-${s.fetched_at}`,
+      at: s.fetched_at,
+      ageLabel: formatAge(minutesAgo(s.fetched_at, now)),
+      lane: s.lane,
+      direction: 'norte',
+      wait_minutes: s.delay_minutes,
+      lanes_open: s.lanes_open,
+      cbp_label: s.cbp_update_time,
+    })
+  }
+  // Newest first.
+  return entries.reverse()
 }
 
 // --- History: today, same-weekday average, projections, week ---

@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-// La Garita traffic map — a small lazy-loaded Google Map under the
-// lane table, showing live traffic colors around the Tecate port
+// La Garita traffic map — a lazy-loaded Google Map at the TOP
+// of the page, showing live traffic colors around the Tecate port
 // of entry. It answers the one question the numbers can't: what
 // does the line look like right now? It never gives a wait time —
 // the traffic layer carries no minutes, no border data, no number
@@ -17,7 +17,11 @@ import { useEffect, useRef, useState } from 'react'
 // Lazy by design: nothing loads — not even the key fetch — until
 // the card scrolls into view (IntersectionObserver), so a visitor
 // who never scrolls to it costs nothing and the page's first
-// paint is untouched.
+// paint is untouched. Since the 2026-11-10 vertical redesign the
+// map is first on the page, so the observer fires immediately on
+// load — the Maps JS + key fetch now cost on every /garita visit,
+// not only on scroll. That is the price of map-first; the script
+// is cached after the first load.
 //
 // Key wiring: the browser key is NEVER baked into a build
 // artifact. The client fetches it at runtime from
@@ -175,9 +179,9 @@ export function GaritaTrafficMap() {
   }, [visible])
 
   return (
-    <section ref={sectionRef} aria-label="Mapa del tráfico" className="mt-6">
+    <section ref={sectionRef} aria-label="Mapa del tráfico" className="mt-0">
       <div className="overflow-hidden rounded-xl border bg-white">
-        <div className="relative h-[300px] w-full bg-gray-100 sm:h-[360px]">
+        <div className="relative h-[360px] w-full bg-gray-100 sm:h-[400px]">
           <div ref={mapElRef} className="absolute inset-0" />
           {state !== 'ready' && (
             <div className="absolute inset-0 flex items-center justify-center px-4">

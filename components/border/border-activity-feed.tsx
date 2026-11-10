@@ -16,10 +16,17 @@ import {
   type BorderLane,
   type BorderPace,
   type BorderReportStatus,
+  type CbpFeedEntry,
+  type DirectionFilter,
+  type LaneFilter,
   type TailMarker,
 } from '@/lib/border/estimate'
 
-export type FeedBorderReport = {
+/** One user report in the activity feed — the same fields the
+ *  old BorderFeed rendered, plus the entry kind. No avatar: the
+ *  feed query fetches username + display_name only, as before. */
+export type ActivityUserEntry = {
+  kind: 'user'
   id: string
   user_id: string
   lane: BorderLane
@@ -34,7 +41,7 @@ export type FeedBorderReport = {
   note: string | null
   photo_url: string | null
   /** Dynamics (migration 052): one person's pace + tail picks
-   *  — shown as-is on the card, never aggregated here. */
+   *  — shown as-is on the entry, never aggregated here. */
   pace: BorderPace | null
   tail_marker: TailMarker | null
   /** All votes on the post (not just the last 30 min — the
@@ -43,14 +50,16 @@ export type FeedBorderReport = {
   denies: number
 }
 
+/** One chronological list, newest first: official CBP entries
+ *  and community reports side by side, never blended — every
+ *  line carries its source. */
+export type ActivityEntry = CbpFeedEntry | ActivityUserEntry
+
 const REPORT_REASONS = [
   { value: 'border_spam', label: 'Spam' },
   { value: 'border_offensive', label: 'Contenido ofensivo' },
   { value: 'border_other', label: 'Otro motivo' },
 ] as const
-
-export type LaneFilter = 'all' | BorderLane
-export type DirectionFilter = 'all' | BorderDirection
 
 const LANE_FILTERS: { id: LaneFilter; label: string }[] = [
   { id: 'all', label: 'Todos' },
@@ -65,24 +74,27 @@ const DIRECTION_FILTERS: { id: DirectionFilter; label: string }[] = [
   { id: 'sur', label: 'A México' },
 ]
 
-// La Garita as a feed (proposal §1, migration 051): a border
-// report rendered as a card — author, age, lane + direction,
-// minutes, status, note as the post text, optional photo
-// full-width, confirm/deny as the engagement. No comments, no
-// likes, no photo-only posts: every post is a wait-time report.
-// Newest first, today only, filter chips filter client-side
-// over the fetched posts. A photo never weighs in the estimate
-// (lib/border/estimate.ts is untouched); the vote row is the
-// agreement display, and a denied post stays visible — it just
-// leaves the estimate.
-export function BorderFeed({
-  reports,
+// La Garita as one activity feed (vertical redesign 2026-11-10):
+// the old community-only "La fila, en vivo" list and the CBP
+// numbers in the table are now one chronological list — official
+// entries (a read-only projection of the stored snapshots,
+// deduped so a held number doesn't print every 30 min) and
+// community reports, newest first, today only. CBP entries are
+// read-only — no vote, no flag, no author; official data is not
+// user content. User entries stay compact (text-lg minutes, a
+// thumbnail instead of a full-width photo) but keep every
+// interaction: confirm/deny votes, flag, photo expand, pace/tail,
+// note. A photo never weighs in the estimate; the vote row is
+// the agreement display, and a denied post stays visible — it
+// just leaves the estimate.
+export function BorderActivityFeed({
+  entries,
   userVotes,
   laneFilter: controlledLaneFilter,
   directionFilter: controlledDirectionFilter,
   onFilterChange,
 }: {
-  reports: FeedBorderReport[]
+  entries: ActivityEntry[]
   /** This user's vote per report id, when signed in. */
   userVotes: Record<string, 'confirma' | 'niega'>
   /** Controlled filter (the lane table drives it). When absent
@@ -159,12 +171,19 @@ export function BorderFeed({
     }
   }
 
-  const filtered = reports.filter(
-    (r) =>
-      (laneFilter === 'all' || r.lane === laneFilter) &&
-      (directionFilter === 'all' || r.direction === directionFilter),
+  // Chips filter both entry kinds; CBP entries are norte-only,
+  // so "A México" shows community reports only.
+  const filtered = entries.filter(
+    (e) =>
+      (laneFilter === 'all' || e.lane === laneFilter) &&
+      (directionFilter === 'all' || e.direction === directionFilter),
   )
-  const expanded = expandedId ? reports.find((r) => r.id === expandedId) : undefined
+  const expanded =
+    expandedId !== null
+      ? (entries.find(
+          (e) => e.kind === 'user' && e.id === expandedId,
+        ) as ActivityUserEntry | undefined)
+      : undefined
 
   const chipClass = (active: boolean) =>
     `rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
@@ -205,21 +224,63 @@ export function BorderFeed({
         </p>
       )}
 
-      {reports.length === 0 ? (
+      {entries.length === 0 ? (
         <p className="mt-4 text-sm text-gray-500">
-          Aún no hay reportes de la comunidad — sé el primero.
+          Aún no hay actividad hoy — sé el primero en reportar.
         </p>
       ) : filtered.length === 0 ? (
         <p className="mt-4 text-sm text-gray-500">
           {laneFilter !== 'all'
-            ? `Aún no hay reportes hoy en ${LANE_LABELS[laneFilter]} — sé el primero.`
-            : 'Aún no hay reportes hoy con ese filtro — sé el primero.'}
+            ? `Aún no hay actividad hoy en ${LANE_LABELS[laneFilter]} — sé el primero.`
+            : 'Aún no hay actividad hoy con ese filtro — sé el primero.'}
         </p>
       ) : (
         <div className="mt-4 space-y-3">
-          {filtered.map((r) => {
+          {filtered.map((entry) => {
+            if (entry.kind === 'cbp') {
+              // Official entry, read-only: age + source, minutes +
+              // lane + open lanes, CBP's own label when present.
+              // No vote, no flag — official data is not user
+              // content.
+              return (
+                <article key={entry.id} className="rounded-xl border bg-white p-4">
+                  <p className="text-sm">
+                    <span className="text-gray-500">{entry.ageLabel} · </span>
+                    <span className="font-semibold text-gray-900">CBP oficial</span>
+                  </p>
+                  <p className="mt-1.5 text-lg font-bold text-gray-900">
+                    {entry.wait_minutes <= 0
+                      ? 'Sin espera'
+                      : `${entry.wait_minutes} min de espera`}
+                    <span className="ml-1.5 text-sm font-medium text-gray-500">
+                      {LANE_LABELS[entry.lane]}
+                    </span>
+                    {entry.lanes_open !== null && (
+                      <span className="ml-1.5 text-sm font-medium text-gray-500">
+                        · {entry.lanes_open}{' '}
+                        {entry.lanes_open === 1 ? 'carril abierto' : 'carriles abiertos'}
+                      </span>
+                    )}
+                  </p>
+                  {entry.cbp_label && (
+                    <p className="mt-1 text-[11px] text-gray-500">
+                      Actualización de CBP: {entry.cbp_label}
+                    </p>
+                  )}
+                </article>
+              )
+            }
+
+            const r = entry
             const mine = userVotes[r.id]
             const isOwn = user?.id === r.user_id
+            // Pace + tail on one quiet line when present; the
+            // tail is a fact only for auto + en_fila.
+            const detailParts: string[] = []
+            if (r.pace) detailParts.push(PACE_LABELS[r.pace])
+            if (r.tail_marker && r.lane === 'auto' && r.status === 'en_fila') {
+              detailParts.push(`Fila hasta ${TAIL_LINE_LABELS[r.tail_marker]}`)
+            }
             return (
               <article
                 key={r.id}
@@ -235,10 +296,10 @@ export function BorderFeed({
                     {LANE_LABELS[r.lane]} · {DIRECTION_LABELS[r.direction]}
                   </span>
                 </div>
-                <p className="mt-2 text-3xl font-bold text-gray-900">
+                <p className="mt-2 text-lg font-bold text-gray-900">
                   {formatWait(r.wait_minutes)}
                   {r.status === 'en_fila' && (
-                    <span className="ml-2 text-base font-medium text-gray-500">y contando</span>
+                    <span className="ml-2 text-sm font-medium text-gray-500">y contando</span>
                   )}
                 </p>
                 <p className="mt-1 text-xs text-gray-500">
@@ -246,16 +307,8 @@ export function BorderFeed({
                     ? 'Ya cruzó — es el tiempo total que esperó.'
                     : 'En la fila — es lo que lleva esperando, no el total.'}
                 </p>
-                {r.pace && (
-                  <p className="mt-1 text-xs text-gray-500">{PACE_LABELS[r.pace]}</p>
-                )}
-                {/* The tail is a fact only for auto + en_fila: a
-                    stored tail on any other lane, or on a ya_cruce
-                    report, is never displayed as one. */}
-                {r.tail_marker && r.lane === 'auto' && r.status === 'en_fila' && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    Fila hasta {TAIL_LINE_LABELS[r.tail_marker]}
-                  </p>
+                {detailParts.length > 0 && (
+                  <p className="mt-1 text-[11px] text-gray-500">{detailParts.join(' · ')}</p>
                 )}
                 {r.note && (
                   <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-900">
@@ -267,14 +320,14 @@ export function BorderFeed({
                     type="button"
                     onClick={() => setExpandedId(r.id)}
                     aria-label="Ver foto de la fila en grande"
-                    className="relative mt-3 block aspect-[4/3] w-full overflow-hidden rounded-lg bg-gray-100"
+                    className="relative mt-3 block aspect-[4/3] w-40 overflow-hidden rounded-lg bg-gray-100"
                   >
                     <Image
                       src={r.photo_url}
                       alt={`Foto de la fila, ${LANE_LABELS[r.lane]} ${DIRECTION_LABELS[r.direction]}, ${r.ageLabel}`}
                       fill
                       className="object-cover"
-                      sizes="(max-width: 640px) 100vw, 672px"
+                      sizes="160px"
                     />
                   </button>
                 )}

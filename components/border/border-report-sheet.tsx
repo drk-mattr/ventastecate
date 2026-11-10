@@ -3,16 +3,20 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { X } from 'lucide-react'
-import { useAuth } from '@/lib/auth/auth-context'
-import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import { compressImage } from '@/lib/images/compress'
 import type { BorderDirection, BorderLane, BorderPace, BorderReportStatus, TailMarker } from '@/lib/border/estimate'
 import { PACE_LABELS, TAIL_MARKER_LABELS } from '@/lib/border/estimate'
 
-// 3-tap report sheet for La Garita (proposal §2): lane ->
+// 3-tap report dialog for La Garita (proposal §2): lane ->
 // direction -> time chips + "¿Ya cruzaste o sigues en la
 // fila?". Under 10 seconds, signed-in only. Only the three lanes
 // that exist at Tecate — SENTRI / Ready Lane are never offered.
+//
+// The dialog is controlled (open / onClose) and mounts once in
+// Header — the trigger lives in the nav Garita dropdown
+// (desktop) and the sidebar row (mobile), not in this component.
+// The guest guard (auth modal first) lives with the opener in
+// Header, same as the old sheet's opener guard.
 //
 // Time chips store the midpoint of their range (30–60 -> 45);
 // the exact-minutes field overrides the chip for people who
@@ -34,16 +38,21 @@ const TIME_CHIPS: { label: string; minutes: number }[] = [
   { label: 'Más de 2 h', minutes: 135 },
 ]
 
-// Feed (migration 051): the sheet is the composer — the photo
+// Feed (migration 051): the dialog is the composer — the photo
 // step comes last, after the note. One photo, compressed on the
 // phone with the same helper as the posting form, preview +
 // remove. No `capture` on the input (PR #99 lesson): iOS must
 // offer the library, not force the camera.
-export function BorderReportSheet({ portOpen }: { portOpen: boolean }) {
-  const { user } = useAuth()
-  const { openAuth } = useAuthModal()
+export function BorderReportDialog({
+  open,
+  onClose,
+  portOpen,
+}: {
+  open: boolean
+  onClose: () => void
+  portOpen: boolean
+}) {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
   const [lane, setLane] = useState<BorderLane | null>(null)
   const [direction, setDirection] = useState<BorderDirection>('norte')
   const [minutes, setMinutes] = useState<number | null>(null)
@@ -82,18 +91,9 @@ export function BorderReportSheet({ portOpen }: { portOpen: boolean }) {
     effectiveMinutes <= 360 &&
     !saving
 
-  const openSheet = () => {
-    if (!user) {
-      openAuth('login')
-      return
-    }
-    setError('')
-    setOpen(true)
-  }
-
   const close = () => {
     if (saving) return
-    setOpen(false)
+    onClose()
   }
 
   const onPhotoPick = async (file: File | undefined) => {
@@ -157,7 +157,7 @@ export function BorderReportSheet({ portOpen }: { portOpen: boolean }) {
         setSaving(false)
         return
       }
-      setOpen(false)
+      onClose()
       setLane(null)
       setMinutes(null)
       setExactMinutes('')
@@ -187,14 +187,6 @@ export function BorderReportSheet({ portOpen }: { portOpen: boolean }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={openSheet}
-        className="w-full rounded-full bg-gray-900 px-4 py-3 text-[15px] font-semibold text-white hover:bg-black"
-      >
-        Reportar la fila
-      </button>
-
       {open && (
         <div
           className="fixed inset-0 z-[70] flex items-end justify-center bg-black/60 sm:items-center sm:p-4"

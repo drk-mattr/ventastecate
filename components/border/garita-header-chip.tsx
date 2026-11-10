@@ -18,9 +18,15 @@ type CurrentData = {
 // Freshness is text only, monochrome, no colored dots. When there
 // is no current number (stale or no data at all) it renders plain
 // "Garita" with no time — a stale number is never shown as
-// current, same rule as the page. Fetches on mount and every 5
-// minutes; a failed fetch keeps the last good value, or plain
-// "Garita" when there is none yet.
+// current, same rule as the page.
+//
+// One headline rule (audit §1.5): the chip shows the same
+// estimate the /garita headline shows, computed no more than 60
+// seconds apart. The chip refetches the instant a report is
+// posted (the sheet dispatches a `border:updated` event next to
+// its router.refresh()), on window focus, and every 60 s —
+// never the old 5-minute poll, which let the chip sit on a
+// pre-report number while the page had already moved on.
 export function GaritaHeaderChip() {
   const [current, setCurrent] = useState<CurrentData | null>(null)
 
@@ -36,11 +42,20 @@ export function GaritaHeaderChip() {
         // Silent failure: keep the last good value.
       }
     }
+    const onFocus = () => {
+      if (document.visibilityState === 'visible') void load()
+    }
     load()
-    const timer = setInterval(load, 5 * 60 * 1000)
+    const timer = setInterval(load, 60 * 1000)
+    window.addEventListener('border:updated', load)
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onFocus)
     return () => {
       cancelled = true
       clearInterval(timer)
+      window.removeEventListener('border:updated', load)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onFocus)
     }
   }, [])
 

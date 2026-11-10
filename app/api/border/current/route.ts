@@ -37,6 +37,8 @@ export async function GET() {
         .select('id, lane, direction, wait_minutes, status, created_at, user_id')
         .eq('lane', 'auto')
         .eq('direction', 'norte')
+        // Moderator-hidden posts leave the estimate (migration 051).
+        .is('hidden_at', null)
         .order('created_at', { ascending: false })
         .limit(200),
       supabase
@@ -49,7 +51,7 @@ export async function GET() {
     if (snapRes.error || repRes.error || voteRes.error) {
       return NextResponse.json(
         { minutes: null, ageMinutes: null, source: null, isCounting: false, hasCurrent: false },
-        { headers: { 'Cache-Control': 'public, max-age=60' } },
+        { headers: { 'Cache-Control': 'no-store' } },
       )
     }
 
@@ -84,12 +86,12 @@ export async function GET() {
         isCounting: hasCurrent ? estimate.isCounting : false,
         hasCurrent,
       },
-      { headers: { 'Cache-Control': 'public, max-age=60' } },
+      { headers: { 'Cache-Control': 'no-store' } },
     )
   } catch {
     return NextResponse.json(
       { minutes: null, ageMinutes: null, source: null, isCounting: false, hasCurrent: false },
-      { headers: { 'Cache-Control': 'public, max-age=60' } },
+      { headers: { 'Cache-Control': 'no-store' } },
     )
   }
 }

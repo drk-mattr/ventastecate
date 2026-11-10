@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { X } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useAuthModal } from '@/lib/auth/auth-modal-context'
+import { compressImage } from '@/lib/images/compress'
 import type { BorderDirection, BorderLane, BorderReportStatus } from '@/lib/border/estimate'
 
 // 3-tap report sheet for La Garita (proposal §2): lane ->
@@ -32,7 +33,12 @@ const TIME_CHIPS: { label: string; minutes: number }[] = [
   { label: 'Más de 2 h', minutes: 135 },
 ]
 
-export function BorderReportSheet() {
+// Feed (migration 051): the sheet is the composer — the photo
+// step comes last, after the note. One photo, compressed on the
+// phone with the same helper as the posting form, preview +
+// remove. No `capture` on the input (PR #99 lesson): iOS must
+// offer the library, not force the camera.
+export function BorderReportSheet({ portOpen }: { portOpen: boolean }) {
   const { user } = useAuth()
   const { openAuth } = useAuthModal()
   const router = useRouter()
@@ -43,8 +49,20 @@ export function BorderReportSheet() {
   const [exactMinutes, setExactMinutes] = useState('')
   const [status, setStatus] = useState<BorderReportStatus | null>(null)
   const [note, setNote] = useState('')
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [photoError, setPhotoError] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+
+  // Revoke the preview object URL when it is replaced or the
+  // sheet unmounts, so a picked photo never leaks memory.
+  useEffect(
+    () => () => {
+      if (photoPreview) URL.revokeObjectURL(photoPreview)
+    },
+    [photoPreview],
+  )
 
   const effectiveMinutes =
     exactMinutes.trim() !== '' ? Number(exactMinutes) : minutes
@@ -71,11 +89,44 @@ export function BorderReportSheet() {
     setOpen(false)
   }
 
+  const onPhotoPick = async (file: File | undefined) => {
+    setPhotoError('')
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('Elige una foto (JPEG, PNG o WebP)')
+      return
+    }
+    const compressed = await compressImage(file)
+    if (compressed.size > 5 * 1024 * 1024) {
+      setPhotoError('La foto es demasiado grande (máximo 5 MB)')
+      return
+    }
+    if (photoPreview) URL.revokeObjectURL(photoPreview)
+    setPhotoFile(compressed)
+    setPhotoPreview(URL.createObjectURL(compressed))
+  }
+
+  const removePhoto = () => {
+    if (photoPreview) URL.revokeObjectURL(photoPreview)
+    setPhotoFile(null)
+    setPhotoPreview(null)
+    setPhotoError('')
+  }
+
   const submit = async () => {
     if (!canSubmit || lane === null || status === null || effectiveMinutes === null) return
     setSaving(true)
     setError('')
     try {
+      let image: string | undefined
+      if (photoFile) {
+        image = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = () => reject(new Error('read'))
+          reader.readAsDataURL(photoFile)
+        })
+      }
       const res = await fetch('/api/border/report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -85,6 +136,7 @@ export function BorderReportSheet() {
           wait_minutes: Math.round(effectiveMinutes),
           status,
           note: note.trim() || undefined,
+          image,
         }),
       })
       const data: { error?: string } = await res.json().catch(() => ({}))
@@ -99,7 +151,13 @@ export function BorderReportSheet() {
       setExactMinutes('')
       setStatus(null)
       setNote('')
+      removePhoto()
       router.refresh()
+      // The header chip shows the same headline as the page —
+      // tell it to refetch now, not at its next poll (audit
+      // §1.5: a 5-minute-old chip after your own report is the
+      // bug this fixes).
+      window.dispatchEvent(new Event('border:updated'))
     } catch {
       setError('No se pudo guardar el reporte')
     }
@@ -150,6 +208,13 @@ export function BorderReportSheet() {
               Tres toques, menos de 10 segundos. Tu reporte cuenta por 60 minutos.
             </p>
 
+            {!portOpen ? (
+              <p className="mt-5 text-sm text-gray-700">
+                La garita está cerrada — vuelve a las 6 am. De noche no hay nada que
+                reportar.
+              </p>
+            ) : (
+              <>
             <p className="mt-5 text-xs font-medium uppercase tracking-wide text-gray-500">
               Carril
             </p>
@@ -259,6 +324,42 @@ export function BorderReportSheet() {
               />
             </label>
 
+            <p className="mt-5 text-xs font-medium uppercase tracking-wide text-gray-500">
+              Foto de la fila (opcional)
+            </p>
+            {photoPreview ? (
+              <div className="relative mt-2">
+                {/* Plain img: object URL, not a remote asset. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={photoPreview}
+                  alt="Foto de la fila"
+                  className="aspect-[4/3] w-full rounded-lg object-cover bg-gray-100"
+                />
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  className="absolute right-2 top-2 rounded-full bg-black/70 px-3 py-1 text-xs font-medium text-white"
+                >
+                  Quitar
+                </button>
+              </div>
+            ) : (
+              <label className="mt-2 flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-700 hover:border-gray-900">
+                Agregar foto de la fila
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => void onPhotoPick(e.target.files?.[0])}
+                  className="hidden"
+                />
+              </label>
+            )}
+            {photoError && <p className="mt-2 text-sm text-red-600">{photoError}</p>}
+            <p className="mt-2 text-xs text-gray-500">
+              La foto es pública, como el resto de la página.
+            </p>
+
             {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
             <button
@@ -269,6 +370,8 @@ export function BorderReportSheet() {
             >
               {saving ? 'Guardando…' : 'Enviar reporte'}
             </button>
+              </>
+            )}
           </div>
         </div>
       )}

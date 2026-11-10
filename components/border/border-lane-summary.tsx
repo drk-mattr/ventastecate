@@ -10,10 +10,17 @@ import { laneCellDisplay } from '@/lib/border/lane-cell'
 import type { DirectionFilter, LaneFilter } from '@/components/border/border-feed'
 
 // La Garita restructure — the answer as ONE compact table
-// (3 rows x 2 directions) instead of six stacked cards. Same
+// (3 rows, A EUA only) instead of six stacked cards. Same
 // numbers, same sources, same ladder — only the container
 // changes: ~200 px tall instead of ~950 px on a phone, so the
 // feed starts on the first screen.
+//
+// The A México column was dropped 2026-11-09: there is no
+// official southbound source anywhere (CBP measures northbound
+// only) and zero southbound community reports have ever existed,
+// so it was three rows of "sin datos" nobody reads. Southbound
+// reporting still works and still shows in the feed via its
+// direction chip — only the table column is gone.
 //
 // The table is also the feed's filter: tapping a cell sets the
 // feed filter to that lane + direction; tapping a lane name
@@ -21,7 +28,7 @@ import type { DirectionFilter, LaneFilter } from '@/components/border/border-fee
 // control (and the way to clear a filter: Todos / Ambas).
 
 const LANES: BorderLane[] = ['auto', 'peatonal', 'comercial']
-const DIRECTIONS: BorderDirection[] = ['norte', 'sur']
+const DIRECTIONS: BorderDirection[] = ['norte']
 
 export type LaneSummaryCell = {
   lane: BorderLane
@@ -54,9 +61,6 @@ export function BorderLaneSummary({
               </th>
               <th scope="col" className="px-3 py-2 text-xs font-semibold text-gray-900">
                 A EUA
-              </th>
-              <th scope="col" className="px-3 py-2 text-xs font-semibold text-gray-900">
-                A México
               </th>
             </tr>
           </thead>
@@ -133,9 +137,6 @@ export function BorderLaneSummary({
           </tbody>
         </table>
       </div>
-      <p className="mt-2 text-xs text-gray-500">
-        Solo reportes de la comunidad para entrar a México — no hay dato oficial en ese sentido.
-      </p>
     </div>
   )
 }

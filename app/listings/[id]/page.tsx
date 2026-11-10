@@ -9,10 +9,11 @@ import { Badge } from '@/components/ui/badge'
 import type { ListingMetadata, RealEstateMetadata, AutomotiveMetadata, ListingType, ListingComment } from '@/lib/types/database'
 import { ListingImageGallery } from '@/components/listings/listing-image-gallery'
 import { ListingTitleCard } from '@/components/listings/listing-title-card'
+import { NewsArticle } from '@/components/listings/news-article'
 import { CommentSection } from '@/components/listings/comment-section'
 import { ReportListingButton } from '@/components/listings/report-listing-button'
 import Image from 'next/image'
-import { MapPin, Calendar, Newspaper, Store, Bed, Droplets, Ruler, Home, Car, Gauge, Settings, Fuel, Palette, DoorOpen, BadgeCheck, Megaphone, Ticket } from 'lucide-react'
+import { MapPin, Calendar, Store, Bed, Droplets, Ruler, Home, Car, Gauge, Settings, Fuel, Palette, DoorOpen, BadgeCheck, Megaphone, Ticket } from 'lucide-react'
 import { ListingEngagementBar } from '@/components/listings/listing-engagement-bar'
 import { VideoEmbed } from '@/components/listings/video-embed'
 import { VideoPlayer } from '@/components/listings/video-player'
@@ -90,6 +91,41 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     : `${listing.title}. ${listing.description.substring(0, 155)}...`
   const url = `${process.env.NEXT_PUBLIC_APP_URL || 'https://ventastecate.com'}/listings/${id}`
 
+  // News articles get article OG tags (published time + author);
+  // products/events keep the website type.
+  const isNewsMeta = listing.listing_type === 'news'
+  const ogImages = primaryImage
+    ? [
+        {
+          url: primaryImage,
+          width: 1200,
+          height: 630,
+          alt: listing.title,
+        },
+      ]
+    : []
+  const openGraph = isNewsMeta
+    ? {
+        title: listing.title,
+        description,
+        url,
+        siteName: 'Ventas Tecate',
+        images: ogImages,
+        locale: 'es_MX',
+        type: 'article' as const,
+        publishedTime: listing.created_at,
+        authors: [listing.profile.display_name],
+      }
+    : {
+        title: listing.title,
+        description,
+        url,
+        siteName: 'Ventas Tecate',
+        images: ogImages,
+        locale: 'es_MX',
+        type: 'website' as const,
+      }
+
   return {
     title: priceText ? `${listing.title} - ${priceText} | Ventas Tecate` : `${listing.title} | Ventas Tecate`,
     description,
@@ -103,22 +139,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       'segunda mano',
     ],
     authors: [{ name: listing.profile.display_name }],
-    openGraph: {
-      title: listing.title,
-      description,
-      url,
-      siteName: 'Ventas Tecate',
-      images: primaryImage ? [
-        {
-          url: primaryImage,
-          width: 1200,
-          height: 630,
-          alt: listing.title,
-        },
-      ] : [],
-      locale: 'es_MX',
-      type: 'website',
-    },
+    openGraph,
     twitter: {
       card: 'summary_large_image',
       title: listing.title,
@@ -188,7 +209,6 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const isService = listingType === 'service'
   const isEvent = listingType === 'event'
   const isNews = listingType === 'news'
-  const isLostPost = isNews && listing.category === 'Objetos Perdidos'
 
   // Structured event fields (migration 043): pre-043 every value is
   // undefined and the when/where block below simply does not render.
@@ -262,8 +282,23 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     month: 'long',
   })
 
-  // Structured data for SEO (JSON-LD)
-  const structuredData = {
+  // Structured data for SEO (JSON-LD). News articles get
+  // NewsArticle (headline / datePublished / author / image);
+  // products and services keep Product / Service.
+  const structuredData = isNews
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'NewsArticle',
+        headline: listing.title,
+        description: listing.description,
+        image: sortedImages.map((img: { image_url: string }) => img.image_url),
+        datePublished: listing.created_at,
+        author: {
+          '@type': 'Person',
+          name: listing.profile.display_name,
+        },
+      }
+    : {
     '@context': 'https://schema.org',
     '@type': isService ? 'Service' : 'Product',
     name: listing.title,
@@ -334,140 +369,17 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       <main className="container mx-auto px-4 pt-0 pb-6 md:py-6 max-w-7xl">
 
         {isNews ? (
-          /* ── News / Announcement article layout ── */
-          <article className="max-w-2xl mx-auto flex flex-col">
-
-            {/* Category badge + breadcrumb */}
-            <div className="flex items-center gap-2 mb-4">
-              <Badge variant="secondary" className="text-xs">{listing.category}</Badge>
-              <span className="text-gray-300">·</span>
-              <span className="text-xs text-gray-400 flex items-center gap-1">
-                <Newspaper className="h-3 w-3" /> Noticia / Aviso
-              </span>
-            </div>
-
-            {/* Headline — skipped when the hero is a title card, which
-                already carries the title (otherwise it shows twice). */}
-            {sortedImages.length > 0 && (
-              <h1 className="text-2xl font-semibold leading-tight mb-4">{listing.title}</h1>
-            )}
-
-            {/* Byline */}
-            <div className="flex items-center gap-3 pb-4 border-b mb-6">
-              <div className="relative h-9 w-9 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold overflow-hidden shrink-0">
-                {listing.store?.avatar_url ? (
-                  <Image src={listing.store.avatar_url} alt={listing.store.name} fill className="object-cover" />
-                ) : listing.profile.avatar_url ? (
-                  <Image src={listing.profile.avatar_url} alt={listing.profile.display_name} fill className="object-cover" />
-                ) : (
-                  <span>{(listing.store?.name || listing.profile.display_name)[0].toUpperCase()}</span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                {listing.store ? (
-                  <Link href={`/stores/${listing.store.slug}`} className="text-sm font-semibold hover:underline">{listing.store.name}</Link>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <Link href={`/users/${listing.profile.username}`} className="text-sm font-semibold hover:underline">{listing.profile.display_name}</Link>
-                    {listing.profile.username === 'ventastecate' && (
-                      <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-gray-500"><BadgeCheck className="h-3.5 w-3.5 text-orange-600" />Cuenta oficial</span>
-                    )}
-                    {(isNews || isEvent) && isLocalReporter(listing.profile) && <ReporterBadge />}
-                  </span>
-                )}
-                <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {new Date(listing.created_at).toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })}
-                  </span>
-                  {listing.location && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />{listing.location}
-                    </span>
-                  )}
-                </div>
-              </div>
-              {isOwner && (
-                <Button asChild size="sm" variant="outline" className="shrink-0">
-                  <Link href={`/listings/${listing.id}/edit`}>Editar</Link>
-                </Button>
-              )}
-            </div>
-
-            {/* Hero FIRST on mobile (order-first) — full-bleed, capped
-                to the first viewport; the badge, title and byline
-                follow below. Desktop keeps the article order (badge,
-                title, byline, hero) via md:order-none. Lost posts get
-                the SE BUSCA banner strip across the top of the hero. */}
-            {sortedImages.length > 0 ? (
-              <div className="relative order-first md:order-none -mx-4 sm:mx-0 mb-6 rounded-none sm:rounded-xl overflow-hidden">
-                {isLostPost && (
-                  <div className="absolute top-0 inset-x-0 z-[5] bg-red-600 px-3 py-1.5 text-center text-xs font-bold uppercase tracking-[0.2em] text-white">
-                    Se busca
-                  </div>
-                )}
-                <ListingImageGallery
-                  images={sortedImages}
-                  listingTitle={listing.title}
-                  isSold={listing.status === 'sold'}
-                  listingType={listingType}
-                  actions={
-                    <div className="md:hidden">
-                      <ListingEngagementBar
-                        listingId={listing.id}
-                        likesCount={likesCount}
-                        savesCount={savesCount}
-                        variant="overlay"
-                      />
-                    </div>
-                  }
-                />
-              </div>
-            ) : (
-              <div className="relative order-first md:order-none -mx-4 sm:mx-0 mb-6 rounded-none sm:rounded-xl overflow-hidden">
-                {isLostPost && (
-                  <div className="absolute top-0 inset-x-0 z-[5] bg-red-600 px-3 py-1.5 text-center text-xs font-bold uppercase tracking-[0.2em] text-white">
-                    Se busca
-                  </div>
-                )}
-                <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="hero" className="aspect-[16/9] rounded-none sm:rounded-xl" />
-              </div>
-            )}
-
-            {/* Video embed — native clip first, link embed otherwise */}
-            {videoBlock && (
-              <div className="mb-6">
-                {videoBlock}
-              </div>
-            )}
-
-            {/* Article body */}
-            <div className="prose prose-sm max-w-none">
-              <p className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
-                {listing.description}
-              </p>
-            </div>
-
-            {/* Tagged business */}
-            {taggedBusinessCard}
-
-            {/* Engagement bar — desktop only. On mobile the overlay
-                actions on the hero are the one like control. */}
-            <div className="hidden md:block">
-              <ListingEngagementBar
-                listingId={listing.id}
-                likesCount={likesCount}
-                savesCount={savesCount}
-              />
-            </div>
-
-            {/* Comment section */}
-            <CommentSection
-              listingId={listing.id}
-              initialComments={comments}
-              currentUserId={user?.id ?? null}
-            />
-          </article>
+          /* ── News article (Medium-style, components/listings/news-article.tsx) ── */
+          <NewsArticle
+            listing={listing}
+            comments={comments}
+            currentUserId={user?.id ?? null}
+            isOwner={isOwner}
+            likesCount={likesCount}
+            savesCount={savesCount}
+            videoBlock={videoBlock}
+            taggedBusinessCard={taggedBusinessCard}
+          />
         ) : isEvent ? (
           /* ── Event layout: single stacked column ── */
           <>
@@ -873,8 +785,9 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       {/* Sticky contact bar (mobile only) — replaces the bottom nav
           on detail pages, so the seller is one tap away from anywhere.
           Owners get sold/edit actions instead; sold listings hide the
-          bar for non-owners (nothing to contact). */}
-      {(isOwner || listing.status === 'active') && (
+          bar for non-owners (nothing to contact). News articles have
+          no seller: non-owners get no bar, owners keep Editar. */}
+      {(isNews ? isOwner : (isOwner || listing.status === 'active')) && (
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
           {isOwner ? (
             <div className="flex items-center gap-2">

@@ -34,8 +34,7 @@ import type { SelectedItemTag } from '@/lib/items/types'
 import { Business } from '@/lib/types/database'
 import {
   ImagePlus, X, Video, ChevronDown, ChevronUp, Check,
-  ShoppingBag, Handshake, CalendarHeart, Megaphone, Store,
-  UtensilsCrossed, Star, AlertTriangle, Briefcase, Dog
+  ShoppingBag, Handshake, CalendarHeart, Megaphone, Store
 } from 'lucide-react'
 
 // Categories whose selection reveals structured real-estate fields. Values must
@@ -57,23 +56,6 @@ const EVENT_CATEGORIES = ['Eventos', 'Comida y Bebida', 'Anuncios Comunitarios',
 
 const NEWS_CATEGORIES = [
   'Noticias', 'Reseñas y Recomendaciones', 'Objetos Perdidos', 'Seguridad Pública', 'Anuncios Comunitarios', 'Empleos',
-]
-
-// Quick shortcuts — popular topics that auto-select type + category
-const QUICK_SHORTCUTS: {
-  label: string
-  Icon: React.ComponentType<{ className?: string }>
-  type: ListingType
-  category: string
-  accent: string
-  accentBg: string
-  accentBorder: string
-}[] = [
-  { label: 'Comida', Icon: UtensilsCrossed, type: 'product', category: 'Comida', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-300' },
-  { label: 'Reseña', Icon: Star, type: 'news', category: 'Reseñas y Recomendaciones', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-300' },
-  { label: 'Empleo', Icon: Briefcase, type: 'news', category: 'Empleos', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-300' },
-  { label: 'Perdido', Icon: Dog, type: 'news', category: 'Objetos Perdidos', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-300' },
-  { label: 'Seguridad', Icon: AlertTriangle, type: 'news', category: 'Seguridad Pública', accent: 'text-gray-900', accentBg: 'bg-gray-100', accentBorder: 'border-gray-300' },
 ]
 
 // Neutral type config — verbs describe what the user is DOING, not what they're selling
@@ -1540,38 +1522,21 @@ function NewListingForm() {
       <Header />
       <main className="container mx-auto px-4 py-6 pb-24 max-w-2xl">
 
-        {/* ── Page header ── */}
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold text-gray-900">Compartir con la comunidad</h1>
-          {activeStore ? (
-            <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-1">
-              <Store className="h-3.5 w-3.5" />
-              Publicando como <span className="font-medium">{activeStore.name}</span>
-            </p>
-          ) : (
-            <p className="text-sm text-gray-500 mt-0.5">
-              Tu publicación será visible para toda la comunidad
-            </p>
-          )}
-          {draftRestored && (
-            <p className="text-xs text-gray-500 mt-2">
-              Borrador restaurado · se guarda en este dispositivo.{' '}
-              <button type="button" onClick={resetForm} className="underline text-gray-700">
-                Descartar
-              </button>
-            </p>
-          )}
-        </div>
+        {/* Store users post as their store — the only header line
+            left. The "Compartir con la comunidad" H1 + the generic
+            sub were cut 2026-11-10: the user got here via Publicar,
+            nothing needs explaining. */}
+        {activeStore && (
+          <p className="text-sm text-gray-500 mb-6 flex items-center gap-1">
+            <Store className="h-3.5 w-3.5" />
+            Publicando como <span className="font-medium">{activeStore.name}</span>
+          </p>
+        )}
 
         {/* 3-step progress — "Paso X de 3" + thin bar. Store users
             have a fixed type, so they see 2 steps (details, finish). */}
         <div className="mb-6">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-900">Paso {displayStep} de {totalSteps}</p>
-            <p className="text-xs text-gray-500">
-              {displayStep === 1 ? '¿Qué quieres compartir?' : displayStep === 2 ? 'Los datos' : 'Fotos, lugar y publicar'}
-            </p>
-          </div>
+          <p className="text-sm font-medium text-gray-900">Paso {displayStep} de {totalSteps}</p>
           <div className="h-1 bg-gray-200 rounded-full mt-2">
             <div
               className="h-1 bg-gray-900 rounded-full transition-all"
@@ -1588,9 +1553,6 @@ function NewListingForm() {
           {storeType === 'general' && step === 1 && (
           <div className="py-6 first:pt-0 space-y-5">
             <div className="space-y-2.5">
-              <p className="text-base font-semibold text-gray-900">
-                ¿Qué quieres compartir?
-              </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {(Object.entries(TYPE_CONFIG) as [ListingType, typeof config][]).map(([type, cfg]) => {
                   const isActive = listingType === type
@@ -1628,38 +1590,6 @@ function NewListingForm() {
                 })}
               </div>
 
-              {/* Quick shortcuts — popular topics */}
-              <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                <span className="text-[10px] text-gray-500 mr-0.5">Popular:</span>
-                {QUICK_SHORTCUTS.map((shortcut) => {
-                  const isActive = listingType === shortcut.type && category === shortcut.category
-                  return (
-                    <button
-                      key={shortcut.category}
-                      type="button"
-                      onClick={() => {
-                        setListingType(shortcut.type)
-                        clearFieldError('description')
-                        setCategory(shortcut.category)
-                        // A shortcut sets type + category in one tap
-                        // and jumps straight to Paso 2.
-                        goToStep(2, shortcut.type)
-                      }}
-                      className={`
-                        inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium
-                        border transition-all
-                        ${isActive
-                          ? `${shortcut.accentBg} ${shortcut.accentBorder} ${shortcut.accent}`
-                          : 'border-gray-300 bg-white text-gray-500 hover:bg-gray-50 hover:border-gray-400'
-                        }
-                      `}
-                    >
-                      <shortcut.Icon className={`h-3 w-3 ${isActive ? shortcut.accent : 'text-gray-500'}`} />
-                      {shortcut.label}
-                    </button>
-                  )
-                })}
-              </div>
             </div>
           </div>
           )}
@@ -2194,6 +2124,17 @@ function NewListingForm() {
                     </>
                   )}
                 </div>
+                {/* Draft restore — quiet microcopy under the buttons,
+                    not a sentence at the top of the page. Shows on
+                    every step (same form, same draft). */}
+                {draftRestored && (
+                  <p className="text-xs text-gray-400 mt-3 text-center">
+                    Borrador ·{' '}
+                    <button type="button" onClick={resetForm} className="underline text-gray-500">
+                      Descartar
+                    </button>
+                  </p>
+                )}
               </>
             )}
           </div>

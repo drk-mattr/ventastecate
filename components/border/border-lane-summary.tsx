@@ -5,9 +5,10 @@ import {
   type BorderDirection,
   type BorderEstimate,
   type BorderLane,
+  type DirectionFilter,
+  type LaneFilter,
 } from '@/lib/border/estimate'
 import { laneCellDisplay } from '@/lib/border/lane-cell'
-import type { DirectionFilter, LaneFilter } from '@/components/border/border-feed'
 
 // La Garita restructure — the answer as ONE compact table
 // (3 rows, A EUA only) instead of six stacked cards. Same
@@ -21,6 +22,14 @@ import type { DirectionFilter, LaneFilter } from '@/components/border/border-fee
 // so it was three rows of "sin datos" nobody reads. Southbound
 // reporting still works and still shows in the feed via its
 // direction chip — only the table column is gone.
+//
+// Vertical redesign 2026-11-10: the rows went one-line (~100 px
+// for the whole table). The thead ("A EUA") is gone — the page
+// context is A EUA, the only direction with official data. Each
+// row is minutes + short meta on one line; the CBP side-by-side
+// survives as the only second line, and only on community-
+// headline rows. The agreement line left the cell — the dynamics
+// quiet line under the table carries agreement now.
 //
 // The table is also the feed's filter: tapping a cell sets the
 // feed filter to that lane + direction; tapping a lane name
@@ -54,20 +63,10 @@ export function BorderLaneSummary({
     <div>
       <div className="overflow-hidden rounded-xl border bg-white">
         <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-gray-100 text-left">
-              <th scope="col" className="w-[86px] px-3 py-2">
-                <span className="sr-only">Carril</span>
-              </th>
-              <th scope="col" className="px-3 py-2 text-xs font-semibold text-gray-900">
-                A EUA
-              </th>
-            </tr>
-          </thead>
           <tbody className="divide-y divide-gray-100">
             {LANES.map((lane) => (
               <tr key={lane}>
-                <th scope="row" className="px-3 py-2 text-left align-top">
+                <th scope="row" className="px-3 py-1.5 text-left align-middle">
                   <button
                     type="button"
                     onClick={() => onFilterChange(lane, 'all')}
@@ -79,30 +78,26 @@ export function BorderLaneSummary({
                 </th>
                 {DIRECTIONS.map((direction) => {
                   const estimate = estimateFor(lane, direction)
-                  if (!estimate) return <td key={direction} className="px-3 py-2" />
-                  const display = laneCellDisplay(
-                    estimate,
-                    direction,
-                    lane === 'auto' && direction === 'norte',
-                  )
+                  if (!estimate) return <td key={direction} className="px-3 py-1.5" />
+                  const display = laneCellDisplay(estimate, direction)
                   const active =
                     (laneFilter === 'all' || laneFilter === lane) &&
                     (directionFilter === 'all' || directionFilter === direction) &&
                     !(laneFilter === 'all' && directionFilter === 'all')
                   return (
-                    <td key={direction} className="p-0 align-top">
+                    <td key={direction} className="p-0 align-middle">
                       <button
                         type="button"
                         onClick={() => onFilterChange(lane, direction)}
                         aria-pressed={active}
-                        className={`block w-full px-3 py-2 text-left ${
+                        className={`block w-full px-3 py-1.5 text-left ${
                           active ? 'bg-gray-100' : 'hover:bg-gray-50'
                         }`}
                       >
                         <span
                           className={
                             display.minutesTone === 'big'
-                              ? 'text-lg font-bold leading-tight text-gray-900'
+                              ? 'text-base font-bold leading-tight text-gray-900'
                               : display.minutesTone === 'small'
                                 ? 'text-sm font-semibold leading-tight text-gray-900'
                                 : 'text-sm font-medium leading-tight text-gray-400'
@@ -116,8 +111,8 @@ export function BorderLaneSummary({
                           )}
                         </span>
                         {display.sourceLine && (
-                          <span className="mt-0.5 block text-[11px] leading-tight text-gray-500">
-                            {display.sourceLine}
+                          <span className="ml-1.5 text-[11px] leading-tight text-gray-500">
+                            · {display.sourceLine}
                           </span>
                         )}
                         {display.extraLines.map((line) => (

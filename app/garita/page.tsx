@@ -2,17 +2,17 @@ import type { Metadata } from 'next'
 import { ChevronDown } from 'lucide-react'
 import { Header } from '@/components/layout/header'
 import { createClient } from '@/lib/supabase/server'
-import { BorderReportSheet } from '@/components/border/border-report-sheet'
 import { BorderChart } from '@/components/border/border-chart'
 import { GaritaPageClient } from '@/components/border/garita-page-client'
 import type { LaneSummaryCell } from '@/components/border/border-lane-summary'
-import type { FeedBorderReport } from '@/components/border/border-feed'
+import type { ActivityEntry } from '@/components/border/border-activity-feed'
 import {
   PORT_CLOSE_HOUR,
   PORT_OPEN_HOUR,
   WEEKDAY_NAMES,
   aggregateDynamics,
   daysCollecting,
+  deriveCbpFeedEntries,
   estimateLane,
   formatAge,
   hourlyToday,
@@ -222,13 +222,14 @@ export default async function GaritaPage() {
     )
     for (const row of rows) userVotes[row.report_id] = row.vote
   }
-  const feedReports: FeedBorderReport[] = feedRows.map((r) => {
+  const userEntries = feedRows.map((r) => {
     const ageMinutes = Math.max(
       0,
       Math.floor((now.getTime() - new Date(r.created_at).getTime()) / 60000),
     )
     const author = authors.get(r.user_id)
     return {
+      kind: 'user' as const,
       id: r.id,
       user_id: r.user_id,
       lane: r.lane,
@@ -247,6 +248,22 @@ export default async function GaritaPage() {
       denies: feedVotesByReport.get(r.id)?.denies ?? 0,
     }
   })
+
+  // Unified activity feed: today's CBP entries (deduped, from
+  // the stored snapshots) + today's community reports, newest
+  // first, cap 50. The report button is gone from the page —
+  // reporting lives in the nav dropdown (desktop) and the
+  // sidebar row (mobile).
+  const activityEntries: ActivityEntry[] = [
+    ...deriveCbpFeedEntries(snapshots, now),
+    ...userEntries,
+  ]
+    .sort((a, b) => {
+      const aAt = a.kind === 'cbp' ? a.at : a.created_at
+      const bAt = b.kind === 'cbp' ? b.at : b.created_at
+      return new Date(bAt).getTime() - new Date(aAt).getTime()
+    })
+    .slice(0, 50)
 
   // Chart + projection + week, all for Auto general / a EUA.
   const todayPoints = hourlyToday(snapshots, reportInputs, 'auto', now)
@@ -290,23 +307,18 @@ export default async function GaritaPage() {
           </p>
         )}
 
-        {/* Sticky report button. Offsets are the header's height:
-            ~104px on mobile (two rows: logo + search) and ~57px on
-            desktop (one row). If the button ever tucks under the
-            header on a phone, these are the two numbers to adjust. */}
-        <div className="sticky top-[104px] z-30 bg-gray-50 py-2 md:top-[57px]">
-          <BorderReportSheet portOpen={open} />
-        </div>
-
         {/* The answer + the evidence, in one client shell: the
-            compact lane table first, then the feed in its own
-            place ("La fila, en vivo"). One filter state drives
-            both — tapping a table cell filters the feed. */}
+            map first, then the compact lane table, the dynamics
+            line, and the unified "Actividad" feed. One filter
+            state drives table + feed — tapping a table cell
+            filters the feed. Reporting lives in the nav dropdown
+            (desktop) and the sidebar row (mobile), not on this
+            page. */}
         <div className="mt-4">
           <GaritaPageClient
             cells={estimateCells}
             dynamics={dynamics}
-            feedReports={feedReports}
+            activityEntries={activityEntries}
             userVotes={userVotes}
           />
         </div>

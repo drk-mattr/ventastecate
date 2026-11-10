@@ -11,6 +11,8 @@ import { useTranslations } from '@/lib/hooks/use-translations'
 import { Button } from '@/components/ui/button'
 import { HeaderSearch } from '@/components/search/header-search'
 import { GaritaHeaderChip } from '@/components/border/garita-header-chip'
+import { BorderReportDialog } from '@/components/border/border-report-sheet'
+import { isPortOpen } from '@/lib/border/estimate'
 import { NotificationBell } from '@/components/layout/notification-bell'
 import { MobileSidebar } from '@/components/layout/mobile-sidebar'
 import {
@@ -37,6 +39,24 @@ export function Header() {
     pathname === '/businesses' || (pathname?.startsWith('/businesses/') ?? false)
   const t = useTranslations()
   const [menuOpen, setMenuOpen] = useState(false)
+  // The Garita report dialog mounts once here (Header renders
+  // both the chip and the sidebar, the two reporting entries).
+  // Guests get the auth modal first — the same guard the old
+  // sheet's openSheet had. portOpen is computed client-side on
+  // mount (the API route doesn't enforce hours; the gate was
+  // always UI-only).
+  const [reportOpen, setReportOpen] = useState(false)
+  const [portOpen, setPortOpen] = useState(true)
+  const openBorderReport = () => {
+    if (!user) {
+      openAuth('login')
+      return
+    }
+    // Port hours at the moment the dialog opens (the API route
+    // doesn't enforce hours; the gate was always UI-only).
+    setPortOpen(isPortOpen(new Date()))
+    setReportOpen(true)
+  }
   // Unread thread count for the Mensajes item in the avatar menu —
   // the bell badge no longer carries it (its badge is unread
   // notification rows only, so one message never counts twice).
@@ -113,7 +133,7 @@ export function Header() {
             <Suspense fallback={<div className="flex-1 max-w-2xl mx-4" />}>
               <HeaderSearch />
             </Suspense>
-            <GaritaHeaderChip />
+            <GaritaHeaderChip onReport={openBorderReport} />
           </div>
         )}
 
@@ -310,7 +330,12 @@ export function Header() {
           )}
         </div>
       </div>
-      <MobileSidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <MobileSidebar open={menuOpen} onClose={() => setMenuOpen(false)} onReport={openBorderReport} />
+      <BorderReportDialog
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        portOpen={portOpen}
+      />
     </header>
   )
 }

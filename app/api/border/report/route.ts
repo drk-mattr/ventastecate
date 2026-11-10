@@ -23,6 +23,12 @@ const reportSchema = z.object({
   // ya_cruce = total minutes (the real wait).
   status: z.enum(['en_fila', 'ya_cruce']),
   note: z.string().max(280).optional(),
+  // Dynamics (migration 052): optional one-tap picks. Closed
+  // sets — never free text, never parsed from the note. A tail
+  // on any lane but auto, or on a ya_cruce report, is stored
+  // and simply never aggregated or displayed as a tail.
+  pace: z.enum(['rapida', 'normal', 'lenta']).optional(),
+  tail_marker: z.enum(['garita', 'glorieta', 'cetis', 'panteon', 'el_alto']).optional(),
   photo_url: z.string().url().optional(),
   // Feed (migration 051): an optional photo as a data URL
   // (`data:image/...;base64,...`, already compressed client-side
@@ -73,7 +79,7 @@ async function removeOldPhoto(admin: AdminClient, oldPath: string | null, newPat
 }
 
 // POST /api/border/report — a signed-in user reports the line.
-// Body: { lane, direction?, wait_minutes, status, note?, photo_url?, image? }
+// Body: { lane, direction?, wait_minutes, status, note?, pace?, tail_marker?, photo_url?, image? }
 // One report per user per lane+direction per 15 minutes (DB count):
 // a second report inside the window REPLACES the first (people
 // update as the line moves) instead of stacking. The estimate
@@ -113,7 +119,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
     }
-    const { lane, direction, wait_minutes, status, note, photo_url, image } = parsed.data
+    const { lane, direction, wait_minutes, status, note, pace, tail_marker, photo_url, image } = parsed.data
 
     let parsedImage: Extract<ParsedBorderPhoto, { ok: true }> | null = null
     if (image !== undefined) {
@@ -174,6 +180,11 @@ export async function POST(request: NextRequest) {
           wait_minutes,
           status,
           note: note?.trim() || null,
+          // A replace refreshes the dynamics too: a replace
+          // with no pace clears the old pace, like the note
+          // and the photo.
+          pace: pace ?? null,
+          tail_marker: tail_marker ?? null,
           photo_url: newPhotoUrl,
           created_at: new Date().toISOString(),
         })
@@ -201,6 +212,8 @@ export async function POST(request: NextRequest) {
         wait_minutes,
         status,
         note: note?.trim() || null,
+        pace: pace ?? null,
+        tail_marker: tail_marker ?? null,
         photo_url: photo_url || null,
       })
       .select('id')

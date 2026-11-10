@@ -35,6 +35,10 @@ export type BorderReportInput = {
   confirms: number
   /** "niega" votes in the last 30 min. */
   denies: number
+  /** Pace pick (migration 052), or null when skipped. */
+  pace?: BorderPace | null
+  /** Tail landmark (migration 052), or null when skipped. */
+  tail_marker?: TailMarker | null
 }
 
 export type CbpSnapshotInput = {
@@ -88,6 +92,51 @@ export const LANE_LABELS: Record<BorderLane, string> = {
 export const DIRECTION_LABELS: Record<BorderDirection, string> = {
   norte: 'a EUA',
   sur: 'a México',
+}
+
+// Dynamic details (migration 052) — two structured signals
+// people actually report at the line, beyond the minutes:
+// pace ("¿Cómo va?") and tail ("¿Hasta dónde llega?").
+// Closed sets only: the labels live here, the DB stores slugs.
+
+export type BorderPace = 'rapida' | 'normal' | 'lenta'
+export type TailMarker = 'garita' | 'glorieta' | 'cetis' | 'panteon' | 'el_alto'
+
+/** Chip labels in the composer (feminine, agreeing with "la fila"). */
+export const PACE_LABELS: Record<BorderPace, string> = {
+  rapida: 'Va rápida',
+  normal: 'Normal',
+  lenta: 'Muy lenta',
+}
+
+/** Chip labels in the composer, port → town order (the order
+ *  the chips render in, so the list reads as "how far back").
+ *  Confirmed by Greg 2026-11-09: Garita → Glorieta → CETIS →
+ *  Panteón → El Alto; El Alto is one landmark label. */
+export const TAIL_MARKER_LABELS: Record<TailMarker, string> = {
+  garita: 'En la garita',
+  glorieta: 'La glorieta',
+  cetis: 'El CETIS',
+  panteon: 'El panteón',
+  el_alto: 'El Alto',
+}
+
+/** Pace as it reads in the aggregated line, after "Ahora: ". */
+export const PACE_LINE_LABELS: Record<BorderPace, string> = {
+  rapida: 'va rápida',
+  normal: 'normal',
+  lenta: 'va muy lenta',
+}
+
+/** Tail as it reads after "hasta" ("la fila llega hasta …",
+ *  "Fila hasta …"). "En la garita" would break that sentence,
+ *  so the line form is "la garita". */
+export const TAIL_LINE_LABELS: Record<TailMarker, string> = {
+  garita: 'la garita',
+  glorieta: 'La glorieta',
+  cetis: 'El CETIS',
+  panteon: 'El panteón',
+  el_alto: 'El Alto',
 }
 
 export const WEEKDAY_NAMES = [
@@ -365,6 +414,141 @@ export function estimateLane(
     reportCount: 0,
     agreement: null,
   }
+}
+
+// --- Dynamic details: pace + tail (migration 052) ---
+
+export type DynamicsAggregate = {
+  pace: { value: BorderPace; count: number; ageMinutes: number } | null
+  tail: { value: TailMarker; count: number; ageMinutes: number } | null
+  /** Freshest age behind either displayed signal, or null. */
+  ageMinutes: number | null
+  /** Distinct reports behind the line (mode members of pace
+   *  ∪ mode members of tail). */
+  reportCount: number
+}
+
+const NO_DYNAMICS: DynamicsAggregate = {
+  pace: null,
+  tail: null,
+  ageMinutes: null,
+  reportCount: 0,
+}
+
+/** The mode of a list of picks, or null when there is no unique
+ *  mode (too few, or a tie at the top). Agreement is the only
+ *  trust signal: one report is an anecdote, never a headline. */
+function modeOf<T extends string>(
+  values: T[],
+): { value: T; count: number } | null {
+  const counts = new Map<T, number>()
+  for (const v of values) counts.set(v, (counts.get(v) ?? 0) + 1)
+  let best: { value: T; count: number } | null = null
+  let tied = false
+  for (const [value, count] of counts) {
+    if (!best || count > best.count) {
+      best = { value, count }
+      tied = false
+    } else if (count === best.count) {
+      tied = true
+    }
+  }
+  if (!best || tied || best.count < 2) return null
+  return best
+}
+
+/** Aggregated pace + tail for one lane + direction. Same base
+ *  eligibility as the ladder (last 60 min, not denied, not an
+ *  absurd wait), then a stricter 30-minute freshness cutoff —
+ *  pace and tail move faster than the median wait, and past 30
+ *  min the line disappears entirely, never demoted.
+ *  Pace: either status counts (a ya_cruce pace still describes
+ *  the crossing just completed). Tail: auto + en_fila only — a
+ *  tail on any other lane, or on a ya_cruce report, is stored
+ *  and simply never aggregated. Both signals aggregate
+ *  independently; the line shows whichever has an aggregate. */
+export function aggregateDynamics(
+  allReports: BorderReportInput[],
+  lane: BorderLane,
+  direction: BorderDirection,
+  now: Date,
+): DynamicsAggregate {
+  const eligible = allReports
+    .filter((r) => r.lane === lane && r.direction === direction)
+    .filter(
+      (r) => minutesAgo(r.created_at, now) <= 60 && r.denies < 2 && r.wait_minutes <= 240,
+    )
+
+  const paceCandidates = eligible.filter(
+    (r) => r.pace != null && minutesAgo(r.created_at, now) <= 30,
+  )
+  const paceMode = modeOf(paceCandidates.map((r) => r.pace as BorderPace))
+  const paceMembers = paceMode
+    ? paceCandidates.filter((r) => r.pace === paceMode.value)
+    : []
+
+  const tailCandidates =
+    lane === 'auto'
+      ? eligible.filter(
+          (r) =>
+            r.tail_marker != null &&
+            r.status === 'en_fila' &&
+            minutesAgo(r.created_at, now) <= 30,
+        )
+      : []
+  const tailMode = modeOf(tailCandidates.map((r) => r.tail_marker as TailMarker))
+  const tailMembers = tailMode
+    ? tailCandidates.filter((r) => r.tail_marker === tailMode.value)
+    : []
+
+  if (!paceMode && !tailMode) return NO_DYNAMICS
+
+  const memberIds = new Set<string>()
+  let freshestAge: number | null = null
+  for (const m of [...paceMembers, ...tailMembers]) {
+    memberIds.add(m.id)
+    const age = minutesAgo(m.created_at, now)
+    if (freshestAge === null || age < freshestAge) freshestAge = age
+  }
+  const paceAge = paceMembers.length
+    ? Math.min(...paceMembers.map((m) => minutesAgo(m.created_at, now)))
+    : null
+  const tailAge = tailMembers.length
+    ? Math.min(...tailMembers.map((m) => minutesAgo(m.created_at, now)))
+    : null
+  return {
+    pace:
+      paceMode && paceAge !== null
+        ? { value: paceMode.value, count: paceMode.count, ageMinutes: paceAge }
+        : null,
+    tail:
+      tailMode && tailAge !== null
+        ? { value: tailMode.value, count: tailMode.count, ageMinutes: tailAge }
+        : null,
+    ageMinutes: freshestAge,
+    reportCount: memberIds.size,
+  }
+}
+
+/** The one quiet line under the table, split for the two-tone
+ *  render (signal gray-900, count + age gray-500). Returns null
+ *  when there is nothing worth saying — no empty state, the
+ *  line simply doesn't exist until an aggregate does. */
+export function dynamicsLineParts(
+  agg: DynamicsAggregate,
+): { signal: string; meta: string } | null {
+  if (!agg.pace && !agg.tail) return null
+  const parts: string[] = []
+  if (agg.pace) parts.push(PACE_LINE_LABELS[agg.pace.value])
+  if (agg.tail) parts.push(`la fila llega hasta ${TAIL_LINE_LABELS[agg.tail.value]}`)
+  // Tail-only starts the sentence, so it takes the capital:
+  // "La fila llega hasta El Alto". With pace present the line
+  // starts "Ahora: …" and the tail stays lowercase mid-line.
+  const signal = agg.pace
+    ? `Ahora: ${parts.join(' · ')}`
+    : parts[0].charAt(0).toUpperCase() + parts[0].slice(1)
+  const meta = `${agg.reportCount} ${agg.reportCount === 1 ? 'reporte' : 'reportes'}, ${formatAge(agg.ageMinutes)}`
+  return { signal, meta }
 }
 
 // --- History: today, same-weekday average, projections, week ---

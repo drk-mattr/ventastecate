@@ -9,10 +9,14 @@ import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import {
   DIRECTION_LABELS,
   LANE_LABELS,
+  PACE_LABELS,
+  TAIL_LINE_LABELS,
   formatWait,
   type BorderDirection,
   type BorderLane,
+  type BorderPace,
   type BorderReportStatus,
+  type TailMarker,
 } from '@/lib/border/estimate'
 
 export type FeedBorderReport = {
@@ -29,6 +33,10 @@ export type FeedBorderReport = {
   display_name: string
   note: string | null
   photo_url: string | null
+  /** Dynamics (migration 052): one person's pace + tail picks
+   *  — shown as-is on the card, never aggregated here. */
+  pace: BorderPace | null
+  tail_marker: TailMarker | null
   /** All votes on the post (not just the last 30 min — the
    *  estimate reads its own 30-minute window separately). */
   confirms: number
@@ -238,6 +246,17 @@ export function BorderFeed({
                     ? 'Ya cruzó — es el tiempo total que esperó.'
                     : 'En la fila — es lo que lleva esperando, no el total.'}
                 </p>
+                {r.pace && (
+                  <p className="mt-1 text-xs text-gray-500">{PACE_LABELS[r.pace]}</p>
+                )}
+                {/* The tail is a fact only for auto + en_fila: a
+                    stored tail on any other lane, or on a ya_cruce
+                    report, is never displayed as one. */}
+                {r.tail_marker && r.lane === 'auto' && r.status === 'en_fila' && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Fila hasta {TAIL_LINE_LABELS[r.tail_marker]}
+                  </p>
+                )}
                 {r.note && (
                   <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-900">
                     {r.note}

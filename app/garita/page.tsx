@@ -11,6 +11,7 @@ import {
   PORT_CLOSE_HOUR,
   PORT_OPEN_HOUR,
   WEEKDAY_NAMES,
+  aggregateDynamics,
   daysCollecting,
   estimateLane,
   formatAge,
@@ -23,8 +24,11 @@ import {
   type BorderDirection,
   type BorderEstimate,
   type BorderLane,
+  type BorderPace,
   type BorderReportInput,
   type CbpSnapshotInput,
+  type DynamicsAggregate,
+  type TailMarker,
 } from '@/lib/border/estimate'
 
 export const metadata: Metadata = {
@@ -51,6 +55,8 @@ type ReportRow = {
   status: 'en_fila' | 'ya_cruce'
   note: string | null
   photo_url: string | null
+  pace: BorderPace | null
+  tail_marker: TailMarker | null
   created_at: string
   user_id: string
 }
@@ -92,10 +98,12 @@ export default async function GaritaPage() {
     safeRows<ReportRow>(
       supabase
         .from('border_line_reports')
-        .select('id, lane, direction, wait_minutes, status, note, photo_url, created_at, user_id')
+        .select('id, lane, direction, wait_minutes, status, note, photo_url, pace, tail_marker, created_at, user_id')
         // Moderator-hidden posts leave the feed AND the estimate
         // inputs (migration 051). The column exists once 051 is
         // applied, which happens before this code deploys.
+        // pace + tail_marker exist once 052 is applied, same
+        // order — migration before deploy.
         .is('hidden_at', null)
         .order('created_at', { ascending: false })
         .limit(200),
@@ -126,7 +134,19 @@ export default async function GaritaPage() {
     created_at: r.created_at,
     confirms: votesByReport.get(r.id)?.confirms ?? 0,
     denies: votesByReport.get(r.id)?.denies ?? 0,
+    pace: r.pace,
+    tail_marker: r.tail_marker,
   }))
+
+  // Dynamic details (migration 052): pace + tail for auto / a
+  // EUA only — the line 95% of readers drive. One quiet line
+  // under the table, only when >= 2 recent reports agree.
+  const dynamics: DynamicsAggregate = aggregateDynamics(
+    reportInputs,
+    'auto',
+    'norte',
+    now,
+  )
 
   const cbpByLane = new Map<BorderLane, CbpSnapshotInput>()
   for (const s of snapshots) {
@@ -221,6 +241,8 @@ export default async function GaritaPage() {
       display_name: author?.display_name ?? 'Usuario',
       note: r.note,
       photo_url: r.photo_url,
+      pace: r.pace,
+      tail_marker: r.tail_marker,
       confirms: feedVotesByReport.get(r.id)?.confirms ?? 0,
       denies: feedVotesByReport.get(r.id)?.denies ?? 0,
     }
@@ -283,6 +305,7 @@ export default async function GaritaPage() {
         <div className="mt-4">
           <GaritaPageClient
             cells={estimateCells}
+            dynamics={dynamics}
             feedReports={feedReports}
             userVotes={userVotes}
           />

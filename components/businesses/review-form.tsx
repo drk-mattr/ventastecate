@@ -1,9 +1,11 @@
 'use client'
 
 // The review form: 1–5 yellow stars plus an optional short note.
-// Shared by the inline Opiniones section and the review pop-up, so
-// both write through the same POST /api/businesses/[id]/reviews.
-// One review per user per business; a repeat call updates it.
+// Used only by the review pop-up (BusinessReviewOpener) — the inline
+// form was removed in the 2026-11-10 business-page sweep, so stars
+// live only behind Opinar. Both write through the same POST
+// /api/businesses/[id]/reviews. One review per user per business; a
+// repeat call updates it.
 
 import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'

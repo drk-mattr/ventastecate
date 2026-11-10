@@ -1,30 +1,39 @@
 'use client'
 
-// Business-page "Actividad" feed (/businesses/[id]).
+// Business-page "Comentarios" feed (/businesses/[id]).
 //
-// ONE chronological feed merging the two things that already happen
-// around a business — item comments and ratings — newest first, each
-// entry visibly typed. No business-level comment box (see the 2026-11-07
-// activity analysis): commenting happens on the item, rating happens
-// via Opinar; this page collects both.
+// ONE chronological feed merging the three things that happen around
+// a business — business comments, item comments, and ratings —
+// newest first, each entry visibly typed. This reverses the PR #127
+// rule ("commenting happens on the item, no business-level comment
+// box"): business comments exist for general questions and notes
+// about the business ("¿abren los domingos?"); item comments stay
+// for talk about one specific offering. Ratings arrive ONLY via
+// Opinar (the dialog in the identity block) — there is no star
+// function in this section.
 //
 // Entry types:
-//   - Item comment: avatar, name, "comentó sobre <item>" -> /items/[id],
-//     text, time, report + delete-own (the existing item-comment flows).
+//   - Business comment: avatar, name, "Comentó" (+ "Dueño" when the
+//     author is the claimed owner), text, time, report + delete-own.
+//     The owner CAN comment — answering a general question is the
+//     point of a business-level thread.
+//   - Item comment: avatar, name, "comentó sobre <item>" ->
+//     /items/[id], text, time, report + delete-own (the existing
+//     item-comment flows).
 //   - Rating with text: the same comment card with its stars attached.
 //     The text IS the review body — it appears once, not twice.
 //   - Rating without text: a compact one-liner ("dejó 5 estrellas").
 // Mentions are NOT feed entries (they render in the grid above);
-// follows/likes/new offerings are NOT entries (counts already show).
+// follows are NOT entries (the count already shows).
 // Ratings stay display-only; no score is computed from the feed.
 
 import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { UserAvatar } from '@/components/ui/user-avatar'
-import type { BusinessReview, ItemComment } from '@/lib/types/database'
+import type { BusinessComment, BusinessReview, ItemComment } from '@/lib/types/database'
 import { ReviewStars } from '@/components/businesses/review-stars'
-import { ReviewForm } from '@/components/businesses/review-form'
+import { BusinessCommentForm } from '@/components/businesses/business-comment-form'
 import { Flag } from 'lucide-react'
 
 export type ActivityItemComment = ItemComment & {
@@ -45,6 +54,13 @@ const COMMENT_REPORT_REASONS = [
   { value: 'item_comment_other', label: 'Otro motivo' },
 ] as const
 
+const BUSINESS_COMMENT_REPORT_REASONS = [
+  { value: 'business_comment_spam', label: 'Spam' },
+  { value: 'business_comment_offensive', label: 'Contenido ofensivo' },
+  { value: 'business_comment_prohibited', label: 'Contenido prohibido' },
+  { value: 'business_comment_other', label: 'Otro motivo' },
+] as const
+
 function formatTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
@@ -57,6 +73,7 @@ function formatTimeAgo(dateStr: string): string {
 }
 
 type FeedEntry =
+  | { kind: 'businessComment'; createdAt: string; comment: BusinessComment }
   | { kind: 'comment'; createdAt: string; comment: ActivityItemComment }
   | { kind: 'review'; createdAt: string; review: BusinessReview }
 
@@ -64,42 +81,39 @@ export function BusinessActivityFeed({
   businessId,
   initialReviews,
   initialComments,
+  initialBusinessComments,
   currentUserId,
-  isOwner,
-  hasOfferings,
-  firstItemId,
+  claimedBy,
 }: {
   businessId: string
   initialReviews: BusinessReview[]
   initialComments: ActivityItemComment[]
+  initialBusinessComments: BusinessComment[]
   currentUserId?: string | null
-  isOwner: boolean
-  hasOfferings: boolean
-  firstItemId?: string | null
+  claimedBy?: string | null
 }) {
-  const [reviews, setReviews] = useState<BusinessReview[]>(initialReviews)
   const [comments, setComments] = useState<ActivityItemComment[]>(initialComments)
+  const [businessComments, setBusinessComments] = useState<BusinessComment[]>(initialBusinessComments)
   const [reportingReviewId, setReportingReviewId] = useState<string | null>(null)
   const [reportedReviewIds, setReportedReviewIds] = useState<Set<string>>(new Set())
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(null)
   const [reportedCommentIds, setReportedCommentIds] = useState<Set<string>>(new Set())
+  const [reportingBusinessCommentId, setReportingBusinessCommentId] = useState<string | null>(null)
+  const [reportedBusinessCommentIds, setReportedBusinessCommentIds] = useState<Set<string>>(new Set())
   const supabase = createClient()
 
-  const myReview = currentUserId
-    ? reviews.find((r) => r.user_id === currentUserId)
-    : undefined
-
-  const reviewCount = reviews.length
-  const reviewAverage =
-    reviewCount > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount : 0
-
   const entries: FeedEntry[] = [
+    ...businessComments.map((comment) => ({
+      kind: 'businessComment' as const,
+      createdAt: comment.created_at,
+      comment,
+    })),
     ...comments.map((comment) => ({
       kind: 'comment' as const,
       createdAt: comment.created_at,
       comment,
     })),
-    ...reviews.map((review) => ({
+    ...initialReviews.map((review) => ({
       kind: 'review' as const,
       createdAt: review.created_at,
       review,
@@ -140,8 +154,29 @@ export function BusinessActivityFeed({
     }
   }
 
-  // Report affordance, shared by both entry types: opens a review in
-  // /admin/reports; it never hides the entry. Same shape as the old
+  const handleBusinessCommentDelete = async (commentId: string) => {
+    const res = await fetch(`/api/businesses/${businessId}/comments/${commentId}`, {
+      method: 'DELETE',
+    })
+    if (res.ok) {
+      setBusinessComments((prev) => prev.filter((c) => c.id !== commentId))
+    }
+  }
+
+  const handleBusinessCommentReport = async (commentId: string, reason: string) => {
+    const res = await fetch(`/api/businesses/${businessId}/comments/${commentId}/report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+    })
+    if (res.ok) {
+      setReportedBusinessCommentIds((prev) => new Set(prev).add(commentId))
+      setReportingBusinessCommentId(null)
+    }
+  }
+
+  // Report affordance, shared by all three entry types: opens a review
+  // in /admin/reports; it never hides the entry. Same shape as the old
   // Opiniones list and the item comment section.
   const renderReport = (
     entryId: string,
@@ -191,7 +226,7 @@ export function BusinessActivityFeed({
     )
   }
 
-  const renderProfileName = (profile: BusinessReview['profile'] | ItemComment['profile']) =>
+  const renderProfileName = (profile: BusinessReview['profile'] | ItemComment['profile'] | BusinessComment['profile']) =>
     profile ? (
       <Link
         href={`/users/${profile.username}`}
@@ -204,34 +239,66 @@ export function BusinessActivityFeed({
     )
 
   return (
-    <section id="actividad" className="mt-8 pt-8 border-t">
-      <h2 className="text-base font-semibold mb-1">Actividad</h2>
-      {/* Aggregate stays on top: the summary; the feed is the detail. */}
-      {reviewCount > 0 ? (
-        <p className="text-sm text-gray-500 mb-4 flex items-center gap-2">
-          <ReviewStars value={reviewAverage} />
-          <span>
-            {reviewAverage.toFixed(1)} · {reviewCount} {reviewCount === 1 ? 'opinión' : 'opiniones'}
-          </span>
-        </p>
-      ) : (
-        <p className="text-sm text-gray-400 mb-6">Aún no hay opiniones.</p>
-      )}
+    <section id="comentarios" className="mt-8 pt-8 border-t">
+      <h2 className="text-base font-semibold mb-4">Comentarios</h2>
 
       {entries.length === 0 ? (
         <p className="text-sm text-gray-400 mb-6">
-          Aún no hay actividad aquí. Sé el primero en opinar
-          {hasOfferings && firstItemId ? (
-            <>
-              {' '}o <Link href={`/items/${firstItemId}`} className="underline hover:text-gray-700">comenta sobre un producto</Link>
-            </>
-          ) : (
-            '.'
-          )}
+          Aún no hay comentarios. Sé el primero en comentar.
         </p>
       ) : (
         <div className="space-y-4 mb-6">
           {entries.map((entry) => {
+            if (entry.kind === 'businessComment') {
+              const comment = entry.comment
+              const isOwnerComment = claimedBy !== null && comment.author_id === claimedBy
+              return (
+                <div key={`business-comment-${comment.id}`} className="flex gap-3">
+                  <UserAvatar
+                    src={comment.profile?.avatar_url}
+                    name={comment.profile?.display_name || '?'}
+                    size="md"
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      {renderProfileName(comment.profile)}
+                      <span className="text-xs text-gray-500">Comentó</span>
+                      {isOwnerComment && (
+                        <span className="text-[11px] font-medium text-gray-500 border border-gray-200 rounded-full px-1.5 py-px">
+                          Dueño
+                        </span>
+                      )}
+                      <span className="text-[11px] text-gray-400">
+                        {formatTimeAgo(comment.created_at)}
+                      </span>
+                      {currentUserId && currentUserId === comment.author_id && (
+                        <button
+                          onClick={() => handleBusinessCommentDelete(comment.id)}
+                          className="text-[11px] text-red-400 hover:text-red-600 ml-auto"
+                        >
+                          Eliminar
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-700 mt-0.5 whitespace-pre-wrap break-words">
+                      {comment.body}
+                    </p>
+                    {renderReport(
+                      comment.id,
+                      currentUserId === comment.author_id,
+                      reportingBusinessCommentId,
+                      reportedBusinessCommentIds,
+                      BUSINESS_COMMENT_REPORT_REASONS,
+                      (reason) => handleBusinessCommentReport(comment.id, reason),
+                      setReportingBusinessCommentId,
+                      () => setReportingBusinessCommentId(null),
+                    )}
+                  </div>
+                </div>
+              )
+            }
+
             if (entry.kind === 'comment') {
               const comment = entry.comment
               return (
@@ -365,32 +432,22 @@ export function BusinessActivityFeed({
         </div>
       )}
 
-      {/* Review form — signed-in only, never the claimed owner.
-          The form itself lives in review-form.tsx, shared with the
-          review pop-up; a save here updates this feed's entries. */}
-      {currentUserId && !isOwner && (
-        <ReviewForm
+      {/* Comment form — signed-in only. The owner CAN comment:
+          answering a general question is the point of a
+          business-level thread. Stars live only behind Opinar. */}
+      {currentUserId ? (
+        <BusinessCommentForm
           businessId={businessId}
-          myReview={myReview}
-          onSaved={(savedReview) => {
-            setReviews((prev) => {
-              const others = prev.filter((r) => r.user_id !== savedReview.user_id)
-              return [savedReview, ...others]
-            })
+          onSaved={(savedComment) => {
+            setBusinessComments((prev) => [savedComment, ...prev])
           }}
         />
-      )}
-
-      {currentUserId && isOwner && (
-        <p className="text-sm text-gray-400">Este negocio es tuyo — no puedes opinar sobre él.</p>
-      )}
-
-      {!currentUserId && (
+      ) : (
         <Link
-          href={`/login?redirect=/businesses/${businessId}?review=1`}
+          href={`/login?redirect=/businesses/${businessId}`}
           className="text-sm text-gray-500 underline hover:text-gray-700"
         >
-          Inicia sesión para opinar
+          Inicia sesión para comentar
         </Link>
       )}
     </section>

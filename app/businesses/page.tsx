@@ -65,7 +65,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
   // does not pay for columns nobody sees. No count query either: the
   // footer reads "page N" from whether a next page exists.
   let query = supabase.from('businesses')
-    .select('id, name, name_normalized, location, city, category, address, phone, mention_count, followers_count, likes_count, store_id, created_at')
+    .select('id, name, name_normalized, location, city, category, address, phone, mention_count, followers_count, store_id, created_at')
   if (q) {
     if (qCategoryMatches.length > 0) query = query.or(`name_normalized.ilike.%${q.toLowerCase().trim()}%,category.in.(${qCategoryMatches.join(',')})`)
     else query = query.ilike('name_normalized', `%${q.toLowerCase().trim()}%`)
@@ -146,7 +146,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
               // No region in the row meta: the selected region chip
               // already says where you are, and the town says the rest.
               const meta = [biz.category, biz.city || biz.location, biz.address, biz.phone].filter(Boolean).join(' · ')
-              const counts = `${biz.mention_count ?? 0} menc. · ${biz.followers_count ?? 0} seg. · ${biz.likes_count ?? 0} me gusta`
+              const counts = `${biz.mention_count ?? 0} menc. · ${biz.followers_count ?? 0} seg.`
               return (
                 <li key={biz.id} className="break-inside-avoid py-2 border-b border-gray-200">
                   <Link href={`/businesses/${biz.id}`} className="text-sm font-semibold text-gray-900 hover:underline block truncate">{biz.name}</Link>

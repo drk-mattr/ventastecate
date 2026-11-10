@@ -49,7 +49,6 @@ let topBusinesses: TopBusiness[] = []
     ? await supabase.from('listing_business_tags').select('listing_id, business_id').in('listing_id', recentIds)
     : { data: [] as { listing_id: string; business_id: string }[] }
   const { data: recentFollows } = await supabase.from('business_follows').select('business_id').gte('created_at', since)
-  const { data: recentLikes } = await supabase.from('business_likes').select('business_id').gte('created_at', since)
   const score = new Map<string, { points: number; mentions: number; lastMention: number }>()
   const add = (id: string, points: number, isMention: boolean, ts?: number) => {
     const cur = score.get(id) || { points: 0, mentions: 0, lastMention: 0 }
@@ -68,7 +67,6 @@ let topBusinesses: TopBusiness[] = []
     for (const id of ids) add(id, points, true, new Date(l.created_at).getTime())
   }
   for (const f of recentFollows || []) add(f.business_id, 2, false)
-  for (const lk of recentLikes || []) add(lk.business_id, 1, false)
   const byId = new Map((businesses || []).map((b) => [b.id, b]))
   topBusinesses = [...score.entries()]
     .filter(([, s]) => s.points > 0)

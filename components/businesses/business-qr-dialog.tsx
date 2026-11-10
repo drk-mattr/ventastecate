@@ -17,6 +17,9 @@ interface Props {
   businessId: string
   businessName: string
   businessTown?: string | null
+  /** Quiet text-link trigger (owner-only slot on the business page)
+      instead of the pill button. Same dialog, same print-ready card. */
+  asLink?: boolean
 }
 
 // Print-ready card: 1600x2000 px ≈ 5.3 x 6.7 in at 300 DPI, so a shop can
@@ -148,7 +151,7 @@ async function buildCardBlob(
   return blob
 }
 
-export function BusinessQrDialog({ businessId, businessName, businessTown }: Props) {
+export function BusinessQrDialog({ businessId, businessName, businessTown, asLink = false }: Props) {
   const [open, setOpen] = useState(false)
   const [cardUrl, setCardUrl] = useState<string | null>(null)
   const [generating, setGenerating] = useState(true)
@@ -261,13 +264,23 @@ export function BusinessQrDialog({ businessId, businessName, businessTown }: Pro
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <button
-          className="h-7 px-3 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-300 hover:border-gray-400 flex items-center gap-1.5 transition-colors"
-          aria-label="Ver código QR"
-        >
-          <QrCode className="h-4 w-4" />
-          Código QR
-        </button>
+        {asLink ? (
+          <button
+            className="text-gray-500 underline hover:text-gray-700 inline-flex items-center gap-1"
+            aria-label="Ver código QR"
+          >
+            <QrCode className="h-3.5 w-3.5" />
+            Código QR
+          </button>
+        ) : (
+          <button
+            className="h-7 px-3 rounded-full text-xs font-medium bg-white text-gray-700 border border-gray-300 hover:border-gray-400 flex items-center gap-1.5 transition-colors"
+            aria-label="Ver código QR"
+          >
+            <QrCode className="h-4 w-4" />
+            Código QR
+          </button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-sm">
         <DialogHeader>

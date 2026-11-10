@@ -69,13 +69,6 @@ const REPORT_REASONS = [
   { value: 'border_other', label: 'Otro motivo' },
 ] as const
 
-const LANE_FILTERS: { id: LaneFilter; label: string }[] = [
-  { id: 'all', label: 'Todos' },
-  { id: 'auto', label: 'Auto general' },
-  { id: 'peatonal', label: 'A pie' },
-  { id: 'comercial', label: 'Camiones' },
-]
-
 const DIRECTION_FILTERS: { id: DirectionFilter; label: string }[] = [
   { id: 'all', label: 'Ambas' },
   { id: 'norte', label: 'A EUA' },
@@ -238,23 +231,20 @@ export function BorderActivityFeed({
   entries: ActivityEntry[]
   /** This user's vote per report id, when signed in. */
   userVotes: Record<string, 'confirma' | 'niega'>
-  /** Controlled filter (the lane table drives it). When absent
-   *  the feed keeps its own filter state, as before. */
+  /** Controlled filter (the lane cards drive it). When absent
+   *  the feed keeps its own direction state, as before. The lane
+   *  filter has no control here anymore — the cards above the
+   *  map are the lane picker. */
   laneFilter?: LaneFilter
   directionFilter?: DirectionFilter
   onFilterChange?: (lane: LaneFilter, direction: DirectionFilter) => void
 }) {
   const { user } = useAuth()
   const { openAuth } = useAuthModal()
-  const [internalLaneFilter, setInternalLaneFilter] = useState<LaneFilter>('all')
   const [internalDirectionFilter, setInternalDirectionFilter] =
     useState<DirectionFilter>('all')
-  const laneFilter = controlledLaneFilter ?? internalLaneFilter
+  const laneFilter = controlledLaneFilter ?? 'all'
   const directionFilter = controlledDirectionFilter ?? internalDirectionFilter
-  const setLaneFilter = (value: LaneFilter) => {
-    if (onFilterChange) onFilterChange(value, directionFilter)
-    else setInternalLaneFilter(value)
-  }
   const setDirectionFilter = (value: DirectionFilter) => {
     if (onFilterChange) onFilterChange(laneFilter, value)
     else setInternalDirectionFilter(value)
@@ -307,13 +297,6 @@ export function BorderActivityFeed({
   return (
     <div>
       <div className="flex items-center gap-4">
-        <FilterDropdown
-          label={LANE_FILTERS.find((f) => f.id === laneFilter)?.label ?? 'Todos'}
-          options={LANE_FILTERS}
-          value={laneFilter}
-          onSelect={setLaneFilter}
-          ariaLabel="Filtrar actividad por carril"
-        />
         <FilterDropdown
           label={
             DIRECTION_FILTERS.find((f) => f.id === directionFilter)?.label ?? 'Ambas'

@@ -215,6 +215,8 @@ export type Report = {
   story_id?: string | null
   item_comment_id?: string | null
   business_review_id?: string | null
+  /** Garita flag target (migration 051). */
+  border_report_id?: string | null
   reporter_id?: string | null
   reporter_label?: string | null
   status: 'new' | 'reviewed' | 'resolved'
@@ -283,6 +285,9 @@ export type BorderLineReport = {
   status: BorderReportStatus
   note?: string | null
   photo_url?: string | null
+  /** Moderator hide (migration 051): null = visible in the feed
+   *  and the estimate; set = hidden from both, reversible. */
+  hidden_at?: string | null
   created_at: string
 }
 

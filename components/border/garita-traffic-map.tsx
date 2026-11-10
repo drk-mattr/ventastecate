@@ -7,12 +7,14 @@ import { useEffect, useRef, useState } from 'react'
 // of entry. It answers the one question the numbers can't: what
 // does the line look like right now? It never gives a wait time —
 // the traffic layer carries no minutes, no border data, no number
-// at all — so the caption says so in one line.
+// at all. The card is just the map: no caption, no link.
 //
-// The map is a functional color exception (like video embeds): the
-// traffic colors ARE the information, so grayscaling it would
-// destroy the feature. All chrome around it stays monochrome, and
-// there is zero orange anywhere on /garita.
+// Monochrome, with one deliberate exception: the BASE map is
+// grayscale (MAP_STYLES below), but the traffic colors stay — the
+// TrafficLayer is a separate tile overlay that base-map styles do
+// not touch, and those colors ARE the information. All chrome
+// around the map stays monochrome, and there is zero orange
+// anywhere on /garita.
 //
 // Lazy by design: nothing loads — not even the key fetch — until
 // the card scrolls into view (IntersectionObserver), so a visitor
@@ -30,31 +32,75 @@ import { useEffect, useRef, useState } from 'react'
 // public browser key by design (referrer-restricted to
 // ventastecate.com in the Cloud Console); the route just keeps it
 // out of the static chunks so it can be rotated without a
-// rebuild. If the key is missing the card degrades to the caption
-// + outbound link — never an error banner.
+// rebuild. If the key is missing the card degrades to an in-map
+// message — never an error banner.
 
 // Port of entry (public fact, used by the code, never shown as
 // text on the page).
 const PORT = { lat: 32.576852, lng: -116.627179 }
-// Center: a touch south of the port so the MX queue and the
-// crossing are both in frame, not the port alone.
-const CENTER = { lat: 32.576, lng: -116.628 }
-const ZOOM = 15
-const MAPS_LINK =
-  'https://www.google.com/maps/@?api=1&map_action=map&center=32.576,-116.628&zoom=15'
+// Center: south of the port so the frame is the port + the
+// approach road south (the queue), not the town grid north and
+// east of it. At zoom 16 the port sits in the upper third and
+// the first stretch of the queue (port → Glorieta → CETIS) stays
+// in frame on a phone; the farther tail (Panteón, El Alto) lives
+// in the table and the feed, not the map.
+const CENTER = { lat: 32.575, lng: -116.628 }
+const ZOOM = 16
 
 // Minimal local typings for the Maps JS pieces we use — no new
 // dependency (@types/google.maps is not installed).
 type LatLngLiteral = { lat: number; lng: number }
+type MapTypeStyler = {
+  color?: string
+  visibility?: string
+  saturation?: number
+  lightness?: number
+  weight?: number
+}
+type MapTypeStyle = {
+  featureType?: string
+  elementType?: string
+  stylers: MapTypeStyler[]
+}
 type MapOptions = {
   center: LatLngLiteral
   zoom: number
+  styles?: MapTypeStyle[]
   gestureHandling: string
   streetViewControl: boolean
   fullscreenControl: boolean
   mapTypeControl: boolean
   zoomControl: boolean
 }
+
+// Grayscale base map (the standard silver style): gray roads,
+// labels, parks, and water. The TrafficLayer is a separate tile
+// overlay and is NOT restyled by this — its red/yellow/green
+// stays, because those colors are the data.
+const MAP_STYLES: MapTypeStyle[] = [
+  { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
+  { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#f5f5f5' }] },
+  {
+    featureType: 'administrative.land_parcel',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#bdbdbd' }],
+  },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#eeeeee' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#e5e5e5' }] },
+  { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
+  { featureType: 'road.arterial', elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#dadada' }] },
+  { featureType: 'road.highway', elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+  { featureType: 'road.local', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] },
+  { featureType: 'transit.line', elementType: 'geometry', stylers: [{ color: '#e5e5e5' }] },
+  { featureType: 'transit.station', elementType: 'geometry', stylers: [{ color: '#eeeeee' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c9c9c9' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] },
+]
 type GoogleMapsApi = {
   maps: {
     Map: new (element: HTMLElement, options: MapOptions) => object
@@ -155,6 +201,7 @@ export function GaritaTrafficMap() {
         const map = new google.maps.Map(el, {
           center: CENTER,
           zoom: ZOOM,
+          styles: MAP_STYLES,
           // Cooperative gestures: a one-finger scroll still scrolls
           // the page on mobile; the map only zooms with two fingers.
           // Otherwise the map traps the page scroll.
@@ -192,19 +239,6 @@ export function GaritaTrafficMap() {
               </p>
             </div>
           )}
-        </div>
-        <div className="border-t border-gray-100 px-4 py-3">
-          <p className="text-xs text-gray-500">
-            Tráfico en vivo de Google — colores, no minutos.
-          </p>
-          <a
-            href={MAPS_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1 inline-block text-xs font-medium text-gray-900 underline"
-          >
-            Ver tráfico en Google Maps
-          </a>
         </div>
       </div>
     </section>

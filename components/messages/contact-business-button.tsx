@@ -19,9 +19,9 @@ type ContactBusinessButtonProps = {
  * claimed → opens a thread with the owner in /messages (the same
  * ?business&seller pending flow as ?listing&seller); unclaimed →
  * grayed out and disabled, nothing opens, nothing is sent. The
- * quiet line under the actions row (in BusinessEngagementBar)
- * explains why; the page's 'Reclamar este negocio' link is the
- * nudge to claim. No moderator inbox, no transfer on claim.
+ * identity note on the business page explains why; the page's
+ * 'Reclamar este negocio' link is the nudge to claim. No moderator
+ * inbox, no transfer on claim.
  *
  * Monochrome only: orange-600 is Publish only.
  */

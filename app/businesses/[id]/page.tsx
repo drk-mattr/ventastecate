@@ -7,12 +7,13 @@ import { ListingCard } from '@/components/listings/listing-card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Store, MapPin, BadgeCheck } from 'lucide-react'
 import { BusinessEngagementBar } from '@/components/businesses/business-engagement-bar'
+import { BusinessQrDialog } from '@/components/businesses/business-qr-dialog'
 import { BusinessOfferings } from '@/components/businesses/business-offerings'
 import { BusinessPhotoGallery } from '@/components/businesses/business-photo-gallery'
 import { BusinessActivityFeed, type ActivityItemComment } from '@/components/businesses/business-activity-feed'
 import { BusinessReviewOpener } from '@/components/businesses/review-opener'
 import { ReviewStars } from '@/components/businesses/review-stars'
-import type { BusinessReview } from '@/lib/types/database'
+import type { BusinessComment, BusinessReview } from '@/lib/types/database'
 import { ContributionFlag } from '@/components/businesses/contribution-flag'
 import { getRegionForTown } from '@/lib/business-regions'
 import type { Metadata } from 'next'
@@ -139,13 +140,11 @@ export default async function BusinessPage({
   const listings = [...byId.values()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
   const { data: { user: currentUser } } = await supabase.auth.getUser()
-  let initialFollowing = false, initialLiked = false
+  let initialFollowing = false
   if (currentUser) {
-    const [{ data: follow }, { data: like }] = await Promise.all([
-      supabase.from('business_follows').select('id').eq('business_id', id).eq('user_id', currentUser.id).maybeSingle(),
-      supabase.from('business_likes').select('id').eq('business_id', id).eq('user_id', currentUser.id).maybeSingle(),
-    ])
-    initialFollowing = !!follow; initialLiked = !!like
+    const { data: follow } = await supabase
+      .from('business_follows').select('id').eq('business_id', id).eq('user_id', currentUser.id).maybeSingle()
+    initialFollowing = !!follow
   }
 
   const claimedBy = (business as { claimed_by?: string | null }).claimed_by ?? null
@@ -219,12 +218,12 @@ export default async function BusinessPage({
   const myReview = currentUser ? reviews.find((r) => r.user_id === currentUser.id) : undefined
 
   // Item comments (migration 041) joined through this business's
-  // items — the Actividad feed merges them with the reviews above,
-  // newest first. Admin client, like the item page: the kind join
-  // is hidden from anonymous readers when the kind is still pending.
-  // Any read failure degrades to reviews-only, never a crash.
+  // items — the Comentarios feed merges them with the reviews and
+  // business comments, newest first. Admin client, like the item
+  // page: the kind join is hidden from anonymous readers when the
+  // kind is still pending. Any read failure degrades to
+  // reviews-only, never a crash.
   let activityComments: ActivityItemComment[] = []
-  let firstItemId: string | null = null
   const admin = createAdminClient()
   if (admin) {
     const { data: businessItems } = await admin
@@ -235,7 +234,6 @@ export default async function BusinessPage({
       .order('created_at', { ascending: true })
     const itemIds = (businessItems || []).map((i) => i.id)
     if (itemIds.length > 0) {
-      firstItemId = itemIds[0]
       const kindById = new Map<string, string>()
       for (const item of businessItems || []) {
         const kind = item.kind as { name?: string } | null
@@ -263,17 +261,33 @@ export default async function BusinessPage({
     }
   }
 
-  // Follow / like, rendered once and placed either over the gallery
-  // (when there are photos) or in the identity block (when not).
+  // Business comments (migration 053) — the Comentarios feed merges
+  // these with the item comments and reviews above, newest first.
+  // Any read failure degrades to reviews + item comments, never a crash.
+  let businessComments: BusinessComment[] = []
+  if (admin) {
+    const { data: businessCommentRows, error: businessCommentError } = await admin
+      .from('business_comments')
+      .select('id, business_id, author_id, body, created_at, profile:profiles(username, display_name, avatar_url)')
+      .eq('business_id', id)
+      .order('created_at', { ascending: false })
+      .limit(100)
+    if (!businessCommentError) {
+      businessComments = ((businessCommentRows || []) as unknown as Array<Record<string, unknown>>).map((r) => {
+        const rawProfile = r.profile
+        const profile = Array.isArray(rawProfile) ? rawProfile[0] : rawProfile
+        return { ...(r as object), profile } as BusinessComment
+      })
+    }
+  }
+
+  // Follow / message, rendered once and placed in their own row
+  // ABOVE the photos — never over the images.
   const engagementBar = (
     <BusinessEngagementBar
       businessId={business.id}
       businessName={business.name}
-      businessTown={business.city || business.location || 'Tecate'}
       initialFollowing={initialFollowing}
-      initialLiked={initialLiked}
-      followersCount={business.followers_count ?? 0}
-      likesCount={business.likes_count ?? 0}
       claimedBy={claimedBy}
       isOwner={isOwner}
     />
@@ -317,19 +331,19 @@ export default async function BusinessPage({
                     {website.replace(/^https?:\/\//, '')}
                   </a>
                 )}
-                <span>{business.mention_count ?? 0} {(business.mention_count ?? 0) === 1 ? 'mención' : 'menciones'}</span>
+                <span>{business.followers_count ?? 0} {(business.followers_count ?? 0) === 1 ? 'seguidor' : 'seguidores'} · {business.mention_count ?? 0} {(business.mention_count ?? 0) === 1 ? 'mención' : 'menciones'}</span>
               </div>
               {/* Reviews aggregate + the visible "Opinar" entry point.
                   The aggregate alone gave no way in when there were no
-                  reviews yet — the Actividad section sits at the bottom
-                  of a long page — so the button lives here, next to it,
-                  and ?review=1 opens its pop-up on load. */}
+                  reviews yet — the Comentarios section sits at the
+                  bottom of a long page — so the button lives here,
+                  next to it, and ?review=1 opens its pop-up on load. */}
               {reviewsAvailable && (
                 <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
                   {reviewCount > 0 ? (
                     <p className="flex items-center gap-2 text-sm">
                       <ReviewStars value={reviewAverage} />
-                      <a href="#actividad" className="text-gray-600 hover:underline">
+                      <a href="#comentarios" className="text-gray-600 hover:underline">
                         {reviewAverage.toFixed(1)} · {reviewCount} {reviewCount === 1 ? 'opinión' : 'opiniones'}
                       </a>
                     </p>
@@ -357,7 +371,7 @@ export default async function BusinessPage({
                   Negocio reclamado
                 </p>
               ) : (
-                <p className="text-sm text-gray-500 mt-2">Negocio del índice, agregado por la comunidad. El dueño aún no lo ha reclamado.</p>
+                <p className="text-sm text-gray-500 mt-2">Negocio del índice, agregado por la comunidad. Aún no reclamado — por eso no se le puede escribir por aquí.</p>
               )}
               {latestContribution && (
                 <p className="text-xs text-gray-400 mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -374,6 +388,17 @@ export default async function BusinessPage({
                 <Link href={`/businesses/${id}/agregar-informacion`} className="text-gray-500 underline hover:text-gray-700">
                   Agregar información
                 </Link>
+                {/* The QR is the owner's tool for handing the business
+                    out in the real world — it lives here, visible only
+                    to the claimed owner, never on the public page. */}
+                {isOwner && (
+                  <BusinessQrDialog
+                    businessId={id}
+                    businessName={business.name}
+                    businessTown={business.city || business.location || 'Tecate'}
+                    asLink
+                  />
+                )}
                 {!claimed && (
                   pendingClaim ? (
                     <span className="text-gray-400">Solicitud de reclamo en revisión</span>
@@ -410,10 +435,9 @@ export default async function BusinessPage({
             businessId={id}
             initialReviews={reviews}
             initialComments={activityComments}
+            initialBusinessComments={businessComments}
             currentUserId={currentUser?.id ?? null}
-            isOwner={isOwner}
-            hasOfferings={firstItemId !== null}
-            firstItemId={firstItemId}
+            claimedBy={claimedBy}
           />
         )}
       </main>

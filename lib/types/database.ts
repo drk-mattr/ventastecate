@@ -121,7 +121,6 @@ export type Business = {
   category?: string | null
   mention_count: number
   followers_count?: number
-  likes_count?: number
   phone?: string | null
   address?: string | null
   city?: string | null
@@ -192,6 +191,18 @@ export type ItemComment = {
   profile?: Pick<Profile, 'username' | 'display_name' | 'avatar_url'>
 }
 
+/** Business comment (migration 053): a short public note on one
+    business shell — a general question or note about the place,
+    not about one offering. Feeds no score. The owner can comment. */
+export type BusinessComment = {
+  id: string
+  business_id: string
+  author_id: string
+  body: string
+  created_at: string
+  profile?: Pick<Profile, 'username' | 'display_name' | 'avatar_url'>
+}
+
 /** Business review (migration 042): 1–5 stars + optional written note
     on one business shell. Display-only in v1 — feeds no score. */
 export type BusinessReview = {
@@ -215,6 +226,8 @@ export type Report = {
   story_id?: string | null
   item_comment_id?: string | null
   business_review_id?: string | null
+  /** Business-comment flag target (migration 053). */
+  business_comment_id?: string | null
   /** Garita flag target (migration 051). */
   border_report_id?: string | null
   reporter_id?: string | null

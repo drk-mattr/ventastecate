@@ -22,6 +22,8 @@ const TYPE_LABEL: Record<string, string> = {
   item_comment_prohibited: 'Comentario (artículo): contenido prohibido', item_comment_other: 'Comentario (artículo): otro motivo',
   business_review_spam: 'Opinión (negocio): spam', business_review_offensive: 'Opinión (negocio): contenido ofensivo',
   business_review_prohibited: 'Opinión (negocio): contenido prohibido', business_review_other: 'Opinión (negocio): otro motivo',
+  business_comment_spam: 'Comentario (negocio): spam', business_comment_offensive: 'Comentario (negocio): contenido ofensivo',
+  business_comment_prohibited: 'Comentario (negocio): contenido prohibido', business_comment_other: 'Comentario (negocio): otro motivo',
   border_spam: 'Garita: spam', border_offensive: 'Garita: contenido ofensivo',
   border_other: 'Garita: otro motivo',
 }
@@ -51,6 +53,20 @@ async function BusinessReviewReportPreview({ reviewId }: { reviewId: string }) {
       <p className="text-sm text-gray-800">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</p>
       {review.body && <p className="text-sm text-gray-800 whitespace-pre-wrap mt-1">{review.body}</p>}
       <p className="text-sm mt-2"><Link href={`/businesses/${review.business_id}`} className="underline">Ver negocio opinado</Link></p>
+    </div>
+  )
+}
+
+async function BusinessCommentReportPreview({ commentId }: { commentId: string }) {
+  // Business comments are public-read, so the anon client can see the
+  // reported comment; a deleted comment renders the fallback line.
+  const supabase = await createClient()
+  const { data: comment } = await supabase.from('business_comments').select('id, business_id, body').eq('id', commentId).maybeSingle()
+  if (!comment) return <p className="text-sm mt-3 text-gray-500">Comentario eliminado.</p>
+  return (
+    <div className="mt-3">
+      <p className="text-sm text-gray-800 whitespace-pre-wrap">{comment.body}</p>
+      <p className="text-sm mt-2"><Link href={`/businesses/${comment.business_id}`} className="underline">Ver negocio comentado</Link></p>
     </div>
   )
 }
@@ -169,6 +185,7 @@ export default async function AdminReportDetail({ params }: { params: Promise<{ 
           {report.story_id && <StoryReportPreview storyId={report.story_id} />}
           {report.item_comment_id && <ItemCommentReportPreview commentId={report.item_comment_id} />}
           {report.business_review_id && <BusinessReviewReportPreview reviewId={report.business_review_id} />}
+          {report.business_comment_id && <BusinessCommentReportPreview commentId={report.business_comment_id} />}
           {report.border_report_id && <BorderReportPreview borderReportId={report.border_report_id} />}
           {report.email && <p className="text-xs text-gray-500 mt-3">Email del usuario: {report.email}</p>}
         </div>

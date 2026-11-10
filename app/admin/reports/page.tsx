@@ -21,6 +21,8 @@ const TYPE_LABEL: Record<string, string> = {
   item_comment_prohibited: 'Comentario (artículo): contenido prohibido', item_comment_other: 'Comentario (artículo): otro motivo',
   business_review_spam: 'Opinión (negocio): spam', business_review_offensive: 'Opinión (negocio): contenido ofensivo',
   business_review_prohibited: 'Opinión (negocio): contenido prohibido', business_review_other: 'Opinión (negocio): otro motivo',
+  business_comment_spam: 'Comentario (negocio): spam', business_comment_offensive: 'Comentario (negocio): contenido ofensivo',
+  business_comment_prohibited: 'Comentario (negocio): contenido prohibido', business_comment_other: 'Comentario (negocio): otro motivo',
   border_spam: 'Garita: spam', border_offensive: 'Garita: contenido ofensivo',
   border_other: 'Garita: otro motivo',
 }
@@ -67,13 +69,14 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
   if (!admin) redirect('/login')
   const sp = await searchParams
   const supabase = await createClient()
-  // Pre-042 the business_review_id column does not exist yet and the
-  // select errors — retry without it so the inbox still lists reports.
+  // Pre-042 the business_review_id column (and pre-053 the
+  // business_comment_id column) does not exist yet and the select
+  // errors — retry without them so the inbox still lists reports.
   const baseSelect = 'id, type, description, email, listing_id, listing_title, conversation_id, story_id, item_comment_id, border_report_id, reporter_label, status, created_at'
   async function fetchReports(withReview: boolean): Promise<Report[] | null> {
     // A computed select string makes the query builder's inferred row
     // type collapse, so the result is cast back to Report rows.
-    const select = withReview ? baseSelect.replace('item_comment_id', 'item_comment_id, business_review_id') : baseSelect
+    const select = withReview ? baseSelect.replace('item_comment_id', 'item_comment_id, business_review_id, business_comment_id') : baseSelect
     let q = supabase.from('reports').select(select).order('created_at', { ascending: false })
     if (sp.status) q = q.eq('status', sp.status)
     if (sp.type) q = q.eq('type', sp.type)
@@ -168,7 +171,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
       typeLabel: TYPE_LABEL[r.type] || r.type,
       status: r.status,
       createdAt: r.created_at,
-      description: r.description || r.listing_title || (r.story_id ? 'Historia reportada' : r.item_comment_id ? 'Comentario de artículo reportado' : r.business_review_id ? 'Opinión de negocio reportada' : r.border_report_id ? 'Reporte de garita' : 'Sin descripción'),
+      description: r.description || r.listing_title || (r.story_id ? 'Historia reportada' : r.item_comment_id ? 'Comentario de artículo reportado' : r.business_review_id ? 'Opinión de negocio reportada' : r.business_comment_id ? 'Comentario de negocio reportado' : r.border_report_id ? 'Reporte de garita' : 'Sin descripción'),
       meta: `${r.reporter_label || 'Anónimo'}${r.listing_title ? ` · ${r.listing_title}` : ''}${r.email ? ` · ${r.email}` : ''}${r.border_report_id && borderById.get(r.border_report_id)?.hidden_at ? ' · Oculto del feed' : ''}`,
       video: r.listing_id ? videoByListingId.get(r.listing_id) : undefined,
     })),

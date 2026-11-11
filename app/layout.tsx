@@ -27,7 +27,10 @@ const geistMono = Geist_Mono({
 const fraunces = Fraunces({
   variable: "--font-forum",
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  // 400 must be loaded: the article body renders at its default
+  // weight, and without 400 the browser fell back to 500, which
+  // read as too bold/heavy (2026-11-10).
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {

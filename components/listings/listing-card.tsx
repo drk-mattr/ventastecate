@@ -45,11 +45,14 @@ const NEWS_CATEGORY_COLORS: Record<string, string> = {
 // Lost posts look like a printed missing-pet poster: "SE BUSCA" in
 // plain red letters above the photo (or title card), the image inset
 // with a generous white margin on all sides — no banner strip. The
-// feed photo is black-and-white (grayscale) and bounded to a 4:5
-// frame so a tall portrait cannot stretch the card; the card shows
+// feed photo is black-and-white (grayscale) and shows FULLY
+// (object-contain in the 4:5 media slot — it is the evidence for
+// identifying the animal, so it is never cropped); the card shows
 // heading + image + title + time only, no description (the full
-// description stays on the detail page). The detail-page hero keeps
-// full color and full bleed, because color matters for actually
+// description stays on the detail page). The heading is the one
+// accepted exception to uniform card heights: a lost-post card ends
+// ~one line taller than its row. The detail-page hero keeps full
+// color and full bleed, because color matters for actually
 // identifying the animal.
 const SE_BUSCA_HEADING = (
   <p className="shrink-0 px-2.5 pt-2 pb-1 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-red-600">
@@ -69,13 +72,17 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
 }
 
-// Shared card shell — uniform across all types. The card is only as
-// tall as its content: no h-full, so a tall neighbor in the grid row
-// cannot stretch this card (the grids use items-start). The author /
-// time row sits directly under the title with a fixed small gap —
-// nothing is bottom-pinned, so there is no dead space inside a
-// short card. Evenness comes from capping the variable parts (fixed
-// image aspect, clamped titles), not from stretching.
+// Uniform grid construction (2026-11-11): every variant is the SAME
+// height in a grid row, by construction — media slot aspect-[4/5]
+// of the column width + a fixed h-[90px] text area, top-aligned,
+// nothing bottom-pinned, no mt-auto. The 90px fits the tallest
+// text content (news eyebrow + title line-clamp-2 + meta row,
+// ~86px); shorter variants carry the slack as bottom padding inside
+// their text block. The card is only as tall as those two blocks:
+// no h-full, so a tall neighbor cannot stretch it (the grids use
+// items-start). The ONE exception: lost posts add the SE BUSCA
+// heading above the media (~28px taller) — the printed-poster
+// treatment is not negotiable, so that row ends ~one line lower.
 function CardShell({ id, children }: { id: string; children: React.ReactNode }) {
   return (
     <Link href={`/listings/${id}`} className="group">
@@ -148,21 +155,34 @@ export function ListingCard({ listing }: ListingCardProps) {
     const categoryColor = NEWS_CATEGORY_COLORS[listing.category] || 'text-slate-500'
     const isLostPost = listing.category === 'Objetos Perdidos'
 
-    // Photo-less news: the title card fills the card (full poster).
-    // Meta is a single quiet chip overlaid at the bottom — no white
-    // content area below, no "half poster". Lost posts get the
-    // printed-poster treatment instead: red SE BUSCA letters above
-    // and the title card inset with a white margin. A native video
-    // is not photo-less — it takes the media slot below instead.
+    // Photo-less news: the title card fills the 4:5 media slot; the
+    // fixed text area below carries the category + time, so the total
+    // matches the other variants. The time chip no longer overlays
+    // the poster. Lost posts keep the printed-poster treatment: the
+    // title card is inset with a white margin inside the slot.
+    // A native video is not photo-less — it takes the media slot
+    // below instead.
     if (!primaryImage && !nativeVideo) {
       return (
         <CardShell id={listing.id}>
           {isLostPost && SE_BUSCA_HEADING}
-          <div className={`relative aspect-square w-full ${isLostPost ? 'mx-4 mb-2' : ''}`}>
-            <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" />
+          <div className="relative aspect-[4/5] w-full shrink-0">
+            <ListingTitleCard
+              title={listing.title}
+              cardColor={listing.card_color}
+              size="card"
+              className={isLostPost ? 'absolute inset-x-4 top-0 bottom-2' : 'absolute inset-0'}
+            />
             {listing.status === 'sold' && soldOverlay}
-            <div className="absolute bottom-2 left-2 z-[5] bg-black/45 text-white text-[10px] px-2 py-0.5 rounded-full">
-              {timeAgo(listing.created_at)}
+          </div>
+          <div className="h-[90px] shrink-0 px-2.5 pt-1.5 pb-2">
+            {!isLostPost && listing.category && (
+              <p className={`text-[9px] font-bold uppercase tracking-wider mb-1 leading-none ${categoryColor}`}>
+                {listing.category}
+              </p>
+            )}
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[10px] text-gray-400">{timeAgo(listing.created_at)}</span>
             </div>
           </div>
         </CardShell>
@@ -174,39 +194,45 @@ export function ListingCard({ listing }: ListingCardProps) {
         {isLostPost && SE_BUSCA_HEADING}
         {nativeVideo && nativeVideoUrl ? (
           /* Native clip: muted autoplay in view, tap for sound.
-             The photo (if any) stays on the detail page gallery. */
-          <div className="px-2.5 pt-2.5 shrink-0">
-            <VideoPlayer
-              src={nativeVideoUrl}
-              posterUrl={nativeVideo.thumbnailUrl}
-              durationSeconds={nativeVideo.durationSeconds}
-              title={listing.title}
-              autoplayInView
-              className="aspect-video rounded-sm"
-            />
-          </div>
+             The photo (if any) stays on the detail page gallery.
+             The clip letterboxes (object-contain) in the 4:5 slot —
+             it shows fully, never cropped, at the uniform height. */
+          <VideoPlayer
+            src={nativeVideoUrl}
+            posterUrl={nativeVideo.thumbnailUrl}
+            durationSeconds={nativeVideo.durationSeconds}
+            title={listing.title}
+            autoplayInView
+            className="aspect-[4/5] w-full shrink-0"
+          />
         ) : isLostPost ? (
           /* Lost post: a printed-poster look — SE BUSCA in red
              letters above the photo, the photo inset with a white
-             margin on all sides, natural aspect. No category
-             eyebrow — the heading says what it is. */
-          <div className="relative shrink-0 px-4">
-            <div className="relative aspect-[4/5] overflow-hidden rounded-none">
-              <Image src={primaryImage!} alt={listing.title} fill className="object-cover grayscale"
+             margin on all sides. The photo shows FULLY
+             (object-contain) — it is the evidence for identifying
+             the animal. No category eyebrow — the heading says
+             what it is. */
+          <div className="relative aspect-[4/5] w-full shrink-0 bg-white">
+            <div className="absolute inset-x-4 top-2 bottom-2">
+              <Image src={primaryImage!} alt={listing.title} fill className="object-contain grayscale"
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
               {listing.status === 'sold' && soldOverlay}
             </div>
           </div>
         ) : (
-          <div className="px-2.5 pt-2.5 shrink-0">
-            <div className="relative aspect-video rounded-sm overflow-hidden">
-              <Image src={primaryImage!} alt={listing.title} fill className="object-cover"
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
-              {listing.status === 'sold' && soldOverlay}
-            </div>
+          <div className="relative aspect-[4/5] w-full shrink-0 overflow-hidden">
+            <Image src={primaryImage!} alt={listing.title} fill className="object-cover"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
+            {listing.status === 'sold' && soldOverlay}
           </div>
         )}
-        <div className="flex flex-col px-2.5 pt-1.5 pb-2">
+        {/* Fixed-height text area (h-[90px], uniform grid): eyebrow +
+            title line-clamp-2 + time. The description is NOT on the
+            card — it lives on the detail page. A uniform text area
+            cannot carry a description that other cards lack without
+            opening voids; the news card was the only one with it,
+            and it is what made news rows end at a different height. */}
+        <div className="h-[90px] shrink-0 px-2.5 pt-1.5 pb-2">
           {!isLostPost && listing.category && (
             <p className={`text-[9px] font-bold uppercase tracking-wider mb-1 leading-none ${categoryColor}`}>
               {listing.category}
@@ -215,18 +241,8 @@ export function ListingCard({ listing }: ListingCardProps) {
           <h3 className="font-semibold text-[13px] line-clamp-2 mb-1 group-hover:underline leading-snug">
             {listing.title}
           </h3>
-          {/* Lost posts show no description on the card — heading +
-              image + title + time only; the full text lives on the
-              detail page. */}
-          {!isLostPost && listing.description && (
-            <p className="text-[11px] text-gray-400 line-clamp-2 leading-snug">
-              {listing.description.slice(0, 300)}
-            </p>
-          )}
           {/* Meta footer — like/save live on the detail page now, not on
-              grid cards (OfferUp shows no buttons on its cards either).
-              Fixed small gap under the title/description — never
-              bottom-pinned, so no void opens on short cards. */}
+              grid cards (OfferUp shows no buttons on its cards either). */}
           <div className="flex items-center gap-2 mt-1">
             <span className="text-[10px] text-gray-400">{timeAgo(listing.created_at)}</span>
           </div>
@@ -236,20 +252,18 @@ export function ListingCard({ listing }: ListingCardProps) {
   }
 
   // ── Event card: the poster IS the content — it must show fully,
-  // never cropped. Printed-poster treatment (like the lost-poster
-  // card): the image sits inset with a white margin in a
-  // portrait-friendly 4:5 frame, object-contain, so a portrait
-  // poster fills it and a landscape image letterboxes on white
-  // matting instead of being sliced. The poster already carries the
-  // date/time/venue, so the bottom keeps the title ONLY — no date
-  // line, no location/price/time row (those live on the detail
-  // page). Keeping rows even: the 4:5 frame + title-only bottom
-  // take a desktop row from ~380px to ~325px.
+  // never cropped. Printed-poster treatment: the 4:5 media slot is
+  // full column width and the poster sits inset with a white margin
+  // inside it, object-contain, so a portrait poster fills it and a
+  // landscape image letterboxes on white matting instead of being
+  // sliced. The poster already carries the date/time/venue, so the
+  // fixed text area below keeps the title + time only — no date
+  // line, no location/price row (those live on the detail page).
   if (listingType === 'event' && primaryImage) {
     return (
       <CardShell id={listing.id}>
-        <div className="relative shrink-0 px-4 pt-2.5">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-none bg-white">
+        <div className="relative aspect-[4/5] w-full shrink-0 bg-white">
+          <div className="absolute inset-x-4 top-2.5 bottom-2.5">
             <Image src={primaryImage} alt={listing.title} fill className="object-contain"
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
             {listing.status === 'sold' && soldOverlay}
@@ -260,38 +274,48 @@ export function ListingCard({ listing }: ListingCardProps) {
             )}
           </div>
         </div>
-        <div className="px-2.5 pt-1.5 pb-2">
-          <h3 className="font-semibold text-[13px] line-clamp-2 leading-snug group-hover:underline">
+        <div className="h-[90px] shrink-0 px-2.5 pt-1.5 pb-2">
+          <h3 className="font-semibold text-[13px] line-clamp-2 mb-1 leading-snug group-hover:underline">
             {listing.title}
           </h3>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[10px] text-gray-400">{timeAgo(listing.created_at)}</span>
+          </div>
         </div>
       </CardShell>
     )
   }
 
-  // ── Photo-less event: the title card IS the whole card (full
-  // poster). Price + time ride as small chips overlaid at the bottom
-  // — no white content block below, no "half poster".
+  // ── Photo-less event: the title card fills the 4:5 media slot
+  // (title only — the subtitle moved to the fixed text area below,
+  // so it is not repeated inside the orange block). The price rides
+  // as the bold first line of the text area when there is one;
+  // the time lives in the meta row. No overlay chips.
   if (listingType === 'event' && !primaryImage) {
     return (
       <CardShell id={listing.id}>
-        <div className="relative aspect-square w-full">
-          <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" subtitle={eventSubtitle} />
+        <div className="relative aspect-[4/5] w-full shrink-0">
+          <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" />
           {listing.status === 'sold' && soldOverlay}
           {eventPast && (
             <div className="absolute top-2 right-2 z-[5] bg-black/45 text-white text-[10px] px-2 py-0.5 rounded-full">
               Terminado
             </div>
           )}
-          <div className="absolute bottom-2 inset-x-2 z-[5] flex items-center justify-between gap-2">
-            {(listing.price > 0 || listing.is_free) && (
-              <span className="bg-black/45 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full truncate">
-                {formattedPrice}
-              </span>
-            )}
-            <span className="bg-black/45 text-white text-[10px] px-2 py-0.5 rounded-full shrink-0 ml-auto">
-              {timeAgo(listing.created_at)}
-            </span>
+        </div>
+        <div className="h-[90px] shrink-0 px-2.5 pt-1.5 pb-2">
+          {(listing.price > 0 || listing.is_free) && (
+            <p className="text-[15px] font-bold text-gray-900 leading-tight">
+              {formattedPrice}
+            </p>
+          )}
+          {eventSubtitle && (
+            <p className="text-[13px] text-gray-700 line-clamp-2 leading-snug">
+              {eventSubtitle}
+            </p>
+          )}
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[10px] text-gray-400">{timeAgo(listing.created_at)}</span>
           </div>
         </div>
       </CardShell>
@@ -301,8 +325,8 @@ export function ListingCard({ listing }: ListingCardProps) {
   // ── Standard card (products, services) ───────────────────────────
   return (
     <CardShell id={listing.id}>
-      {/* Image area */}
-      <div className="relative aspect-square bg-gray-100 shrink-0">
+      {/* Image area — 4:5 media slot, same as every variant. */}
+      <div className="relative aspect-[4/5] bg-gray-100 shrink-0">
         {primaryImage ? (
           <Image src={primaryImage} alt={listing.title} fill className="object-cover"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
@@ -340,10 +364,11 @@ export function ListingCard({ listing }: ListingCardProps) {
           </div>
         )}
       </div>
-      {/* Content — fixed small gap to the meta row; nothing is
-          bottom-pinned (mt-auto), so a short card ends right under
-          its title instead of stretching a void down to the row. */}
-      <div className="px-2 py-1.5 flex flex-col">
+      {/* Content — fixed-height text area (h-[90px], uniform grid):
+          price + title line-clamp-1 + seller/time meta. Nothing is
+          bottom-pinned (mt-auto); the slack below the meta row is
+          the same on every product card, so rows end even. */}
+      <div className="h-[90px] shrink-0 px-2.5 pt-1.5 pb-2 flex flex-col">
         {/* Price — the dominant element */}
         <p className="text-[15px] font-bold text-gray-900 leading-tight">
           {formattedPrice}

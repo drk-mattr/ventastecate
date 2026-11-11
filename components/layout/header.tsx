@@ -293,6 +293,11 @@ export function Header() {
                   )}
                   {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
                     <DropdownMenuItem asChild className="text-xs">
+                      <Link href="/admin/alerts">Alertas (admin)</Link>
+                    </DropdownMenuItem>
+                  )}
+                  {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
+                    <DropdownMenuItem asChild className="text-xs">
                       <Link href="/admin/liquidity">Liquidez (admin)</Link>
                     </DropdownMenuItem>
                   )}

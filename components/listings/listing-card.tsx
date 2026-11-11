@@ -69,11 +69,17 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
 }
 
-// Shared card shell — uniform across all types
+// Shared card shell — uniform across all types. The card is only as
+// tall as its content: no h-full, so a tall neighbor in the grid row
+// cannot stretch this card (the grids use items-start). The author /
+// time row sits directly under the title with a fixed small gap —
+// nothing is bottom-pinned, so there is no dead space inside a
+// short card. Evenness comes from capping the variable parts (fixed
+// image aspect, clamped titles), not from stretching.
 function CardShell({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <Link href={`/listings/${id}`} className="group h-full">
-      <div className="h-full flex flex-col rounded-xl border bg-white hover:shadow-md transition-shadow overflow-hidden">
+    <Link href={`/listings/${id}`} className="group">
+      <div className="flex flex-col rounded-xl border bg-white hover:shadow-md transition-shadow overflow-hidden">
         {children}
       </div>
     </Link>
@@ -152,7 +158,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       return (
         <CardShell id={listing.id}>
           {isLostPost && SE_BUSCA_HEADING}
-          <div className={`relative flex-1 aspect-square w-full ${isLostPost ? 'mx-4 mb-2' : ''}`}>
+          <div className={`relative aspect-square w-full ${isLostPost ? 'mx-4 mb-2' : ''}`}>
             <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" />
             {listing.status === 'sold' && soldOverlay}
             <div className="absolute bottom-2 left-2 z-[5] bg-black/45 text-white text-[10px] px-2 py-0.5 rounded-full">
@@ -200,7 +206,7 @@ export function ListingCard({ listing }: ListingCardProps) {
             </div>
           </div>
         )}
-        <div className="flex flex-col flex-1 px-2.5 pt-1.5 pb-2">
+        <div className="flex flex-col px-2.5 pt-1.5 pb-2">
           {!isLostPost && listing.category && (
             <p className={`text-[9px] font-bold uppercase tracking-wider mb-1 leading-none ${categoryColor}`}>
               {listing.category}
@@ -218,8 +224,10 @@ export function ListingCard({ listing }: ListingCardProps) {
             </p>
           )}
           {/* Meta footer — like/save live on the detail page now, not on
-              grid cards (OfferUp shows no buttons on its cards either). */}
-          <div className="flex items-center gap-2 mt-auto pt-1">
+              grid cards (OfferUp shows no buttons on its cards either).
+              Fixed small gap under the title/description — never
+              bottom-pinned, so no void opens on short cards. */}
+          <div className="flex items-center gap-2 mt-1">
             <span className="text-[10px] text-gray-400">{timeAgo(listing.created_at)}</span>
           </div>
         </div>
@@ -267,7 +275,7 @@ export function ListingCard({ listing }: ListingCardProps) {
   if (listingType === 'event' && !primaryImage) {
     return (
       <CardShell id={listing.id}>
-        <div className="relative flex-1 aspect-square w-full">
+        <div className="relative aspect-square w-full">
           <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" subtitle={eventSubtitle} />
           {listing.status === 'sold' && soldOverlay}
           {eventPast && (
@@ -332,8 +340,10 @@ export function ListingCard({ listing }: ListingCardProps) {
           </div>
         )}
       </div>
-      {/* Content */}
-      <div className="px-2 py-1.5 flex flex-col flex-1">
+      {/* Content — fixed small gap to the meta row; nothing is
+          bottom-pinned (mt-auto), so a short card ends right under
+          its title instead of stretching a void down to the row. */}
+      <div className="px-2 py-1.5 flex flex-col">
         {/* Price — the dominant element */}
         <p className="text-[15px] font-bold text-gray-900 leading-tight">
           {formattedPrice}
@@ -347,7 +357,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         {/* Meta + engagement on one compact row — the seller name
             links to their profile (or store page), so a buyer can
             reach the seller without opening the listing first. */}
-        <div className="flex items-center justify-between gap-1.5 mt-auto pt-1">
+        <div className="flex items-center justify-between gap-1.5 mt-1">
           <span className="text-xs text-gray-500 truncate flex items-center gap-1 min-w-0">
             {listing.store && <Store className="h-2.5 w-2.5 shrink-0" />}
             {sellerName ? (

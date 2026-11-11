@@ -135,7 +135,7 @@ export default async function StoreProfilePage({ params }: { params: Promise<{ s
         <div>
           <h2 className="text-base font-medium mb-4 text-gray-700">Anuncios</h2>
           {listings && listings.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 items-start">
               {listings.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}
@@ -162,7 +162,7 @@ export default async function StoreProfilePage({ params }: { params: Promise<{ s
                 </span>
               )}
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 items-start">
               {mentionedListings.map((listing) => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}

@@ -261,7 +261,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
             <h2 className="text-base font-semibold mb-3">Publicaciones que lo mencionan</h2>
             <CommunityFeed
               initialListings={mentionListings}
-              className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+              className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-start"
             />
           </section>
         )}

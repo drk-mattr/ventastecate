@@ -421,7 +421,7 @@ export default async function BusinessPage({
 
         <h2 className="text-base font-medium mb-4 text-gray-700">Publicaciones que lo mencionan</h2>
         {listings.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">
             {listings.map((listing) => (
               <ListingCard key={listing.id} listing={listing} />
             ))}

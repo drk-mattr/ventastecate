@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useAuth } from '@/lib/auth/auth-context'
 import { LikeButton } from '@/components/listings/like-button'
 import { SaveButton } from '@/components/listings/save-button'
-import { Share2 } from 'lucide-react'
+import { Check, Share2 } from 'lucide-react'
 
 interface ListingEngagementBarProps {
   listingId: string
@@ -18,6 +18,16 @@ export function ListingEngagementBar({ listingId, likesCount, savesCount, varian
   const { user } = useAuth()
   const [userLiked, setUserLiked] = useState(false)
   const [userSaved, setUserSaved] = useState(false)
+  // Share feedback: the button used to copy the link silently, so a
+  // tap looked like nothing happened. Show a check for 2s on success.
+  const [shared, setShared] = useState(false)
+  const sharedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (sharedTimer.current) clearTimeout(sharedTimer.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (!user) return
@@ -46,12 +56,30 @@ export function ListingEngagementBar({ listingId, likesCount, savesCount, varian
     })
   }, [user, listingId])
 
-  const handleShare = () => {
+  const flashShared = () => {
+    setShared(true)
+    if (sharedTimer.current) clearTimeout(sharedTimer.current)
+    sharedTimer.current = setTimeout(() => setShared(false), 2000)
+  }
+
+  const handleShare = async () => {
     const url = `${window.location.origin}/listings/${listingId}`
     if (navigator.share) {
-      navigator.share({ title: document.title, url })
-    } else {
-      navigator.clipboard.writeText(url)
+      try {
+        await navigator.share({ title: document.title, url })
+        flashShared()
+        return
+      } catch (err) {
+        // User cancelled the sheet — nothing to do. Any other
+        // failure falls through to copying the link instead.
+        if (err instanceof DOMException && err.name === 'AbortError') return
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      flashShared()
+    } catch {
+      // Clipboard unavailable (permissions) — leave the button as-is.
     }
   }
 
@@ -89,11 +117,15 @@ export function ListingEngagementBar({ listingId, likesCount, savesCount, varian
       </span>
       <button
         onClick={(e) => { e.stopPropagation(); handleShare() }}
-        className={`${pill} text-gray-400 hover:text-gray-600`}
-        aria-label="Compartir"
-        title="Compartir"
+        className={`${pill} ${shared ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+        aria-label={shared ? 'Enlace copiado' : 'Compartir'}
+        title={shared ? 'Enlace copiado' : 'Compartir'}
       >
-        <Share2 className="h-5 w-5" />
+        {shared ? (
+          <Check className="h-5 w-5" />
+        ) : (
+          <Share2 className="h-5 w-5" />
+        )}
       </button>
     </div>
   )

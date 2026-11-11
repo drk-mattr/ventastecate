@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -63,6 +63,12 @@ export function NotificationBell() {
   const [items, setItems] = useState<BellItem[]>([])
   const [unread, setUnread] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
+  // True once the open-mark-read update has succeeded: the viewed
+  // rows are read in the DB, so the panel drops them on close and
+  // they never come back. False while the update is pending or it
+  // failed — then the rows stay, and the badge stays, so a failure
+  // is visible instead of silently pretending they were read.
+  const readMarked = useRef(false)
 
   useEffect(() => {
     if (!user) return
@@ -73,6 +79,7 @@ export function NotificationBell() {
         .from('notifications')
         .select('id, type, actor_id, listing_id, read, created_at')
         .eq('recipient_id', user.id)
+        .eq('read', false)
         .order('created_at', { ascending: false })
         .limit(30)
       if (!error && notifs) {
@@ -132,26 +139,52 @@ export function NotificationBell() {
     load().catch(() => {})
   }, [user])
 
+  // Closing the panel drops the viewed rows from the list — they
+  // were marked read on open, so they leave forever. If the
+  // mark-read failed, the rows stay put (and the badge with them).
+  const closePanel = useCallback(() => {
+    setOpen(false)
+    if (readMarked.current) setItems([])
+  }, [])
+
   useEffect(() => {
     const close = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (ref.current && !ref.current.contains(e.target as Node)) closePanel()
     }
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
-  }, [])
+  }, [closePanel])
 
   if (!user) return null
 
-  const togglePanel = () => {
+  const togglePanel = async () => {
     const opening = !open
-    setOpen(opening)
-    if (opening) {
-      // Notifications read on open. Threads are NOT touched — their
-      // unread state only clears when a thread is actually read.
-      setUnread(0)
-      const supabase = createClient()
-      void supabase.from('notifications').update({ read: true }).eq('recipient_id', user?.id).eq('read', false)
+    if (!opening) {
+      closePanel()
+      return
     }
+    setOpen(true)
+    // Notifications read on open. Threads are NOT touched — their
+    // unread state only clears when a thread is actually read.
+    //
+    // The update MUST be awaited: supabase-js only sends the
+    // request when the query is awaited (or .then'd). The old code
+    // did `void supabase...update(...)` — the query was built and
+    // discarded, no request ever left the browser, so every row
+    // stayed unread forever and the badge came back on refresh.
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('recipient_id', user?.id)
+      .eq('read', false)
+    if (error) {
+      // Leave the badge (and the rows) alone — the failure stays
+      // visible instead of pretending the notifications were read.
+      return
+    }
+    readMarked.current = true
+    setUnread(0)
   }
 
   const icon = (type: BellItem['type']) =>
@@ -187,7 +220,7 @@ export function NotificationBell() {
           ) : (
             <div className="max-h-96 overflow-y-auto">
               {items.map((item) => (
-                <Link key={`${item.type}-${item.id}`} href={item.href} onClick={() => setOpen(false)} className="flex gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0">
+                <Link key={`${item.type}-${item.id}`} href={item.href} onClick={closePanel} className="flex gap-3 px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-0">
                   {icon(item.type)}
                   <span className="min-w-0">
                     <span className="block text-sm text-gray-900 leading-snug">

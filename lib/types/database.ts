@@ -201,6 +201,16 @@ export type ItemComment = {
   profile?: Pick<Profile, 'username' | 'display_name' | 'avatar_url'>
 }
 
+/** Item feedback (migration 059): one yes/no answer to
+    "¿Lo recomendarías?" per user per offering. */
+export type ItemFeedback = {
+  item_id: string
+  user_id: string
+  recommends: boolean
+  created_at: string
+  updated_at: string
+}
+
 /** Business comment (migration 053): a short public note on one
     business shell — a general question or note about the place,
     not about one offering. Feeds no score. The owner can comment. */

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import {
   LayoutGrid, X, KeyRound, Home, LandPlot, UtensilsCrossed,
@@ -12,12 +12,22 @@ import {
 // The four category destinations the tab row doesn't hold: Casas first
 // (Renta / Venta / Terrenos under a "Casas en Tecate" heading — the most
 // valuable category on mobile, buried at the end of the old scrolling
-// pill row), then Comida. Icon-only trigger, OfferUp browse affordance;
+// pill row), then Gastro. Icon-only trigger, OfferUp browse affordance;
 // opens a bottom sheet above the bottom nav (z-50), closable by
 // tap-outside, X, or Escape. Rows link to the same destinations the old
 // pills linked to, and change only their own axis (type/category),
 // keeping the rest of the URL — same behaviour as the tab row.
-const SECTIONS = [
+// Gastro is the exception: it is a route, not a filter, so it carries
+// a plain href and is active on /gastro.
+type SheetRow = {
+  label: string
+  icon: typeof LayoutGrid
+  match?: (p: URLSearchParams) => boolean
+  set?: { type: string | null; category: string | null }
+  href?: string
+}
+
+const SECTIONS: { heading: string; rows: SheetRow[] }[] = [
   {
     heading: 'Casas en Tecate',
     rows: [
@@ -29,13 +39,14 @@ const SECTIONS = [
   {
     heading: 'Más categorías',
     rows: [
-      { label: 'Comida', icon: UtensilsCrossed, match: (p: URLSearchParams) => p.get('category') === 'Comida', set: { type: null, category: 'Comida' } },
+      { label: 'Gastro', icon: UtensilsCrossed, href: '/gastro' },
     ],
   },
 ]
 
 export function CategoriesSheet() {
   const params = useSearchParams()
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
   // Escape closes; lock body scroll while the sheet is up.
@@ -90,11 +101,11 @@ export function CategoriesSheet() {
                 <p className="px-4 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">{section.heading}</p>
                 {section.rows.map((row) => {
                   const Icon = row.icon
-                  const active = row.match(params)
+                  const active = row.href ? pathname === row.href : row.match?.(params)
                   return (
                     <Link
                       key={row.label}
-                      href={hrefFor(row.set)}
+                      href={row.href ?? hrefFor(row.set!)}
                       onClick={() => setOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
                     >

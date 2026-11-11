@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import {
   LayoutGrid, Tag, Wrench, Megaphone, Newspaper,
   UtensilsCrossed, KeyRound, Home, LandPlot,
@@ -19,7 +19,7 @@ import { CategoriesSheet } from '@/components/home/categories-sheet'
 //   Marketplace pattern — no icons, no pill borders, active tab is
 //   black text + a 2px underline; five tabs fit a 390px phone
 //   without scrolling. Everything else lives behind the Categorías
-//   sheet (Casas first, then Comida), which is mobile-only too —
+//   sheet (Casas first, then Gastro), which is mobile-only too —
 //   on desktop all 9 destinations are visible as pills, so the
 //   sheet is redundant there.
 //
@@ -27,13 +27,23 @@ import { CategoriesSheet } from '@/components/home/categories-sheet'
 // its own axis (type or category) and keeps everything else in the
 // URL — so switching to Productos while searching "mesita" keeps
 // the query and the other filters instead of dropping them.
-const SHORTCUTS = [
+// Gastro is the exception: it is a route, not a filter, so it
+// carries a plain href and is active on /gastro.
+type Shortcut = {
+  label: string
+  icon: typeof LayoutGrid
+  match?: (p: URLSearchParams) => boolean
+  set?: { type: string | null; category: string | null }
+  href?: string
+}
+
+const SHORTCUTS: Shortcut[] = [
   { label: 'Todo', icon: LayoutGrid, match: () => true, set: { type: null, category: null } },
   { label: 'Productos', icon: Tag, match: (p: URLSearchParams) => p.get('type') === 'product', set: { type: 'product', category: null } },
   { label: 'Servicios', icon: Wrench, match: (p: URLSearchParams) => p.get('type') === 'service', set: { type: 'service', category: null } },
   { label: 'Eventos', icon: Megaphone, match: (p: URLSearchParams) => p.get('type') === 'event', set: { type: 'event', category: null } },
   { label: 'Noticias', icon: Newspaper, match: (p: URLSearchParams) => p.get('type') === 'news', set: { type: 'news', category: null } },
-  { label: 'Comida', icon: UtensilsCrossed, match: (p: URLSearchParams) => p.get('category') === 'Comida', set: { type: null, category: 'Comida' } },
+  { label: 'Gastro', icon: UtensilsCrossed, href: '/gastro' },
   { label: 'Casas: Renta', icon: KeyRound, match: (p: URLSearchParams) => p.get('category') === 'Casas en Renta', set: { type: null, category: 'Casas en Renta' } },
   { label: 'Casas: Venta', icon: Home, match: (p: URLSearchParams) => p.get('category') === 'Casas en Venta', set: { type: null, category: 'Casas en Venta' } },
   { label: 'Terrenos', icon: LandPlot, match: (p: URLSearchParams) => p.get('category') === 'Terrenos', set: { type: null, category: 'Terrenos' } },
@@ -49,6 +59,7 @@ const TABS = [
 
 export function TypeShortcuts({ hideMobileTabs = false }: { hideMobileTabs?: boolean }) {
   const params = useSearchParams()
+  const pathname = usePathname()
   const hasFilter = params.get('type') || params.get('category')
 
   const hrefFor = (set: { type: string | null; category: string | null }) => {
@@ -73,11 +84,16 @@ export function TypeShortcuts({ hideMobileTabs = false }: { hideMobileTabs?: boo
         {SHORTCUTS.map((s) => {
           const Icon = s.icon
           // Todo is the default: active only when no type/category filter is set.
-          const active = s.label === 'Todo' ? !hasFilter : s.match(params)
+          // A route shortcut (Gastro) is active on its own path.
+          const active = s.href
+            ? pathname === s.href
+            : s.label === 'Todo'
+              ? !hasFilter
+              : s.match?.(params)
           return (
             <Link
               key={s.label}
-              href={hrefFor(s.set)}
+              href={s.href ?? hrefFor(s.set!)}
               aria-current={active ? 'true' : undefined}
               className={`flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 h-9 text-xs font-medium transition-colors ${
                 active
@@ -115,7 +131,7 @@ export function TypeShortcuts({ hideMobileTabs = false }: { hideMobileTabs?: boo
           )
         })}
         {/* Categorías sheet: the four category destinations the tabs
-            don't hold (Casas first, then Comida) — icon-only, OfferUp
+            don't hold (Casas first, then Gastro) — icon-only, OfferUp
             browse affordance. Mobile-only: on desktop the pills above
             show all 9 destinations. */}
         <div className="ml-1 shrink-0 border-l border-gray-200 pl-1.5">

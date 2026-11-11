@@ -147,6 +147,12 @@ export async function getCoreUrls(): Promise<SitemapUrl[]> {
       priority: 0.8,
     },
     {
+      loc: `${url}/gastro`,
+      lastmod: now,
+      changefreq: 'daily' as const,
+      priority: 0.8,
+    },
+    {
       loc: `${url}/businesses/categorias`,
       lastmod: now,
       changefreq: 'weekly' as const,

@@ -37,17 +37,25 @@ export async function fetchTrendingItems(
   admin: SupabaseClient,
   towns: string[] | null,
   regionLabel: string,
+  passedKindIds?: string[],
 ): Promise<{ cards: TrendingItemCard[]; available: boolean }> {
   const empty = { cards: [] as TrendingItemCard[], available: false }
 
-  // Every approved kind is a candidate: the carousel is the
-  // cross-kind "En tendencia" list, not one kind's list.
-  const { data: kinds } = await admin
-    .from('item_kinds')
-    .select('id')
-    .eq('status', 'approved')
-    .limit(500)
-  const kindIds = ((kinds || []) as { id: string }[]).map((k) => k.id)
+  // A kind set may be passed in (Gastro passes the food subtree);
+  // otherwise every approved kind is a candidate, as before — the
+  // carousel is the cross-kind "En tendencia" list, not one kind's
+  // list.
+  let kindIds: string[]
+  if (passedKindIds) {
+    kindIds = passedKindIds
+  } else {
+    const { data: kinds } = await admin
+      .from('item_kinds')
+      .select('id')
+      .eq('status', 'approved')
+      .limit(500)
+    kindIds = ((kinds || []) as { id: string }[]).map((k) => k.id)
+  }
   if (kindIds.length === 0) return empty
 
   // Migration 035 not applied yet → available: false, no carousel.

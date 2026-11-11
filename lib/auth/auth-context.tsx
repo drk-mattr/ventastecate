@@ -11,6 +11,11 @@ type AuthContextType = {
   stores: Store[]
   activeStore: Store | null
   loading: boolean
+  /** True once the owner's stores have been fetched (success or
+      empty) — the posting form's location prefill waits for this,
+      because the store's saved location only exists after the
+      fetch lands, and the draft decision usually lands first. */
+  storesLoaded: boolean
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
   refreshStores: () => Promise<void>
@@ -31,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [activeStore, setActiveStoreState] = useState<Store | null>(null)
   const [recentStoreIds, setRecentStoreIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
+  const [storesLoaded, setStoresLoaded] = useState(false)
   const supabase = createClient()
 
   const fetchProfile = async (userId: string) => {
@@ -44,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const fetchStores = useCallback(async (userId: string) => {
+    try {
     const { data } = await supabase
       .from('stores')
       .select('*')
@@ -80,6 +87,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {
       // ignore localStorage errors
+    }
+    } finally {
+      // Settles either way, so a failed fetch can't leave the
+      // posting form waiting on a prefill that will never come —
+      // it just falls back to the region prefill.
+      setStoresLoaded(true)
     }
   }, [supabase])
 
@@ -157,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, profile, stores, activeStore, loading,
+      user, profile, stores, activeStore, loading, storesLoaded,
       signOut, refreshProfile, refreshStores, setActiveStore, recentStoreIds,
     }}>
       {children}

@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { StoreType } from '@/lib/types/database'
+import { LocationPicker } from '@/components/listings/location-picker'
 import Image from 'next/image'
 import { Store, Home, Car } from 'lucide-react'
 
@@ -34,7 +35,13 @@ export default function NewStorePage() {
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [description, setDescription] = useState('')
-  const [storeLocation, setStoreLocation] = useState('')
+  // Structured location (migration 057): city / state / country.
+  // `location` is still written on save as the "city, state"
+  // display string, so the store page and the listing seller row
+  // that render it keep working unchanged.
+  const [storeCity, setStoreCity] = useState('')
+  const [storeStateRegion, setStoreStateRegion] = useState('')
+  const [storeCountryCode, setStoreCountryCode] = useState('MX')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -95,6 +102,8 @@ export default function NewStorePage() {
         avatarUrl = publicUrl
       }
 
+      const displayLocation = [storeCity.trim(), storeStateRegion.trim()].filter(Boolean).join(', ') || null
+
       const { data: store, error: insertError } = await supabase
         .from('stores')
         .insert({
@@ -103,7 +112,10 @@ export default function NewStorePage() {
           slug,
           store_type: storeType,
           description: description || null,
-          location: storeLocation || null,
+          location: displayLocation,
+          city: storeCity.trim() || null,
+          state_region: storeStateRegion.trim() || null,
+          country_code: storeCountryCode,
           avatar_url: avatarUrl,
         })
         .select()
@@ -288,12 +300,15 @@ export default function NewStorePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="location">{f.storeLocationLabel}</Label>
-                  <Input
-                    id="location"
-                    value={storeLocation}
-                    onChange={(e) => setStoreLocation(e.target.value)}
-                    placeholder={f.storeLocationPlaceholder}
+                  <Label>{f.storeLocationLabel}</Label>
+                  <LocationPicker
+                    city={storeCity}
+                    stateRegion={storeStateRegion}
+                    country={storeCountryCode}
+                    onCityChange={setStoreCity}
+                    onStateRegionChange={setStoreStateRegion}
+                    onCountryChange={setStoreCountryCode}
+                    countryNote="El país de la tienda, no el de tu conexión: una tienda en San Diego debe quedar como Estados Unidos."
                   />
                 </div>
 

@@ -27,6 +27,13 @@ export type Store = {
   description?: string
   avatar_url?: string
   location?: string
+  // Structured location (migration 057): city / state / country,
+  // so a store's saved location can prefill the posting form.
+  // `location` stays as the free-text display string, derived
+  // from city + state on save.
+  city?: string
+  state_region?: string
+  country_code?: string
   created_at: string
   updated_at: string
 }

@@ -234,7 +234,7 @@ function NewListingForm() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
-  const { user, profile, activeStore } = useAuth()
+  const { user, profile, activeStore, storesLoaded } = useAuth()
   const t = useTranslations()
   const f = t.forms
   const storeType = activeStore?.store_type || 'general'
@@ -350,11 +350,25 @@ function NewListingForm() {
     onRestore: restoreDraft,
   })
 
-  // Prefill city/state/country from the site region (P0-3). Runs once,
-  // after the draft decision: a restored draft's city wins; only an
-  // empty city gets the region's first town. GPS detect stays as an
-  // override afterwards.
+  // Prefill city/state/country — the active store's saved location
+  // first (a store posts from where it is), otherwise the site
+  // region (P0-3). Runs once, after the draft decision AND after
+  // the stores load: the store fetch is a network round-trip that
+  // usually lands after the draft decision, so waiting on
+  // storesLoaded is what makes the store branch actually fire.
+  // A restored draft's city wins; only an empty city gets
+  // prefilled. GPS detect stays as an override afterwards, and
+  // the location step stays fully editable — prefill, never a lock.
   const prefillDoneRef = useRef(false)
+  const prefillLocation = () => {
+    if (activeStore?.city) {
+      setCity(activeStore.city)
+      if (activeStore.state_region) setStateRegion(activeStore.state_region)
+      if (activeStore.country_code) setCountryCode(activeStore.country_code)
+      return
+    }
+    prefillLocationFromRegion()
+  }
   const prefillLocationFromRegion = () => {
     try {
       const match = document.cookie
@@ -374,12 +388,12 @@ function NewListingForm() {
     }
   }
   useEffect(() => {
-    if (!didRestore || prefillDoneRef.current) return
+    if (!didRestore || !storesLoaded || prefillDoneRef.current) return
     prefillDoneRef.current = true
     if (city) return
-    prefillLocationFromRegion()
+    prefillLocation()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [didRestore])
+  }, [didRestore, storesLoaded])
 
 
   // Reset the whole form (used by "Descartar" on a restored draft).
@@ -404,7 +418,7 @@ function NewListingForm() {
     setPublishedListingId(null); setFailedImages([])
     setUploadProgress(null)
     setStep(1); setDraftSaveState('idle')
-    prefillLocationFromRegion()
+    prefillLocation()
   }
 
   // Single-page form validation: returns per-field errors + the id of

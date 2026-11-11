@@ -16,6 +16,9 @@ interface LocationPickerProps {
   onStateRegionChange: (v: string) => void
   onCountryChange?: (code: string) => void
   onCountryCodeChange?: (code: string) => void
+  // The country note is worded for a listing by default ("anuncio");
+  // callers in a different context (store forms) pass their own.
+  countryNote?: string
 }
 
 export function LocationPicker({
@@ -26,6 +29,7 @@ export function LocationPicker({
   onStateRegionChange,
   onCountryChange,
   onCountryCodeChange,
+  countryNote = 'El país del anuncio, no el de tu conexión: un anuncio en San Diego debe quedar como Estados Unidos.',
 }: LocationPickerProps) {
   const t = useTranslations()
   const f = t.forms
@@ -117,7 +121,7 @@ export function LocationPicker({
           <option value="MX">México</option>
           <option value="US">Estados Unidos</option>
         </select>
-        <p className="text-xs text-gray-400">El país del anuncio, no el de tu conexión: un anuncio en San Diego debe quedar como Estados Unidos.</p>
+        <p className="text-xs text-gray-400">{countryNote}</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">

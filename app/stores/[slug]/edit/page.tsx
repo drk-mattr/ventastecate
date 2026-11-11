@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Store, StoreType } from '@/lib/types/database'
+import { LocationPicker } from '@/components/listings/location-picker'
 import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
 import { Store as StoreIcon, Home, Car } from 'lucide-react'
@@ -26,7 +27,13 @@ export default function EditStorePage() {
   const [store, setStore] = useState<Store | null>(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [storeLocation, setStoreLocation] = useState('')
+  // Structured location (migration 057): city / state / country.
+  // `location` is still written on save as the "city, state"
+  // display string, so the store page and the listing seller row
+  // that render it keep working unchanged.
+  const [storeCity, setStoreCity] = useState('')
+  const [storeStateRegion, setStoreStateRegion] = useState('')
+  const [storeCountryCode, setStoreCountryCode] = useState('MX')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -57,7 +64,12 @@ export default function EditStorePage() {
       setStore(data)
       setName(data.name)
       setDescription(data.description || '')
-      setStoreLocation(data.location || '')
+      // A store saved before migration 057 has only the free-text
+      // location — it starts in the city field so nothing is lost,
+      // and the seller refines it into city + state on this edit.
+      setStoreCity(data.city || data.location || '')
+      setStoreStateRegion(data.state_region || '')
+      setStoreCountryCode(data.country_code || 'MX')
       if (data.avatar_url) {
         setAvatarPreview(data.avatar_url)
       }
@@ -115,12 +127,17 @@ export default function EditStorePage() {
         avatarUrl = publicUrl
       }
 
+      const displayLocation = [storeCity.trim(), storeStateRegion.trim()].filter(Boolean).join(', ') || null
+
       const { error: updateError } = await supabase
         .from('stores')
         .update({
           name,
           description: description || null,
-          location: storeLocation || null,
+          location: displayLocation,
+          city: storeCity.trim() || null,
+          state_region: storeStateRegion.trim() || null,
+          country_code: storeCountryCode,
           avatar_url: avatarUrl,
         })
         .eq('id', store.id)
@@ -259,12 +276,15 @@ export default function EditStorePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location">Ubicación</Label>
-                <Input
-                  id="location"
-                  value={storeLocation}
-                  onChange={(e) => setStoreLocation(e.target.value)}
-                  placeholder="Ej: Centro de Tecate"
+                <Label>Ubicación</Label>
+                <LocationPicker
+                  city={storeCity}
+                  stateRegion={storeStateRegion}
+                  country={storeCountryCode}
+                  onCityChange={setStoreCity}
+                  onStateRegionChange={setStoreStateRegion}
+                  onCountryChange={setStoreCountryCode}
+                  countryNote="El país de la tienda, no el de tu conexión: una tienda en San Diego debe quedar como Estados Unidos."
                 />
               </div>
 

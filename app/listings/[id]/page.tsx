@@ -172,6 +172,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
         username,
         display_name,
         avatar_url,
+        bio,
         created_at,
         is_local_reporter
       ),
@@ -180,7 +181,10 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
         slug,
         name,
         avatar_url,
-        location
+        location,
+        description,
+        followers_count,
+        owner:profiles!owner_id(id, username)
       )
     `)
     .eq('id', id)
@@ -193,6 +197,25 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   // Get current user to check if they own this listing
   const { data: { user } } = await supabase.auth.getUser()
   const isOwner = user?.id === listing.user_id
+
+  // Follow state for the publishing entity, for the news sidebar
+  // rail + byline. Pre-058 the store_follows table is missing and
+  // the query errors; treat as not following.
+  let initialIsFollowingStore = false
+  let initialIsFollowingProfile = false
+  if (user) {
+    if (listing.store) {
+      const { data: storeFollow } = await supabase
+        .from('store_follows').select('id')
+        .eq('follower_id', user.id).eq('store_id', listing.store.id).maybeSingle()
+      initialIsFollowingStore = !!storeFollow
+    } else {
+      const { data: profileFollow } = await supabase
+        .from('follows').select('id')
+        .eq('follower_id', user.id).eq('following_id', listing.profile.id).maybeSingle()
+      initialIsFollowingProfile = !!profileFollow
+    }
+  }
 
   // WhatsApp number lives on the seller's profile. Fetched separately so
   // that, before migration 019 is applied, a missing column only hides
@@ -383,6 +406,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
             savesCount={savesCount}
             videoBlock={videoBlock}
             taggedBusinessCard={taggedBusinessCard}
+            initialIsFollowingStore={initialIsFollowingStore}
+            initialIsFollowingProfile={initialIsFollowingProfile}
           />
         ) : isEvent ? (
           /* ── Event layout: single stacked column ── */

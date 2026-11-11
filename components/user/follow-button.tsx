@@ -24,6 +24,14 @@ export function FollowButton({ profileId, initialIsFollowing = false }: FollowBu
     }
   }, [user, profileId])
 
+  // Keep two mounted instances (sidebar rail + byline) in sync: after
+  // a toggle + router.refresh(), the server passes the new value back
+  // in initialIsFollowing and this effect applies it. On mount the
+  // async check above lands after this and wins when no prop is passed.
+  useEffect(() => {
+    setIsFollowing(initialIsFollowing)
+  }, [initialIsFollowing])
+
   const checkFollowStatus = async () => {
     if (!user) return
 

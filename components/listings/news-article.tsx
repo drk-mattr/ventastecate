@@ -8,6 +8,7 @@ import { ListingTitleCard } from '@/components/listings/listing-title-card'
 import { CommentSection } from '@/components/listings/comment-section'
 import { ListingEngagementBar } from '@/components/listings/listing-engagement-bar'
 import { FollowButton } from '@/components/user/follow-button'
+import { StoreFollowButton } from '@/components/stores/store-follow-button'
 import { ReporterBadge } from '@/components/user/reporter-badge'
 import { isLocalReporter } from '@/lib/video/types'
 import {
@@ -48,6 +49,7 @@ export interface NewsArticleListing {
     username: string
     display_name: string
     avatar_url?: string | null
+    bio?: string | null
     is_local_reporter?: boolean | null
   }
   store: {
@@ -56,6 +58,13 @@ export interface NewsArticleListing {
     name: string
     avatar_url?: string | null
     location?: string | null
+    description?: string | null
+    followers_count?: number | null
+    // The store's owner, for the "Cuenta oficial" badge: the same
+    // username === 'ventastecate' signal the profile branch uses,
+    // applied to the owner instead of the author shape. The id is
+    // for the self-follow hide (no Seguir button for the owner).
+    owner?: { id: string; username: string } | null
   } | null
 }
 
@@ -70,6 +79,11 @@ interface NewsArticleProps {
   videoBlock: ReactNode
   /** Pre-built tagged-business card from the page. */
   taggedBusinessCard: ReactNode
+  /** Server-computed follow state for the publishing entity, so the
+      sidebar rail (desktop) and the byline Follow (mobile) start
+      correct and stay in sync after a toggle + refresh. */
+  initialIsFollowingStore?: boolean
+  initialIsFollowingProfile?: boolean
 }
 
 export function NewsArticle({
@@ -81,6 +95,8 @@ export function NewsArticle({
   savesCount,
   videoBlock,
   taggedBusinessCard,
+  initialIsFollowingStore = false,
+  initialIsFollowingProfile = false,
 }: NewsArticleProps) {
   const sortedImages = [...listing.images].sort((a, b) => a.order_index - b.order_index)
   const hasPhotos = sortedImages.length > 0
@@ -101,6 +117,29 @@ export function NewsArticle({
     year: 'numeric',
   })
 
+  // The publishing entity — whichever authored the post. The sidebar
+  // rail (desktop) and the byline (mobile) both render from this.
+  const entityName = listing.store?.name || listing.profile.display_name
+  const entityAvatar = listing.store?.avatar_url || listing.profile.avatar_url
+  const entityDescription = listing.store?.description || listing.profile.bio || null
+  const entityHref = listing.store
+    ? `/stores/${listing.store.slug}`
+    : `/users/${listing.profile.username}`
+  // "Cuenta oficial" for a store author: the same username signal
+  // the profile branch uses, applied to the store's OWNER.
+  const isOfficialStore = listing.store?.owner?.username === 'ventastecate'
+  const showOfficialBadge = listing.store
+    ? isOfficialStore
+    : listing.profile.username === 'ventastecate'
+  // One follow control per entity, rendered twice (rail on desktop,
+  // byline on mobile) — the buttons sync via their initial prop
+  // after a toggle + refresh.
+  const followButton = listing.store ? (
+    <StoreFollowButton storeId={listing.store.id} initialFollowing={initialIsFollowingStore} ownerId={listing.store.owner?.id} />
+  ) : (
+    <FollowButton profileId={listing.profile.id} initialIsFollowing={initialIsFollowingProfile} />
+  )
+
   const seBuscaStrip = isLostPost ? (
     <div className="absolute top-0 inset-x-0 z-[5] bg-red-600 px-3 py-1.5 text-center text-xs font-bold uppercase tracking-[0.2em] text-white">
       Se busca
@@ -108,7 +147,39 @@ export function NewsArticle({
   ) : null
 
   return (
-    <article className="max-w-2xl mx-auto flex flex-col">
+    <div className="lg:flex lg:justify-center lg:gap-12">
+      {/* Publication sidebar — desktop rail, Medium pattern: the
+          publishing entity's logo, name, brief description, Follow.
+          The article column keeps its ~680px width; the rail sits
+          beside it. Hidden below lg, where the byline carries the
+          same content compactly instead. */}
+      <aside className="hidden lg:block w-60 shrink-0">
+        <div className="sticky top-24 flex flex-col items-start gap-3 border-t-2 border-black pt-4">
+          <div className="relative h-14 w-14 rounded-full bg-gray-200 flex items-center justify-center text-base font-semibold overflow-hidden shrink-0">
+            {entityAvatar ? (
+              <Image src={entityAvatar} alt={entityName} fill className="object-cover" />
+            ) : (
+              <span>{entityName[0].toUpperCase()}</span>
+            )}
+          </div>
+          <div>
+            <Link href={entityHref} className="text-sm font-semibold hover:underline">
+              {entityName}
+            </Link>
+            {showOfficialBadge && (
+              <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-gray-500 ml-2">
+                <BadgeCheck className="h-3.5 w-3.5 text-orange-600" />
+                Cuenta oficial
+              </span>
+            )}
+          </div>
+          {entityDescription && (
+            <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">{entityDescription}</p>
+          )}
+          {followButton}
+        </div>
+      </aside>
+      <article className="max-w-2xl mx-auto lg:mx-0 w-full flex flex-col">
       {/* Tag pills — derived only (category + place), each tappable
           to a filtered list. They replace the category Badge +
           "Noticia / Aviso" breadcrumb row. */}
@@ -150,9 +221,17 @@ export function NewsArticle({
         </div>
         <div className="flex-1 min-w-0">
           {listing.store ? (
-            <Link href={`/stores/${listing.store.slug}`} className="text-sm font-semibold hover:underline">
-              {listing.store.name}
-            </Link>
+            <span className="flex items-center gap-2">
+              <Link href={`/stores/${listing.store.slug}`} className="text-sm font-semibold hover:underline">
+                {listing.store.name}
+              </Link>
+              {isOfficialStore && (
+                <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-gray-500">
+                  <BadgeCheck className="h-3.5 w-3.5 text-orange-600" />
+                  Cuenta oficial
+                </span>
+              )}
+            </span>
           ) : (
             <span className="flex items-center gap-2">
               <Link href={`/users/${listing.profile.username}`} className="text-sm font-semibold hover:underline">
@@ -170,10 +249,18 @@ export function NewsArticle({
           <p className="text-xs text-gray-500 mt-0.5">
             {minutes} min de lectura · {shortDate}
           </p>
+          {/* Mobile only: the description lives in the rail on
+              desktop, so the byline carries it compactly here. */}
+          {entityDescription && (
+            <p className="lg:hidden text-xs text-gray-600 mt-1 line-clamp-2">{entityDescription}</p>
+          )}
         </div>
-        {/* No Follow for store authors (no profileId follow target);
-            FollowButton returns null for the author themselves. */}
-        {!listing.store && <FollowButton profileId={listing.profile.id} />}
+        {/* Entity-aware Follow — the line-176 gate that suppressed
+            Follow for store authors is gone: a store-authored post
+            follows the store. Mobile only: on desktop the rail
+            owns the Follow button. FollowButton returns null for
+            the author themselves. */}
+        <div className="lg:hidden shrink-0">{followButton}</div>
         {isOwner && (
           <Button asChild size="sm" variant="outline" className="shrink-0">
             <Link href={`/listings/${listing.id}/edit`}>Editar</Link>
@@ -268,5 +355,6 @@ export function NewsArticle({
         currentUserId={currentUserId}
       />
     </article>
+    </div>
   )
 }

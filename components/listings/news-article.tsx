@@ -226,7 +226,7 @@ export function NewsArticle({
           heading or list syntax in v1: the body is plain text
           from the news canvas, and the renderer must not guess
           headings. */}
-      <div className="font-forum font-normal text-lg leading-[1.8] sm:text-[21px] sm:leading-[1.75] text-gray-800">
+      <div className="font-forum font-normal text-lg leading-[1.8] sm:text-[19px] sm:leading-[1.7] text-gray-800">
         {paragraphs.map((p, i) => (
           <p key={i} className="mb-6 last:mb-0 whitespace-pre-wrap">
             {p}

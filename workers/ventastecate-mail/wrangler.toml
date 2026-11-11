@@ -1,0 +1,6 @@
+name = "ventastecate-mail"
+compatibility_date = "2026-11-10"
+main = "src/index.ts"
+
+# Secrets (set with `npx wrangler secret put`, never committed):
+#   INTERNAL_POST_TOKEN — same value as the site Worker's secret.

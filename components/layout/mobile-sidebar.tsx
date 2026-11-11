@@ -9,7 +9,7 @@ import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import { useReportModal } from '@/lib/report/report-modal-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
 import {
-  Check, CircleUserRound, Clock, Flag, Home, LogOut, MessageCircle, PenLine, Settings,
+  Check, CircleUserRound, Clock, Flag, Home, LogOut, Mail, MessageCircle, PenLine, Settings,
   Store, Tag, TrendingUp, User, UserCircle, X,
 } from 'lucide-react'
 
@@ -187,6 +187,11 @@ export function MobileSidebar({ open, onClose, onReport }: { open: boolean; onCl
               {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
                 <Link href="/admin/reports" onClick={onClose} className={rowClass('/admin/reports')}>
                   <Flag className="h-5 w-5 text-zinc-400" />Reportes (admin)
+                </Link>
+              )}
+              {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
+                <Link href="/admin/alerts" onClick={onClose} className={rowClass('/admin/alerts')}>
+                  <Mail className="h-5 w-5 text-zinc-400" />Alertas (admin)
                 </Link>
               )}
               {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (

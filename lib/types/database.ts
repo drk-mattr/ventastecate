@@ -278,6 +278,19 @@ export type ReportNote = {
   created_at: string
 }
 
+/** Email alert (migration 055): one row per mail received at
+ * hola@ventastecate.com, posted by the ventastecate-mail Email Worker
+ * via /api/internal/email-alert. Listed at /admin/alerts. */
+export type EmailAlert = {
+  id: string
+  from_address: string
+  subject: string
+  body?: string | null
+  received_at: string
+  status: 'new' | 'read' | 'archived'
+  created_at: string
+}
+
 /** La Garita (migration 049): community border-line reports.
  *  Only the three lanes that exist at Tecate — there is NO
  *  SENTRI / Ready Lane. CBP measures into the US only, so

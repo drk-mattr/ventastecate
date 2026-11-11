@@ -163,6 +163,13 @@ function NewListingForm() {
   const [countryCode, setCountryCode] = useState('MX')
   const [images, setImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  // Optional per-photo descriptions (captions): one short line under
+  // each photo on the detail page, El Imparcial-style. Parallel to
+  // `images` — same index, same lifecycle (added with the photo,
+  // dropped when the photo is removed). Never enters the device
+  // draft (like the photos themselves): a restored draft asks the
+  // seller to re-pick photos, and captions go with them.
+  const [captions, setCaptions] = useState<string[]>([])
   const [videoUrl, setVideoUrl] = useState('')
   // Native video (migration 050, news only): one clip per post.
   // The file never enters the device draft (like photos) — a
@@ -199,6 +206,9 @@ function NewListingForm() {
   // switches to "published" mode: no re-submit, just retry + view links.
   const [publishedListingId, setPublishedListingId] = useState<string | null>(null)
   const [failedImages, setFailedImages] = useState<File[]>([])
+  // Captions of the failed photos, parallel to `failedImages` — so a
+  // retry uploads each photo with the description the seller wrote.
+  const [failedCaptions, setFailedCaptions] = useState<string[]>([])
   const [tagWarning, setTagWarning] = useState<'business' | 'items' | null>(null)
   // WhatsApp opt-in at posting time (P1-6) — only when the seller has
   // no number on their profile yet.
@@ -636,6 +646,7 @@ function NewListingForm() {
     try {
       const compressed = await Promise.all(imageFiles.map((file) => compressImage(file)))
       setImages(prev => [...prev, ...compressed])
+      setCaptions(prev => [...prev, ...compressed.map(() => '')])
       const newPreviews = compressed.map(file => URL.createObjectURL(file))
       setImagePreviews(prev => [...prev, ...newPreviews])
     } finally {
@@ -646,6 +657,7 @@ function NewListingForm() {
   const removeImage = (index: number) => {
     URL.revokeObjectURL(imagePreviews[index])
     setImages(images.filter((_, i) => i !== index))
+    setCaptions(captions.filter((_, i) => i !== index))
     setImagePreviews(imagePreviews.filter((_, i) => i !== index))
   }
 
@@ -726,12 +738,15 @@ function NewListingForm() {
   // the files that failed (empty when all succeeded). A failure stops
   // the loop — the caller keeps the listing and offers a retry for the
   // failed photos only (P0-1: never delete the listing and wipe the
-  // form over an upload failure).
+  // form over an upload failure). `captions` runs parallel to `files`
+  // (same index); a failed file's caption comes back in
+  // `failedCaptions` so the retry uploads it with its description.
   const uploadImagesSequential = async (
     listingId: string,
     files: File[],
     startOrder: number,
-  ): Promise<{ failed: File[]; uploaded: number }> => {
+    captions: string[] = [],
+  ): Promise<{ failed: File[]; failedCaptions: string[]; uploaded: number }> => {
     let uploaded = 0
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
@@ -741,18 +756,19 @@ function NewListingForm() {
         const { error: uploadError } = await supabase.storage.from('listing-images').upload(fileName, file)
         if (uploadError) throw uploadError
         const { data: { publicUrl } } = supabase.storage.from('listing-images').getPublicUrl(fileName)
+        const caption = captions[i]?.trim() ? captions[i].trim() : null
         const { error: imgInsertError } = await supabase
           .from('listing_images')
-          .insert({ listing_id: listingId, image_url: publicUrl, order_index: startOrder + i })
+          .insert({ listing_id: listingId, image_url: publicUrl, order_index: startOrder + i, caption })
         if (imgInsertError) throw imgInsertError
         uploaded += 1
         setUploadProgress((prev) => (prev ? { done: prev.done + 1, total: prev.total } : null))
       } catch (imgErr) {
         console.error('image upload failed:', imgErr)
-        return { failed: files.slice(i), uploaded }
+        return { failed: files.slice(i), failedCaptions: captions.slice(i), uploaded }
       }
     }
-    return { failed: [], uploaded }
+    return { failed: [], failedCaptions: [], uploaded }
   }
 
   // Tag the listing's offerings through the server route. Returns true
@@ -790,8 +806,9 @@ function NewListingForm() {
     setLoading(true)
     setError('')
     const startOrder = uploadProgress?.done ?? 0
-    const { failed } = await uploadImagesSequential(publishedListingId, failedImages, startOrder)
+    const { failed, failedCaptions: stillFailed } = await uploadImagesSequential(publishedListingId, failedImages, startOrder, failedCaptions)
     setFailedImages(failed)
+    setFailedCaptions(stillFailed)
     setLoading(false)
     if (failed.length === 0) {
       setUploadProgress(null)
@@ -1111,10 +1128,11 @@ function NewListingForm() {
       let imagesFailed = false
       if (images.length > 0) {
         setUploadProgress({ done: 0, total: images.length })
-        const { failed } = await uploadImagesSequential(listing.id, images, 0)
+        const { failed, failedCaptions: failedCaps } = await uploadImagesSequential(listing.id, images, 0, captions)
         if (failed.length > 0) {
           imagesFailed = true
           setFailedImages(failed)
+          setFailedCaptions(failedCaps)
         } else {
           setUploadProgress(null)
         }
@@ -1656,28 +1674,53 @@ function NewListingForm() {
                     'grid-cols-3'
                   }`}>
                     {imagePreviews.map((preview, index) => (
-                      <div
-                        key={index}
-                        className={`relative rounded-lg overflow-hidden ${
-                          imagePreviews.length === 1 ? 'aspect-[16/9]' : 'aspect-square'
-                        }`}
-                      >
-                        <Image src={preview} alt={`Foto ${index + 1}`} fill className="object-cover" />
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); removeImage(index) }}
-                          className="absolute top-1.5 right-1.5 bg-black/60 backdrop-blur-sm text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-black/80 transition"
+                      <div key={index} className="flex flex-col gap-1.5">
+                        <div
+                          className={`relative rounded-lg overflow-hidden ${
+                            imagePreviews.length === 1 ? 'aspect-[16/9]' : 'aspect-square'
+                          }`}
                         >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
+                          <Image src={preview} alt={`Foto ${index + 1}`} fill className="object-cover" />
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); removeImage(index) }}
+                            className="absolute top-1.5 right-1.5 bg-black/60 backdrop-blur-sm text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-black/80 transition"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        {/* Optional caption, shown under the photo on the
+                            detail page. stopPropagation: the whole media
+                            area opens the file picker on click, and
+                            typing here must not do that. */}
+                        <input
+                          type="text"
+                          value={captions[index] ?? ''}
+                          maxLength={200}
+                          onChange={(e) => setCaptions(captions.map((c, i) => (i === index ? e.target.value : c)))}
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder="Descripción de la foto (opcional)"
+                          aria-label={`Descripción de la foto ${index + 1}`}
+                          className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+                        />
                       </div>
                     ))}
-                    {/* Add more slot */}
+                    {/* Add more slot — slim row when the grid is 1 column
+                        (1 photo): the square tile rendered as a giant
+                        full-width box (~700px tall on desktop). The
+                        2- and 3-column grids keep the square tile. */}
                     {images.length < MAX_LISTING_IMAGES && (
-                      <div className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition">
-                        <ImagePlus className="h-5 w-5 text-gray-500" />
-                        <span className="text-[10px] text-gray-500 mt-1">{MAX_LISTING_IMAGES - images.length} más</span>
-                      </div>
+                      imagePreviews.length === 1 ? (
+                        <div className="h-12 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 transition">
+                          <ImagePlus className="h-4 w-4 text-gray-500" />
+                          <span className="text-xs text-gray-600">Agregar más fotos · {MAX_LISTING_IMAGES - images.length} más</span>
+                        </div>
+                      ) : (
+                        <div className="aspect-square rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition">
+                          <ImagePlus className="h-5 w-5 text-gray-500" />
+                          <span className="text-[10px] text-gray-500 mt-1">{MAX_LISTING_IMAGES - images.length} más</span>
+                        </div>
+                      )
                     )}
                   </div>
                 </div>

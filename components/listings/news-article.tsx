@@ -126,9 +126,12 @@ export function NewsArticle({
         </div>
       )}
 
-      {/* Headline */}
+      {/* Headline — the logo type (Fraunces, font-forum), like the
+          body below it: the sans bold headline looked generic next
+          to the serif article text. Same size and weight, the face
+          is what changes. */}
       {!isTitleCardHero && (
-        <h1 className="text-[28px] leading-[1.15] sm:text-4xl md:text-[40px] font-bold text-gray-900 mb-4">
+        <h1 className="font-forum text-[28px] leading-[1.15] sm:text-4xl md:text-[40px] font-bold text-gray-900 mb-4">
           {listing.title}
         </h1>
       )}
@@ -216,10 +219,14 @@ export function NewsArticle({
         </div>
       ) : null}
 
-      {/* Article body — Fraunces serif, real paragraphs. No heading
-          or list syntax in v1: the body is plain text from the news
-          canvas, and the renderer must not guess headings. */}
-      <div className="font-forum text-lg leading-[1.8] sm:text-[21px] sm:leading-[1.75] text-gray-900">
+      {/* Article body — Fraunces serif at its true 400 weight
+          (the 400 file is loaded in layout.tsx — without it the
+          body fell back to 500 and read too heavy), softened to
+          gray-800 instead of near-black. Real paragraphs, no
+          heading or list syntax in v1: the body is plain text
+          from the news canvas, and the renderer must not guess
+          headings. */}
+      <div className="font-forum font-normal text-lg leading-[1.8] sm:text-[21px] sm:leading-[1.75] text-gray-800">
         {paragraphs.map((p, i) => (
           <p key={i} className="mb-6 last:mb-0 whitespace-pre-wrap">
             {p}

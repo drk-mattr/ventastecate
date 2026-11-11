@@ -265,7 +265,11 @@ export function SearchFilters({
             <SelectTrigger className="h-10 text-sm">
               <SelectValue placeholder={t.search.allCategories} />
             </SelectTrigger>
-            <SelectContent>
+            {/* z-[80]: the menu is portaled to document.body, so it must
+                sit above the z-[70] home Filtros sheet that hosts this
+                panel — at the default z-50 it lands under the sheet's
+                backdrop, visible but untappable. */}
+            <SelectContent className="z-[80]">
               <SelectItem value="all">{t.search.allCategories}</SelectItem>
               {t.categories.map((cat) => (
                 <SelectItem key={cat.value} value={cat.value}>
@@ -286,7 +290,7 @@ export function SearchFilters({
                   <SelectTrigger className="h-10 text-sm">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[80]">
                     {['any', '1', '2', '3', '4'].map((v) => (
                       <SelectItem key={v} value={v}>{v === 'any' ? 'Cualquiera' : `${v}+`}</SelectItem>
                     ))}
@@ -299,7 +303,7 @@ export function SearchFilters({
                   <SelectTrigger className="h-10 text-sm">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[80]">
                     {['any', '1', '2', '3'].map((v) => (
                       <SelectItem key={v} value={v}>{v === 'any' ? 'Cualquiera' : `${v}+`}</SelectItem>
                     ))}
@@ -418,7 +422,7 @@ export function SearchFilters({
             <SelectTrigger className="h-10 text-sm">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[80]">
               <SelectItem value="newest">{t.search.newest}</SelectItem>
               <SelectItem value="price_asc">{t.search.priceLowHigh}</SelectItem>
               <SelectItem value="price_desc">{t.search.priceHighLow}</SelectItem>

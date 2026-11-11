@@ -736,16 +736,27 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   </div>
                 )}
 
-                <ContactSellerButton
-                  listingId={listing.id}
-                  sellerId={listing.user_id}
-                  sellerWhatsapp={sellerWhatsapp}
-                  listingTitle={listing.title}
-                  isOwner={isOwner}
-                  isActive={listing.status === 'active'}
-                  label={isService ? 'Contactar' : 'Contactar Vendedor'}
-                  className="w-full"
-                />
+                {/* One contact CTA per viewport: on mobile the
+                    sticky bar below is the contact action, so this
+                    in-flow button hides below md — otherwise the
+                    page shows two big black "Contactar" buttons at
+                    once. On desktop there is no sticky bar, so the
+                    in-flow button is the only one. The news/event
+                    layout's quiet outline button is untouched: it
+                    has no sticky bar for non-owners, so nothing
+                    duplicates there. */}
+                <div className="hidden md:block">
+                  <ContactSellerButton
+                    listingId={listing.id}
+                    sellerId={listing.user_id}
+                    sellerWhatsapp={sellerWhatsapp}
+                    listingTitle={listing.title}
+                    isOwner={isOwner}
+                    isActive={listing.status === 'active'}
+                    label={isService ? 'Contactar' : 'Contactar Vendedor'}
+                    className="w-full"
+                  />
+                </div>
                 {isOwner && (
                   <ListingOwnerMenu listingId={listing.id} initialSold={listing.status === 'sold'} />
                 )}

@@ -134,10 +134,13 @@ export function Header() {
                   the bottom-bar Cuenta tab instead, so it isn't shown
                   three times (header, sidebar identity, tab). The
                   hamburger opens the left panel; the desktop avatar
-                  below opens the same panel from the right. */}
+                  below opens the same panel from the right — and
+                  toggles it: a second tap closes it again (the panel
+                  has no backdrop on desktop, so the avatar is one of
+                  its two ways shut). */}
               <button
                 type="button"
-                onClick={() => setAccountOpen(true)}
+                onClick={() => setAccountOpen((v) => !v)}
                 aria-label="Mi cuenta"
                 className="hidden md:inline-flex h-8 w-8 rounded-full p-0"
               >

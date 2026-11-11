@@ -30,8 +30,15 @@ import {
 // AccountMenuContent, deleted with this change). The push-and-scale
 // effect the Muse app has — the main content shrinking aside with
 // rounded corners — is intentionally NOT copied: our header and bottom
-// bar are fixed, and transforming the app shell would break them. The
-// panel dims the content behind it instead.
+// bar are fixed, and transforming the app shell would break them.
+//
+// Desktop (right) behaves differently from mobile (left), per the
+// user's 2026-11-10 direction: NO backdrop dim — the page behind
+// stays fully visible and usable — and the panel stays open until
+// the user closes it with the X or the avatar again. So on the
+// right there is no backdrop to click, no Escape close, and no
+// body scroll lock. Mobile keeps all three: the dim, Escape, and
+// the scroll lock, like the Muse app does.
 //
 // One drawer for everything: the header hamburger opens it from
 // the left on mobile, the desktop avatar from the right.
@@ -46,8 +53,12 @@ export function SidePanel({ open, onClose, onReport, side }: { open: boolean; on
   // notifications only, so one message never counts twice).
   const unreadMessages = useUnreadMessages()
 
+  // Mobile (left) only: Escape closes, and the body scroll locks
+  // while the panel is open. Desktop (right) has no backdrop and
+  // stays open until the X or the avatar closes it, so neither
+  // applies there.
   useEffect(() => {
-    if (!open) return
+    if (!open || side !== 'left') return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
@@ -57,7 +68,7 @@ export function SidePanel({ open, onClose, onReport, side }: { open: boolean; on
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = ''
     }
-  }, [open, onClose])
+  }, [open, onClose, side])
 
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
@@ -92,19 +103,24 @@ export function SidePanel({ open, onClose, onReport, side }: { open: boolean; on
     // lives at md and up (desktop avatar). Each side's trigger is
     // hidden on the other range, so only one can ever open.
     <div className={side === 'left' ? 'md:hidden' : 'hidden md:block'}>
-      {/* Backdrop — dims the content behind, like the Muse app does */}
-      <div
-        onClick={onClose}
-        aria-hidden="true"
-        className={`fixed inset-0 z-[60] bg-black/60 transition-opacity duration-300 ${
-          open ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-      />
+      {/* Backdrop — mobile (left) only. It dims the content behind,
+          like the Muse app does, and a tap on it closes the panel.
+          Desktop (right) has no backdrop: the page stays fully
+          visible and usable while the panel is open. */}
+      {side === 'left' && (
+        <div
+          onClick={onClose}
+          aria-hidden="true"
+          className={`fixed inset-0 z-[60] bg-black/60 transition-opacity duration-300 ${
+            open ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        />
+      )}
 
       {/* Panel — slides from the left (mobile) or the right (desktop avatar) */}
       <aside
         role="dialog"
-        aria-modal="true"
+        aria-modal={side === 'left'}
         aria-label="Menú"
         className={`fixed top-0 z-[70] flex h-full w-[85vw] max-w-[340px] flex-col bg-black text-white shadow-xl transition-transform duration-300 ease-out ${
           side === 'left' ? 'left-0' : 'right-0'

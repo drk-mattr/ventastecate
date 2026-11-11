@@ -12,8 +12,6 @@ interface ListingImageGalleryProps {
   isSold: boolean
   listingType?: ListingType
   variant?: 'default' | 'side'
-  /** Floating actions (like/save/share) rendered over the hero's top-right. */
-  actions?: React.ReactNode
   /** Mobile full-bleed hero: the gallery breaks out of the page
       container (edge-to-edge) on small screens only. */
   fullBleed?: boolean
@@ -22,7 +20,7 @@ interface ListingImageGalleryProps {
   banner?: React.ReactNode
 }
 
-export function ListingImageGallery({ images, listingTitle, isSold, listingType = 'product', variant = 'default', actions, fullBleed = false, banner }: ListingImageGalleryProps) {
+export function ListingImageGallery({ images, listingTitle, isSold, listingType = 'product', variant = 'default', fullBleed = false, banner }: ListingImageGalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [selected, setSelected] = useState(0)
 
@@ -58,11 +56,6 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
           />
           {soldOverlay}
           {banner}
-          {actions && (
-            <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
-              {actions}
-            </div>
-          )}
         </div>
         {images.length > 1 && (
           <div className="flex gap-2 mt-2 overflow-x-auto">
@@ -131,11 +124,6 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
           />
           {banner}
           {soldOverlay}
-          {actions && (
-            <div className="absolute top-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
-              {actions}
-            </div>
-          )}
           {images.length > 1 && (
             <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[11px] px-2 py-0.5 rounded-full">
               {heroIdx + 1} / {images.length}

@@ -20,7 +20,7 @@ import { VideoPlayer } from '@/components/listings/video-player'
 import { ReporterBadge } from '@/components/user/reporter-badge'
 import { nativeVideoOf, isLocalReporter } from '@/lib/video/types'
 import { ContactSellerButton } from '@/components/messages/contact-seller-button'
-import { MarkSoldButton } from '@/components/listings/mark-sold-button'
+import { ListingOwnerMenu } from '@/components/listings/listing-owner-menu'
 import { getEngagementCounts } from '@/lib/listings/engagement-counts'
 import { formatPrice } from '@/lib/listings/format-price'
 import { formatEventRangeLong, isEventPast } from '@/lib/listings/event-dates'
@@ -222,18 +222,15 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const eventHasFields = Boolean(eventStartsAt || eventEndsAt || eventVenue || eventTicketUrl)
   const eventPast = isEvent && isEventPast(eventStartsAt, eventEndsAt)
 
-  // Comments live only on news/event listings — product/service
-  // conversations happen in DMs (user decision 2026-11-06), so for
-  // items there is no comments section to feed.
-  let comments: ListingComment[] = []
-  if (isNews || isEvent) {
-    const { data: commentData } = await supabase
-      .from('listing_comments')
-      .select('*, profile:profiles(username, display_name, avatar_url)')
-      .eq('listing_id', id)
-      .order('created_at', { ascending: true })
-    comments = (commentData as ListingComment[]) || []
-  }
+  // Comments on every listing type (user decision 2026-11-10,
+  // reversing the 2026-11-06 DMs-only rule for items): the same
+  // listing_comments thread news/events already use.
+  const { data: commentData } = await supabase
+    .from('listing_comments')
+    .select('*, profile:profiles(username, display_name, avatar_url)')
+    .eq('listing_id', id)
+    .order('created_at', { ascending: true })
+  const comments: ListingComment[] = (commentData as ListingComment[]) || []
 
   // Real like/save counts from the per-action tables — the listing row
   // has no likes_count / saves_count columns on prod (dropped by 016).
@@ -393,22 +390,20 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 isSold={listing.status === 'sold'}
                 listingType={listingType}
                 fullBleed
-                actions={
-                  <div className="md:hidden">
-                    <ListingEngagementBar
-                      listingId={listing.id}
-                      likesCount={likesCount}
-                      savesCount={savesCount}
-                      variant="overlay"
-                    />
-                  </div>
-                }
               />
             ) : (
               <div className="-mx-4 sm:mx-0">
                 <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="hero" className="aspect-[16/9] rounded-none sm:rounded-xl" />
               </div>
             )}
+
+            {/* Like / save / share — quiet row below the poster,
+                all widths. No overlay on the image. */}
+            <ListingEngagementBar
+              listingId={listing.id}
+              likesCount={likesCount}
+              savesCount={savesCount}
+            />
 
             {/* All event info, stacked below the poster */}
             <div className="space-y-4">
@@ -482,16 +477,6 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">{listing.description}</p>
               </div>
 
-              {/* Like / save / share — desktop only. On mobile the
-                  overlay actions on the poster are the one control. */}
-              <div className="hidden md:block">
-                <ListingEngagementBar
-                  listingId={listing.id}
-                  likesCount={likesCount}
-                  savesCount={savesCount}
-                />
-              </div>
-
               {/* Tagged business */}
               {taggedBusinessCard}
 
@@ -548,12 +533,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   className="w-full"
                 />
                 {isOwner && (
-                  <div className="space-y-2">
-                    <MarkSoldButton listingId={listing.id} initialSold={listing.status === 'sold'} />
-                    <Button asChild size="sm" variant="outline" className="w-full">
-                      <Link href={`/listings/${listing.id}/edit`}>Editar Anuncio</Link>
-                    </Button>
-                  </div>
+                  <ListingOwnerMenu listingId={listing.id} initialSold={listing.status === 'sold'} />
                 )}
               </div>
             </div>
@@ -570,6 +550,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           </>
         ) : (
           /* ── Default layout: single stacked column ── */
+          <>
           <div className="max-w-3xl mx-auto space-y-5">
             {/* Gallery + details, stacked */}
             <div className="min-w-0 space-y-5">
@@ -579,14 +560,14 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 isSold={listing.status === 'sold'}
                 listingType={listingType}
                 fullBleed
-                actions={
-                  <ListingEngagementBar
-                    listingId={listing.id}
-                    likesCount={likesCount}
-                    savesCount={savesCount}
-                    variant="overlay"
-                  />
-                }
+              />
+
+              {/* Like / save / share — quiet row below the picture
+                  card, all widths. No overlay on the image. */}
+              <ListingEngagementBar
+                listingId={listing.id}
+                likesCount={likesCount}
+                savesCount={savesCount}
               />
 
               {/* Video embed — native clip first, link embed otherwise */}
@@ -764,15 +745,21 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   className="w-full"
                 />
                 {isOwner && (
-                  <>
-                    <MarkSoldButton listingId={listing.id} initialSold={listing.status === 'sold'} />
-                    <Link href={`/listings/${listing.id}/edit`} className="block text-center text-sm text-gray-500 hover:text-gray-900">
-                      Editar Anuncio
-                    </Link>
-                  </>
+                  <ListingOwnerMenu listingId={listing.id} initialSold={listing.status === 'sold'} />
                 )}
             </div>
           </div>
+
+          {/* Comments — restored on product/service detail (2026-11-10);
+              same thread news/events already use. */}
+          <div className="max-w-3xl mx-auto mt-8">
+            <CommentSection
+              listingId={listing.id}
+              initialComments={comments}
+              currentUserId={user?.id ?? null}
+            />
+          </div>
+          </>
         )}
 
         {!isOwner && (
@@ -796,12 +783,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   <Link href={`/listings/${listing.id}/edit`}>Editar</Link>
                 </Button>
               ) : (
-                <>
-                  <MarkSoldButton listingId={listing.id} initialSold={listing.status === 'sold'} className="flex-1" />
-                  <Button asChild variant="outline" className="shrink-0">
-                    <Link href={`/listings/${listing.id}/edit`}>Editar</Link>
-                  </Button>
-                </>
+                <ListingOwnerMenu listingId={listing.id} initialSold={listing.status === 'sold'} />
               )}
             </div>
           ) : (

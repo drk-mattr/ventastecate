@@ -59,7 +59,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       *,
       images:listing_images(
         image_url,
-        order_index
+        order_index,
+        caption
       ),
       profile:profiles(
         display_name,
@@ -163,7 +164,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       images:listing_images(
         id,
         image_url,
-        order_index
+        order_index,
+        caption
       ),
       profile:profiles(
         id,

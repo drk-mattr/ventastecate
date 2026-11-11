@@ -7,7 +7,10 @@ import { ImageLightbox } from './image-lightbox'
 import { ListingType } from '@/lib/types/database'
 
 interface ListingImageGalleryProps {
-  images: { id: string; image_url: string; order_index: number }[]
+  // caption is optional: business photos have none (captions are a
+  // listing-form feature only, migration 056), and rows written
+  // before the migration carry null.
+  images: { id: string; image_url: string; order_index: number; caption?: string | null }[]
   listingTitle: string
   isSold: boolean
   listingType?: ListingType
@@ -57,6 +60,11 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
           {soldOverlay}
           {banner}
         </div>
+        {/* Caption under the poster, El Imparcial-style — small gray
+            text, only when the seller wrote one. */}
+        {images[0].caption && (
+          <p className="mt-2 text-sm text-gray-500">{images[0].caption}</p>
+        )}
         {images.length > 1 && (
           <div className="flex gap-2 mt-2 overflow-x-auto">
             {images.slice(1).map((image, idx) => (
@@ -130,6 +138,12 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
             </div>
           )}
         </div>
+
+        {/* Caption under the current photo, El Imparcial-style —
+            small gray text, only when the seller wrote one. */}
+        {hero.caption && (
+          <p className="mt-2 text-sm text-gray-500">{hero.caption}</p>
+        )}
 
         {/* Thumbnail strip */}
         {images.length > 1 && (

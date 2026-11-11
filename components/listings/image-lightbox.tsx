@@ -6,7 +6,9 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface ImageLightboxProps {
-  images: { id: string; image_url: string; order_index: number }[]
+  // caption is optional: business photos have none (captions are a
+  // listing-form feature only, migration 056).
+  images: { id: string; image_url: string; order_index: number; caption?: string | null }[]
   initialIndex?: number
   onClose: () => void
 }
@@ -118,6 +120,21 @@ export function ImageLightbox({ images, initialIndex = 0, onClose }: ImageLightb
           priority
         />
       </div>
+
+      {/* Caption under the current photo, El Imparcial-style. Sits
+          above the thumbnail strip when there is one, at the bottom
+          edge otherwise. */}
+      {images[currentIndex].caption && (
+        <p
+          className={`absolute left-1/2 -translate-x-1/2 z-10 w-full max-w-2xl px-4 text-center text-sm text-zinc-300 ${
+            images.length > 1
+              ? 'bottom-[calc(6rem+env(safe-area-inset-bottom))]'
+              : 'bottom-[calc(1rem+env(safe-area-inset-bottom))]'
+          }`}
+        >
+          {images[currentIndex].caption}
+        </p>
+      )}
 
       {/* Navigation buttons — rendered AFTER the image container with
           z-10 so the photo cannot cover them (the old chevrons were

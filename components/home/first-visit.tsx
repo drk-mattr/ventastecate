@@ -5,7 +5,7 @@ import { LOCATION_OPTIONS, TOWN_REGIONS } from '@/lib/business-regions'
 const CATEGORIES = [
   { label: 'Productos', href: '/search?type=product', icon: Tag, bg: 'bg-gray-100 text-gray-900' },
   { label: 'Servicios', href: '/search?type=service', icon: Wrench, bg: 'bg-gray-100 text-gray-900' },
-  { label: 'Comida', href: '/search?category=Comida', icon: UtensilsCrossed, bg: 'bg-gray-100 text-gray-900' },
+  { label: 'Gastro', href: '/gastro', icon: UtensilsCrossed, bg: 'bg-gray-100 text-gray-900' },
   { label: 'Casas en Renta', href: '/search?category=Casas%20en%20Renta', icon: Home, bg: 'bg-gray-100 text-gray-900' },
   { label: 'Casas en Venta', href: '/search?category=Casas%20en%20Venta', icon: KeyRound, bg: 'bg-gray-100 text-gray-900' },
   { label: 'Terrenos', href: '/search?category=Terrenos', icon: LandPlot, bg: 'bg-gray-100 text-gray-900' },

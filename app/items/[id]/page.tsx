@@ -21,7 +21,8 @@ import { DetailBackButton } from '@/components/layout/detail-back-button'
 import { Footer } from '@/components/layout/footer'
 import { CommunityFeed } from '@/components/home/community-feed'
 import { ItemCommentSection } from '@/components/items/item-comment-section'
-import { fetchItemsEvidence } from '@/lib/items/evidence'
+import { ItemRecommendButton } from '@/components/items/item-recommend-button'
+import { fetchItemsEvidence, fetchItemFeedback } from '@/lib/items/evidence'
 import { Camera, Tag } from 'lucide-react'
 import type { Metadata } from 'next'
 import type { ItemComment, ListingWithImages } from '@/lib/types/database'
@@ -82,7 +83,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
 
   const { data: businessRow } = await admin
     .from('businesses')
-    .select('id, name, category, city, location, image_url')
+    .select('id, name, category, city, location, image_url, claimed_by')
     .eq('id', item.business_id)
     .maybeSingle()
   const business = businessRow as {
@@ -92,6 +93,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
     city: string | null
     location: string | null
     image_url: string | null
+    claimed_by: string | null
   } | null
   if (!business) notFound()
 
@@ -182,6 +184,13 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
     data: { user: currentUser },
   } = await supabase.auth.getUser()
 
+  // Recommend aggregate (migration 059): pre-059 the helper
+  // reports available: false and the row renders without the
+  // button — never a crash. The claimed owner cannot opine on
+  // their own offerings, so the row hides for them.
+  const feedback = await fetchItemFeedback(admin, itemId, currentUser?.id ?? null)
+  const isOwner = Boolean(business.claimed_by && currentUser?.id === business.claimed_by)
+
   const contributeHref = currentUser
     ? `/listings/new?negocio=${business.id}&item=${item.id}`
     : `/login?redirect=/items/${item.id}`
@@ -213,6 +222,20 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
                 ? ' · Agregado por el dueño · Sin menciones todavía'
                 : ' · Agregado por la comunidad · Sin menciones todavía'}
         </p>
+
+        {/* Recommend: one question, yes or no — no stars, no 10/10
+            (Gastro v1). The count only shows once 5 independent
+            opinions exist; below that the page shows mentions and
+            comments only, never a number. */}
+        <ItemRecommendButton
+          itemId={item.id}
+          initialRecommends={feedback.recommends}
+          initialTotal={feedback.total}
+          initialMine={feedback.mine}
+          currentUserId={currentUser?.id ?? null}
+          isOwner={isOwner}
+          feedbackAvailable={feedback.available}
+        />
 
         {/* All photos of this item, from every user who posted it.
             "Agrega tu foto" is a small link beside the heading now —

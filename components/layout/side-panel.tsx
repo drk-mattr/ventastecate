@@ -8,15 +8,23 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { useAuthModal } from '@/lib/auth/auth-modal-context'
 import { useReportModal } from '@/lib/report/report-modal-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
+import { useUnreadMessages } from '@/lib/hooks/use-unread-messages'
 import {
   Check, CircleUserRound, Clock, Flag, Home, LogOut, Mail, MessageCircle, PenLine, Settings,
   Store, Tag, TrendingUp, User, UserCircle, X,
 } from 'lucide-react'
 
-// Mobile sidebar, in the style of the Muse app's own sidebar: a black
-// panel sliding in from the left, small-caps section labels, icon rows,
-// the current page as a filled pill, and a bottom bar with settings
-// and an orange compose button.
+// Shared side panel, in the style of the Muse app's own sidebar: a black
+// panel, small-caps section labels, icon rows, the current page as a
+// filled pill, and a bottom bar with settings and an orange compose
+// button.
+//
+// One panel, two sides: the mobile hamburger opens it from the LEFT
+// (the old MobileSidebar), the desktop avatar opens the same panel
+// from the RIGHT (the avatar dropdown is gone — 2026-11-10, user
+// direction: the dropdown is replaced by the sidebar drawn from the
+// right edge of the browser). The content is identical on both sides:
+// the same rows, store switcher, admin rows and sign-out.
 //
 // It replaces the old white right-side drawer (MobileMenuDrawer +
 // AccountMenuContent, deleted with this change). The push-and-scale
@@ -25,14 +33,18 @@ import {
 // bar are fixed, and transforming the app shell would break them. The
 // panel dims the content behind it instead.
 //
-// One drawer for everything: the header hamburger, the avatar and the
-// bottom-bar Cuenta tab all open this same sidebar.
-export function MobileSidebar({ open, onClose, onReport }: { open: boolean; onClose: () => void; onReport: () => void }) {
+// One drawer for everything: the header hamburger opens it from
+// the left on mobile, the desktop avatar from the right.
+export function SidePanel({ open, onClose, onReport, side }: { open: boolean; onClose: () => void; onReport: () => void; side: 'left' | 'right' }) {
   const pathname = usePathname()
   const { user, profile, stores, activeStore, setActiveStore, signOut, recentStoreIds } = useAuth()
   const { openAuth } = useAuthModal()
   const { openReport } = useReportModal()
   const t = useTranslations()
+  // Unread thread count for the Mensajes row — the same value the
+  // bottom-bar Mensajes tab shows (the bell badge is activity
+  // notifications only, so one message never counts twice).
+  const unreadMessages = useUnreadMessages()
 
   useEffect(() => {
     if (!open) return
@@ -76,7 +88,10 @@ export function MobileSidebar({ open, onClose, onReport }: { open: boolean; onCl
     'flex w-full items-center gap-3 px-4 h-12 text-[15px] text-zinc-300 hover:bg-white/5 rounded-full transition-colors'
 
   return (
-    <div className="md:hidden">
+    // Left panel lives below md (mobile hamburger); the right panel
+    // lives at md and up (desktop avatar). Each side's trigger is
+    // hidden on the other range, so only one can ever open.
+    <div className={side === 'left' ? 'md:hidden' : 'hidden md:block'}>
       {/* Backdrop — dims the content behind, like the Muse app does */}
       <div
         onClick={onClose}
@@ -86,13 +101,15 @@ export function MobileSidebar({ open, onClose, onReport }: { open: boolean; onCl
         }`}
       />
 
-      {/* Panel */}
+      {/* Panel — slides from the left (mobile) or the right (desktop avatar) */}
       <aside
         role="dialog"
         aria-modal="true"
         aria-label="Menú"
-        className={`fixed top-0 left-0 z-[70] flex h-full w-[85vw] max-w-[340px] flex-col bg-black text-white shadow-xl transition-transform duration-300 ease-out ${
-          open ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed top-0 z-[70] flex h-full w-[85vw] max-w-[340px] flex-col bg-black text-white shadow-xl transition-transform duration-300 ease-out ${
+          side === 'left' ? 'left-0' : 'right-0'
+        } ${
+          open ? 'translate-x-0' : side === 'left' ? '-translate-x-full' : 'translate-x-full'
         }`}
       >
         <div className="flex items-center justify-between px-5 pt-5 pb-1 shrink-0">
@@ -157,6 +174,11 @@ export function MobileSidebar({ open, onClose, onReport }: { open: boolean; onCl
           {user && (
             <Link href="/messages" onClick={onClose} className={rowClass('/messages')}>
               <MessageCircle className="h-5 w-5 text-zinc-400" />Mensajes
+              {unreadMessages > 0 && (
+                <span className="ml-auto h-4 min-w-4 px-1 rounded-full bg-white text-black text-[10px] font-semibold inline-flex items-center justify-center">
+                  {unreadMessages > 99 ? '99+' : unreadMessages}
+                </span>
+              )}
             </Link>
           )}
 

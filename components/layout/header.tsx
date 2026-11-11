@@ -6,7 +6,6 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useAuthModal } from '@/lib/auth/auth-modal-context'
-import { useReportModal } from '@/lib/report/report-modal-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
 import { Button } from '@/components/ui/button'
 import { HeaderSearch } from '@/components/search/header-search'
@@ -14,22 +13,12 @@ import { GaritaHeaderChip } from '@/components/border/garita-header-chip'
 import { BorderReportDialog } from '@/components/border/border-report-sheet'
 import { isPortOpen } from '@/lib/border/estimate'
 import { NotificationBell } from '@/components/layout/notification-bell'
-import { MobileSidebar } from '@/components/layout/mobile-sidebar'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { useUnreadMessages } from '@/lib/hooks/use-unread-messages'
-import { Check, CircleUserRound, Store, User, Menu, UserCircle, Tag, MessageCircle } from 'lucide-react'
+import { SidePanel } from '@/components/layout/side-panel'
+import { Store, Menu, Tag } from 'lucide-react'
 
 export function Header() {
-  const { user, profile, stores, activeStore, setActiveStore, signOut, loading, recentStoreIds } = useAuth()
+  const { user, profile, activeStore, loading } = useAuth()
   const { openAuth } = useAuthModal()
-  const { openReport } = useReportModal()
   const pathname = usePathname()
   // Business views have their own way to find things (the index's own
   // search on /businesses, the gallery and info on a business page),
@@ -39,6 +28,10 @@ export function Header() {
     pathname === '/businesses' || (pathname?.startsWith('/businesses/') ?? false)
   const t = useTranslations()
   const [menuOpen, setMenuOpen] = useState(false)
+  // The avatar opens the same black panel from the RIGHT on desktop
+  // (the old avatar dropdown is gone — 2026-11-10). The hamburger
+  // opens it from the left on mobile; the two triggers live in
+  // opposite ranges, so only one panel can ever open.
   // The Garita report dialog mounts once here (Header renders
   // both the chip and the sidebar, the two reporting entries).
   // Guests get the auth modal first — the same guard the old
@@ -46,6 +39,7 @@ export function Header() {
   // mount (the API route doesn't enforce hours; the gate was
   // always UI-only).
   const [reportOpen, setReportOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   const [portOpen, setPortOpen] = useState(true)
   const openBorderReport = () => {
     if (!user) {
@@ -57,30 +51,8 @@ export function Header() {
     setPortOpen(isPortOpen(new Date()))
     setReportOpen(true)
   }
-  // Unread thread count for the Mensajes item in the avatar menu —
-  // the bell badge no longer carries it (its badge is unread
-  // notification rows only, so one message never counts twice).
-  const unreadMessages = useUnreadMessages()
-
-  // Keep the avatar dropdown clean: surface the active store + the most recent
-  // few, and push the rest behind a link to the full "Mis Tiendas" page so the
-  // menu never grows unbounded for power users with many stores.
-  const VISIBLE_STORES = 4
-  // Rank: active store first, then most-recently-used, then the rest (newest
-  // creation order is already how `stores` arrives as a stable tiebreaker).
-  const recentRank = (id: string) => {
-    const i = recentStoreIds.indexOf(id)
-    return i === -1 ? Number.MAX_SAFE_INTEGER : i
-  }
-  const sortedStores = [...stores].sort((a, b) => {
-    if (activeStore) {
-      if (a.id === activeStore.id) return -1
-      if (b.id === activeStore.id) return 1
-    }
-    return recentRank(a.id) - recentRank(b.id)
-  })
-  const visibleStores = sortedStores.slice(0, VISIBLE_STORES)
-  const hiddenStoreCount = stores.length - visibleStores.length
+  // (Store surfacing lives in the side panel now — the header no
+  // longer renders a store list of its own.)
 
   const getInitials = (name: string) => {
     return name
@@ -127,7 +99,7 @@ export function Header() {
             cluster, immediately right of the search bar (desktop
             only), so it hides together with the search on business
             views — business pages keep their clean header, and the
-            avatar dropdown still links Garita there. */}
+            avatar drawer still links Garita there. */}
         {!hideHeaderSearch && (
           <div className="order-3 sm:order-2 basis-full sm:basis-0 flex-1 min-w-0 mt-2 sm:mt-0 flex items-center gap-3">
             <Suspense fallback={<div className="flex-1 max-w-2xl mx-4" />}>
@@ -161,161 +133,38 @@ export function Header() {
               {/* Mobile avatar removed 2026-11-05: the avatar now lives in
                   the bottom-bar Cuenta tab instead, so it isn't shown
                   three times (header, sidebar identity, tab). The
-                  hamburger opens the sidebar; the desktop dropdown below
-                  is unchanged. */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="hidden md:inline-flex h-8 w-8 rounded-full p-0">
-                    <div className="relative h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium overflow-hidden">
-                      {activeStore ? (
-                        activeStore.avatar_url ? (
-                          <Image
-                            src={activeStore.avatar_url}
-                            alt={activeStore.name}
-                            fill
-                            className="object-cover"
-                          />
-                        ) : (
-                          <Store className="h-4 w-4 text-gray-500" />
-                        )
-                      ) : profile?.avatar_url ? (
-                        <Image
-                          src={profile.avatar_url}
-                          alt={profile.display_name}
-                          fill
-                          className="object-cover"
-                        />
-                      ) : (
-                        profile ? getInitials(profile.display_name) : 'U'
-                      )}
-                    </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  <div className="px-2 py-1.5">
-                    <p className="text-xs font-medium">
-                      {activeStore ? activeStore.name : profile?.display_name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {activeStore ? (
-                        <span className="flex items-center gap-1"><Store className="h-3 w-3" />{t.nav.storeMode}</span>
-                      ) : `@${profile?.username}`}
-                    </p>
-                  </div>
-                  <DropdownMenuSeparator />
-
-                  {/* Mi cuenta is the private hub; Mi perfil is the
-                      public page — the OfferUp split, not two entries
-                      to the same place. */}
-                  <DropdownMenuItem asChild className="text-xs">
-                    <Link href="/cuenta" className="flex items-center gap-2">
-                      <CircleUserRound className="h-3.5 w-3.5 text-gray-400" />Mi cuenta
-                    </Link>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem asChild className="text-xs">
-                    <Link href={`/users/${profile?.username}`} className="flex items-center gap-2">
-                      <UserCircle className="h-3.5 w-3.5 text-gray-400" />{t.nav.myProfile}
-                    </Link>
-                  </DropdownMenuItem>
-
-                  {/* Mensajes lives here now (avatar menu), not in the
-                      bell panel — the bell is activity notifications
-                      only. The pill is the thread unread count, the
-                      same value the bottom-bar Mensajes tab shows. */}
-                  <DropdownMenuItem asChild className="text-xs">
-                    <Link href="/messages" className="flex w-full items-center gap-2">
-                      <MessageCircle className="h-3.5 w-3.5 text-gray-400" />Mensajes
-                      {unreadMessages > 0 && (
-                        <span className="ml-auto h-4 min-w-4 px-1 rounded-full bg-gray-900 text-white text-[10px] font-semibold inline-flex items-center justify-center">
-                          {unreadMessages > 99 ? '99+' : unreadMessages}
-                        </span>
-                      )}
-                    </Link>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
-                  {/* Personal identity — kept separate from the stores group. */}
-                  <DropdownMenuItem
-                    onClick={() => setActiveStore(null)}
-                    className="text-xs flex items-center justify-between"
-                  >
-                    <span className="flex items-center gap-2"><User className="h-3.5 w-3.5 text-gray-400" />{t.nav.publishAs}</span>
-                    {!activeStore && <Check className="h-3.5 w-3.5" />}
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
-                  <DropdownMenuLabel className="text-[10px] uppercase text-gray-400 font-medium flex items-center gap-1.5">
-                    <Store className="h-3 w-3" />{t.nav.myStores}
-                  </DropdownMenuLabel>
-                  {visibleStores.map((store) => (
-                    <DropdownMenuItem
-                      key={store.id}
-                      onClick={() => setActiveStore(store)}
-                      className="text-xs flex items-center justify-between"
-                    >
-                      <Link href={`/stores/${store.slug}`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 min-w-0 hover:underline">
-                        <span className="h-5 w-5 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-                          {store.avatar_url ? (
-                            <Image src={store.avatar_url} alt={store.name} width={20} height={20} className="h-5 w-5 object-cover" />
-                          ) : (
-                            <Store className="h-3 w-3 text-gray-400" />
-                          )}
-                        </span>
-                        <span className="truncate">{store.name}</span>
-                      </Link>
-                      {activeStore?.id === store.id && <Check className="h-3.5 w-3.5 shrink-0" />}
-                    </DropdownMenuItem>
-                  ))}
-                  {hiddenStoreCount > 0 && (
-                    <DropdownMenuItem asChild className="text-xs text-gray-500">
-                      <Link href="/my-stores">{t.nav.viewAllStores} ({stores.length})</Link>
-                    </DropdownMenuItem>
+                  hamburger opens the left panel; the desktop avatar
+                  below opens the same panel from the right. */}
+              <button
+                type="button"
+                onClick={() => setAccountOpen(true)}
+                aria-label="Mi cuenta"
+                className="hidden md:inline-flex h-8 w-8 rounded-full p-0"
+              >
+                <div className="relative h-7 w-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-medium overflow-hidden">
+                  {activeStore ? (
+                    activeStore.avatar_url ? (
+                      <Image
+                        src={activeStore.avatar_url}
+                        alt={activeStore.name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <Store className="h-4 w-4 text-gray-500" />
+                    )
+                  ) : profile?.avatar_url ? (
+                    <Image
+                      src={profile.avatar_url}
+                      alt={profile.display_name}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    profile ? getInitials(profile.display_name) : 'U'
                   )}
-                  <DropdownMenuItem asChild className="text-xs text-gray-500">
-                    <Link href="/stores/new">{t.nav.createStore}</Link>
-                  </DropdownMenuItem>
-
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild className="text-xs">
-                    <Link href="/businesses">Negocios</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="text-xs">
-                    <Link href="/garita">Garita</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="text-xs">
-                    <Link href="/profile/edit">{t.nav.settings}</Link>
-                  </DropdownMenuItem>
-                  {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
-                    <DropdownMenuItem asChild className="text-xs">
-                      <Link href="/admin/reports">Reportes (admin)</Link>
-                    </DropdownMenuItem>
-                  )}
-                  {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
-                    <DropdownMenuItem asChild className="text-xs">
-                      <Link href="/admin/alerts">Alertas (admin)</Link>
-                    </DropdownMenuItem>
-                  )}
-                  {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
-                    <DropdownMenuItem asChild className="text-xs">
-                      <Link href="/admin/liquidity">Liquidez (admin)</Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={() => openReport()} className="text-xs">
-                    {t.nav.reportProblem}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => signOut()} className="text-xs">
-                    {t.nav.logout}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="md:hidden" />
-                  <DropdownMenuItem asChild className="text-[11px] text-gray-400 md:hidden">
-                    <Link href="/terms">{t.footer.termsOfService}</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="text-[11px] text-gray-400 md:hidden">
-                    <Link href="/privacy">{t.footer.privacyPolicy}</Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </div>
+              </button>
             </>
           ) : (
             <>
@@ -335,7 +184,10 @@ export function Header() {
           )}
         </div>
       </div>
-      <MobileSidebar open={menuOpen} onClose={() => setMenuOpen(false)} onReport={openBorderReport} />
+      {/* One shared panel, two sides: hamburger opens it from the
+          left on mobile, the avatar from the right on desktop. */}
+      <SidePanel open={menuOpen} onClose={() => setMenuOpen(false)} onReport={openBorderReport} side="left" />
+      <SidePanel open={accountOpen} onClose={() => setAccountOpen(false)} onReport={openBorderReport} side="right" />
       <BorderReportDialog
         open={reportOpen}
         onClose={() => setReportOpen(false)}

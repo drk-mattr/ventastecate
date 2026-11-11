@@ -211,6 +211,11 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   const isService = listingType === 'service'
   const isEvent = listingType === 'event'
   const isNews = listingType === 'news'
+  // The official community account: the SAME signal the "Cuenta
+  // oficial" badge uses (username === 'ventastecate'). Its posts
+  // get no in-site message button — nobody should message the
+  // community account about a community post.
+  const isOfficial = listing.profile.username === 'ventastecate'
 
   // Structured event fields (migration 043): pre-043 every value is
   // undefined and the when/where block below simply does not render.
@@ -533,6 +538,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   size="sm"
                   variant="outline"
                   className="w-full"
+                  hideMessage={isOfficial}
                 />
                 {isOwner && (
                   <ListingOwnerMenu listingId={listing.id} initialSold={listing.status === 'sold'} />
@@ -755,6 +761,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                     isActive={listing.status === 'active'}
                     label={isService ? 'Contactar' : 'Contactar Vendedor'}
                     className="w-full"
+                    hideMessage={isOfficial}
                   />
                 </div>
                 {isOwner && (
@@ -786,8 +793,10 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           on detail pages, so the seller is one tap away from anywhere.
           Owners get sold/edit actions instead; sold listings hide the
           bar for non-owners (nothing to contact). News articles have
-          no seller: non-owners get no bar, owners keep Editar. */}
-      {(isNews ? isOwner : (isOwner || listing.status === 'active')) && (
+          no seller: non-owners get no bar, owners keep Editar.
+          Official @ventastecate posts get no bar for non-owners
+          either — the community account takes no messages. */}
+      {(isOwner || (!isNews && !isOfficial && listing.status === 'active')) && (
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-200 bg-white px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
           {isOwner ? (
             <div className="flex items-center gap-2">
@@ -810,6 +819,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               label="Contactar"
               compact
               className="w-full"
+              hideMessage={isOfficial}
             />
           )}
         </div>

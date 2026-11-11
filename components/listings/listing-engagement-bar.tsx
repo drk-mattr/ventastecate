@@ -11,7 +11,7 @@ interface ListingEngagementBarProps {
   listingId: string
   likesCount: number
   savesCount: number
-  variant?: 'bar' | 'overlay' | 'article'
+  variant?: 'bar' | 'article'
 }
 
 export function ListingEngagementBar({ listingId, likesCount, savesCount, variant = 'bar' }: ListingEngagementBarProps) {
@@ -55,24 +55,19 @@ export function ListingEngagementBar({ listingId, likesCount, savesCount, varian
     }
   }
 
-  const overlay = variant === 'overlay'
   const article = variant === 'article'
   // Article variant (news detail, Medium pattern): no pills, no
   // background — plain gray icons on the hairline row, same
   // monochrome like/save states as the other variants.
   const pill = article
     ? 'inline-flex items-center'
-    : overlay
-      ? 'inline-flex h-9 items-center justify-center rounded-full bg-white/90 backdrop-blur px-2.5 shadow-sm hover:bg-white transition-colors'
-      : 'inline-flex h-9 items-center rounded-full px-3 hover:bg-gray-50 transition-colors'
+    : 'inline-flex h-9 items-center rounded-full px-3 hover:bg-gray-50 transition-colors'
 
   return (
     <div className={
       article
         ? 'flex items-center gap-5 py-3 border-y border-gray-100'
-        : overlay
-          ? 'flex items-center gap-1.5'
-          : 'flex items-center gap-1 pt-3 mt-1 border-t'
+        : 'flex items-center gap-1 pt-3 mt-1 border-t'
     }>
       <span className={pill}>
         <LikeButton

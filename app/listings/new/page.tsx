@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useMemo, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
@@ -28,12 +28,8 @@ import { uploadVideoResumable } from '@/lib/video/tus-upload'
 import { humanizePostError } from '@/lib/errors'
 import { useListingDraft, draftKeyForUser } from '@/lib/hooks/use-listing-draft'
 import Image from 'next/image'
-import { BusinessTagPicker } from '@/components/listings/business-tag-picker'
-import { ItemTagPicker } from '@/components/listings/item-tag-picker'
-import type { SelectedItemTag } from '@/lib/items/types'
-import { Business } from '@/lib/types/database'
 import {
-  ImagePlus, X, Video, ChevronDown, ChevronUp, Check,
+  ImagePlus, X, Play, Check,
   ShoppingBag, Handshake, CalendarHeart, Megaphone, Store
 } from 'lucide-react'
 
@@ -71,7 +67,7 @@ const TYPE_CONFIG: Record<ListingType, {
 }> = {
   product: {
     Icon: ShoppingBag,
-    label: 'Algo en venta',
+    label: 'Venta',
     verb: 'Vender o intercambiar',
     titlePlaceholder: 'Ej: iPhone 13, Mueble de cocina, Bicicleta...',
     descPlaceholder: 'Describe lo que ofreces: estado, detalles, por qué lo vendes...',
@@ -81,7 +77,7 @@ const TYPE_CONFIG: Record<ListingType, {
   },
   service: {
     Icon: Handshake,
-    label: 'Un servicio',
+    label: 'Servicio',
     verb: 'Ofrecer un servicio',
     titlePlaceholder: 'Ej: Plomero a domicilio, Clases de inglés...',
     descPlaceholder: 'Describe tu servicio: experiencia, zona, horarios, precios...',
@@ -91,7 +87,7 @@ const TYPE_CONFIG: Record<ListingType, {
   },
   event: {
     Icon: CalendarHeart,
-    label: 'Un evento',
+    label: 'Evento',
     verb: 'Compartir un evento',
     titlePlaceholder: 'Ej: Bazar navideño, Torneo de futbol, Clase abierta...',
     descPlaceholder: 'Describe el evento: qué va a pasar, quiénes participan, qué llevar...',
@@ -101,7 +97,7 @@ const TYPE_CONFIG: Record<ListingType, {
   },
   news: {
     Icon: Megaphone,
-    label: 'Noticia o aviso',
+    label: 'Noticia / Aviso',
     verb: 'Informar a la comunidad',
     titlePlaceholder: 'Ej: Corte de agua mañana, Se busca perro perdido...',
     descPlaceholder: 'Describe lo que está pasando con todos los detalles relevantes...',
@@ -120,7 +116,7 @@ function categoriesForType(type: ListingType): string[] {
 
 const MONTHS_ES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
 
-// Short date for the Paso 3 review line ("12 nov · 15:00"). Parses
+// Short date for the Paso 4 review line ("12 nov · 15:00"). Parses
 // as local time — this is display-only, never stored.
 function formatShortDate(date: string, time: string): string {
   const d = new Date(`${date}T00:00:00`)
@@ -170,7 +166,6 @@ function NewListingForm() {
   // draft (like the photos themselves): a restored draft asks the
   // seller to re-pick photos, and captions go with them.
   const [captions, setCaptions] = useState<string[]>([])
-  const [videoUrl, setVideoUrl] = useState('')
   // Native video (migration 050, news only): one clip per post.
   // The file never enters the device draft (like photos) — a
   // restored draft asks the reporter to re-pick it, said in the UI.
@@ -182,22 +177,11 @@ function NewListingForm() {
   // video keeps its own state so the two never mix).
   const [videoProgress, setVideoProgress] = useState<{ loaded: number; total: number } | null>(null)
   const [videoFailed, setVideoFailed] = useState(false)
-  const [taggedBusiness, setTaggedBusiness] = useState<Business | null>(null)
-  // Items engine (§8, 034B): optional offering tags for the tagged
-  // business. First selected = primary, the rest secondary.
-  const [selectedItems, setSelectedItems] = useState<SelectedItemTag[]>([])
-  const handleBusinessChange = (biz: Business | null) => {
-    setTaggedBusiness(biz)
-    // Offerings belong to one business — a different business (or
-    // none) invalidates the selection.
-    setSelectedItems([])
-  }
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   // Inline per-field errors (shown under the offending field) + the id
   // of the first one, so submit can scroll to it.
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-  const [showAdvanced, setShowAdvanced] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   // Image upload progress: { done, total } while uploading, null otherwise.
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
@@ -209,15 +193,16 @@ function NewListingForm() {
   // Captions of the failed photos, parallel to `failedImages` — so a
   // retry uploads each photo with the description the seller wrote.
   const [failedCaptions, setFailedCaptions] = useState<string[]>([])
-  const [tagWarning, setTagWarning] = useState<'business' | 'items' | null>(null)
   // WhatsApp opt-in at posting time (P1-6) — only when the seller has
   // no number on their profile yet.
   const [whatsappOptIn, setWhatsappOptIn] = useState(false)
   const [whatsappNumber, setWhatsappNumber] = useState('')
   const [draftRestored, setDraftRestored] = useState(false)
-  // 3-step flow (proposal 2026-11-09): 1 type, 2 details, 3 photos /
-  // location / publish. All state stays in this component; the steps
-  // are pure conditional render below — nothing remounts between steps.
+  // 4-step flow (proposal 2026-11-09; location split out as its
+  // own last step 2026-11-11): 1 type, 2 details, 3 photos,
+  // 4 location / publish. All state stays in this component; the
+  // steps are pure conditional render below — nothing remounts
+  // between steps.
   const [step, setStep] = useState(1)
   // News canvas autosave indicator ("Guardando…" → "Guardado ✓").
   // The draft hook autosaves silently; this only surfaces its state.
@@ -248,7 +233,6 @@ function NewListingForm() {
   const [doors, setDoors] = useState('4')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const videoInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { user, profile, activeStore } = useAuth()
   const t = useTranslations()
@@ -258,6 +242,11 @@ function NewListingForm() {
   const config = TYPE_CONFIG[listingType]
   const showPrice = listingType !== 'news'
 
+  // Media tiles in the Step 3 grid: photos + the native clip as the
+  // first tile. The grid column count and the single-tile aspect
+  // follow the total, not the photo count alone.
+  const mediaTileCount = imagePreviews.length + (videoFile ? 1 : 0)
+
   // Structured fields are driven by the selected CATEGORY (available to everyone),
   // or by an active typed store — not gated on owning a store.
   const isRealEstate = storeType === 'real_estate' || REAL_ESTATE_CATEGORIES.includes(category)
@@ -265,15 +254,19 @@ function NewListingForm() {
 
   // Store users have a fixed type, so they never see Paso 1 — they
   // land on Paso 2. Derived, never synced with an effect: the step
-  // state itself stays 1-based and the clamp lives here.
-  const effectiveStep = storeType === 'general' ? step : 2
-  const totalSteps = storeType === 'general' ? 3 : 2
+  // state itself stays 1-based and the clamp lives here. The clamp
+  // is a floor (Math.max), not a constant: a constant 2 stranded
+  // store users on details forever — Siguiente set step 3 but
+  // effectiveStep stayed 2, so they could never reach photos or
+  // publish. With the floor they land on 2 and advance to 3 and 4.
+  const effectiveStep = storeType === 'general' ? step : Math.max(step, 2)
+  const totalSteps = storeType === 'general' ? 4 : 3
   const displayStep = storeType === 'general' ? effectiveStep : effectiveStep - 1
 
   // News canvas word count (computed, no state).
   const wordCount = description.trim() ? description.trim().split(/\s+/).length : 0
 
-  // Paso 3 review line — one line, Eventbrite's preview lesson in
+  // Paso 4 review line — one line, Eventbrite's preview lesson in
   // miniature: "Evento · Jazz en el CEART · 12 nov".
   const reviewLine = (() => {
     const typeShort = { product: 'Producto', service: 'Servicio', event: 'Evento', news: 'Noticia' }[listingType]
@@ -300,14 +293,12 @@ function NewListingForm() {
   // saves; a restored draft asks the reporter to re-pick the video.
   const draftValue = {
     listingType, title, description, price, priceConsultar, currency, isFree, cardColor, category,
-    location, city, stateRegion, countryCode, videoUrl,
+    location, city, stateRegion, countryCode,
     eventStartDate, eventStartTime, eventEndDate, eventEndTime, eventVenue, eventTicketUrl,
-    taggedBusinessId: taggedBusiness?.id ?? null,
-    selectedItems,
     propertyType, transactionType, bedrooms, bathrooms, constructionM2,
     lotM2, parkingSpots, make, model, year, mileageKm, transmission,
-    fuelType, color, doors, whatsappOptIn, whatsappNumber, showAdvanced,
-    // 3-step flow: the step the seller left on, so a returning draft
+    fuelType, color, doors, whatsappOptIn, whatsappNumber,
+    // 4-step flow: the step the seller left on, so a returning draft
     // lands where they were (missing → 1, defensively).
     step,
   }
@@ -331,8 +322,6 @@ function NewListingForm() {
     setCity(d.city || '')
     setStateRegion(d.stateRegion || '')
     setCountryCode(d.countryCode || 'MX')
-    setVideoUrl(d.videoUrl || '')
-    setSelectedItems((d.selectedItems as SelectedItemTag[]) || [])
     setPropertyType(d.propertyType || 'casa')
     setTransactionType(d.transactionType || 'venta')
     setBedrooms(d.bedrooms || '')
@@ -350,15 +339,9 @@ function NewListingForm() {
     setDoors(d.doors || '4')
     setWhatsappOptIn(!!d.whatsappOptIn)
     setWhatsappNumber(d.whatsappNumber || '')
-    setShowAdvanced(!!d.showAdvanced)
-    // Drafts saved before the 3-step flow have no step — land on 1.
-    // A step outside 1–3 (corrupt value) also lands on 1.
-    setStep(typeof d.step === 'number' && d.step >= 1 && d.step <= 3 ? d.step : 1)
-    if (d.taggedBusinessId) {
-      // Restore the full business row so the picker has a real object.
-      createClient().from('businesses').select('*').eq('id', d.taggedBusinessId).single()
-        .then(({ data }) => { if (data) setTaggedBusiness(data as Business) })
-    }
+    // Drafts saved before the 4-step flow have no step — land on 1.
+    // A step outside 1–4 (corrupt value) also lands on 1.
+    setStep(typeof d.step === 'number' && d.step >= 1 && d.step <= 4 ? d.step : 1)
     setDraftRestored(true)
   }
   const { clearDraft, didRestore } = useListingDraft({
@@ -398,103 +381,6 @@ function NewListingForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [didRestore])
 
-  // Prefill from an item view's "Agrega tu foto" link
-  // (?negocio=<businessId>&item=<itemId>). Runs once, after the
-  // draft decision: a restored draft wins — only what the draft
-  // didn't set gets prefilled. The business is set before the item
-  // tag, because offerings belong to one business.
-  const searchParams = useSearchParams()
-  const prefillItemDoneRef = useRef(false)
-  useEffect(() => {
-    if (!didRestore || prefillItemDoneRef.current) return
-    prefillItemDoneRef.current = true
-    const negocioId = searchParams.get('negocio')
-    const itemId = searchParams.get('item')
-    if (!negocioId && !itemId) return
-    // What the stored draft already set: the business row fetch in
-    // restoreDraft is async, so state may still be null when this
-    // runs — read the stored draft instead of trusting state.
-    let draftBusinessId: string | null = null
-    let draftHasItems = false
-    try {
-      const key = draftKeyForUser(user?.id)
-      const raw = key ? localStorage.getItem(key) : null
-      if (raw) {
-        const parsed = JSON.parse(raw) as { taggedBusinessId?: unknown; selectedItems?: unknown }
-        draftBusinessId =
-          typeof parsed.taggedBusinessId === 'string' ? parsed.taggedBusinessId : null
-        draftHasItems = Array.isArray(parsed.selectedItems) && parsed.selectedItems.length > 0
-      }
-    } catch {
-      // Unreadable draft — prefill proceeds.
-    }
-    const applyItem = (businessId: string) => {
-      if (!itemId || draftHasItems || selectedItems.length > 0) return
-      createClient()
-        .from('items')
-        .select('id, business_id, kind_id, kind:item_kinds(id, name, slug)')
-        .eq('id', itemId)
-        .eq('business_id', businessId)
-        .eq('status', 'visible')
-        .single()
-        .then(({ data }) => {
-          const row = data as {
-            id: string
-            kind_id: string
-            kind?: { name?: string; slug?: string } | null
-          } | null
-          if (row?.kind?.name && row?.kind?.slug) {
-            setSelectedItems([
-              {
-                itemId: row.id,
-                kindId: row.kind_id,
-                kindName: row.kind.name,
-                kindSlug: row.kind.slug,
-              },
-            ])
-          }
-        })
-    }
-    if (negocioId && !draftBusinessId && !taggedBusiness) {
-      createClient()
-        .from('businesses')
-        .select('*')
-        .eq('id', negocioId)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            setTaggedBusiness(data as Business)
-            applyItem((data as Business).id)
-          }
-        })
-    } else if (itemId && (draftBusinessId || taggedBusiness)) {
-      applyItem(draftBusinessId ?? taggedBusiness!.id)
-    } else if (itemId) {
-      // No business anywhere yet: learn it from the item, then set both.
-      createClient()
-        .from('items')
-        .select('id, business_id')
-        .eq('id', itemId)
-        .eq('status', 'visible')
-        .single()
-        .then(({ data }) => {
-          const row = data as { id: string; business_id: string } | null
-          if (!row) return
-          createClient()
-            .from('businesses')
-            .select('*')
-            .eq('id', row.business_id)
-            .single()
-            .then(({ data: biz }) => {
-              if (biz) {
-                setTaggedBusiness(biz as Business)
-                applyItem((biz as Business).id)
-              }
-            })
-        })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [didRestore])
 
   // Reset the whole form (used by "Descartar" on a restored draft).
   const resetForm = () => {
@@ -502,7 +388,7 @@ function NewListingForm() {
     setListingType('product')
     setTitle(''); setDescription(''); setPrice(''); setPriceConsultar(false); setCurrency('MXN'); setIsFree(false)
     setCategory(''); setLocation(''); setCity(''); setStateRegion(''); setCountryCode('MX')
-    setGpsCountryCode(null); setVideoUrl(''); setTaggedBusiness(null); setSelectedItems([])
+    setGpsCountryCode(null);
     setPropertyType('casa'); setTransactionType('venta'); setBedrooms(''); setBathrooms('')
     setConstructionM2(''); setLotM2(''); setParkingSpots('')
     setMake(''); setModel(''); setYear(''); setMileageKm(''); setTransmission('automatica')
@@ -513,9 +399,9 @@ function NewListingForm() {
     if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl)
     setVideoFile(null); setVideoPreviewUrl(null); setVideoDuration(null)
     setVideoSelfFilmed(false); setVideoProgress(null); setVideoFailed(false)
-    if (videoInputRef.current) videoInputRef.current.value = ''
+    if (fileInputRef.current) fileInputRef.current.value = ''
     setFieldErrors({}); setError(''); setDraftRestored(false)
-    setPublishedListingId(null); setFailedImages([]); setTagWarning(null)
+    setPublishedListingId(null); setFailedImages([])
     setUploadProgress(null)
     setStep(1); setDraftSaveState('idle')
     prefillLocationFromRegion()
@@ -534,7 +420,6 @@ function NewListingForm() {
     // Native video (migration 050): one video per post, and the
     // self-filmed declaration is required for uploads. The file's
     // size / MIME / duration were checked when it was picked.
-    if (videoFile && videoUrl.trim()) errors.video = 'Elige un video o pega un enlace, no los dos'
     if (videoFile && !videoSelfFilmed) errors.selfFilmed = 'Confirma que grabaste este video'
     // Events need a date — it is the whole point of the post. Time,
     // end date, venue, and ticket link stay optional.
@@ -584,7 +469,7 @@ function NewListingForm() {
     })
   }
 
-  // ── 3-step navigation ──
+  // ── 4-step navigation ──
   // Steps are conditional render inside this one component — the form
   // never remounts between steps, so focus, scroll position and the
   // compression state all survive. Back never loses data.
@@ -628,9 +513,31 @@ function NewListingForm() {
     goToStep(3)
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ── Media (photos + one native clip, one picker) ──
+  // Step 3 has a single media area: one file input and one
+  // dropzone for photos and the native clip. The picker and the
+  // drop split files by MIME type — images go through addImages
+  // (compression, max-10, captions), the first video goes through
+  // the clip path below. No `capture` attribute: the picker must
+  // offer the library, not force the camera (PR #99). The input
+  // value is cleared after every pick so the same files can be
+  // picked again.
+  const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    addImages(files)
+    addMediaFiles(files)
+    e.target.value = ''
+  }
+
+  // Split a picked / dropped batch by MIME type. A video picked for
+  // a non-news type is ignored — the native clip is news-only
+  // (migration 050) — exactly as the old separate picker did.
+  const addMediaFiles = (files: File[]) => {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'))
+    if (imageFiles.length > 0) addImages(imageFiles)
+    if (listingType === 'news') {
+      const video = files.find(f => f.type.startsWith('video/'))
+      if (video) handleVideoFile(video)
+    }
   }
 
   const addImages = async (files: File[]) => {
@@ -667,13 +574,17 @@ function NewListingForm() {
   // Picking a clip does NOT clear a pasted link (and vice versa):
   // the submit validation errors with "one or the other" instead
   // of silently discarding what the reporter typed or picked.
-  const handleVideoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  // Native video (migration 050, news only): size / MIME / duration
+  // are checked on pick, not at submit — a 50 MB clip that fails
+  // at publish time is a wasted upload. Picking a clip does NOT
+  // clear a pasted link (and vice versa): the submit validation
+  // errors with "one or the other" instead of silently discarding
+  // what the reporter typed or picked. Picking a second clip
+  // replaces the first, exactly as the old picker did.
+  const handleVideoFile = async (file: File) => {
     const check = await validateVideoFile(file)
     if (!check.ok) {
       setFieldErrors((prev) => ({ ...prev, video: check.error }))
-      e.target.value = ''
       return
     }
     if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl)
@@ -695,7 +606,9 @@ function NewListingForm() {
     setVideoFailed(false)
     clearFieldError('video')
     clearFieldError('selfFilmed')
-    if (videoInputRef.current) videoInputRef.current.value = ''
+    // The clip shares the single media input now — reset it so the
+    // same clip can be re-picked.
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   // Revoke the clip preview URL on unmount (same pattern as the
@@ -724,7 +637,9 @@ function NewListingForm() {
     e.preventDefault()
     setIsDragging(false)
     const files = Array.from(e.dataTransfer.files)
-    addImages(files)
+    // Same split as the picker: images through addImages, the first
+    // video through the clip path (news only).
+    addMediaFiles(files)
   }
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -771,35 +686,6 @@ function NewListingForm() {
     return { failed: [], failedCaptions: [], uploaded }
   }
 
-  // Tag the listing's offerings through the server route. Returns true
-  // on success; a failure is the caller's to surface, not to swallow.
-  const postItemTags = async (listingId: string): Promise<boolean> => {
-    try {
-      const res = await fetch(`/api/listings/${listingId}/item-tags`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: selectedItems.map((s) =>
-            s.itemId
-              ? { item_id: s.itemId }
-              : s.kindId
-                ? { kind_id: s.kindId }
-                : { kind_name: s.kindName },
-          ),
-        }),
-      })
-      if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { error?: string } | null
-        console.error('item-tags failed:', data?.error || res.status)
-        return false
-      }
-      return true
-    } catch (tagErr) {
-      console.error('item-tags failed:', tagErr)
-      return false
-    }
-  }
-
   // Retry only the photos that failed to upload for the live listing.
   const retryFailedImages = async () => {
     if (!publishedListingId || failedImages.length === 0 || !user) return
@@ -815,33 +701,6 @@ function NewListingForm() {
       router.push(`/listings/${publishedListingId}`)
     } else {
       setError('Todavía no se pudieron subir todas las fotos. Revisa tu conexión e inténtalo de nuevo.')
-    }
-  }
-
-  // Retry the tag operation that failed for the live listing.
-  const retryTags = async () => {
-    if (!publishedListingId || !tagWarning) return
-    setLoading(true)
-    setError('')
-    let ok = true
-    if (tagWarning === 'business' && taggedBusiness) {
-      const { error: tagError } = await supabase.from('listing_business_tags').insert({
-        listing_id: publishedListingId,
-        business_id: taggedBusiness.id,
-      })
-      if (tagError) {
-        console.error('business-tag retry failed:', tagError.message)
-        ok = false
-      }
-    } else if (tagWarning === 'items' && selectedItems.length > 0) {
-      ok = await postItemTags(publishedListingId)
-    }
-    setLoading(false)
-    if (ok) {
-      setTagWarning(null)
-      router.push(`/listings/${publishedListingId}`)
-    } else {
-      setError('Todavía no se pudo guardar la etiqueta. Inténtalo de nuevo.')
     }
   }
 
@@ -970,7 +829,7 @@ function NewListingForm() {
 
     // Video cap (5/day, migration 050) — checked before the insert
     // so a blocked post never creates a listing.
-    if (videoFile || videoUrl.trim()) {
+    if (videoFile) {
       const underCap = await checkVideoDailyCap()
       if (!underCap) {
         setError('Hoy ya publicaste 5 videos. Puedes publicar mañana, o publicar esta noticia sin video.')
@@ -1028,7 +887,6 @@ function NewListingForm() {
         title,
         description,
         price: finalPrice,
-        videoUrl: videoUrl || undefined,
         listingType,
         hasVideoUpload: !!videoFile,
         selfFilmed: videoSelfFilmed,
@@ -1068,8 +926,6 @@ function NewListingForm() {
         city: normalizeTownName(city),
         state_region: stateRegion || null,
         metadata,
-        video_url: videoUrl || null,
-        tagged_business_id: taggedBusiness?.id || null,
         status: 'active',
       }
       let { data: listing, error: listingError } = await supabase
@@ -1107,20 +963,6 @@ function NewListingForm() {
           })
       }
 
-      // Business tag junction — a failure is surfaced with a retry
-      // (P1-4), not swallowed as before.
-      let businessTagFailed = false
-      if (taggedBusiness) {
-        const { error: tagError } = await supabase.from('listing_business_tags').insert({
-          listing_id: listing.id,
-          business_id: taggedBusiness.id,
-        })
-        if (tagError) {
-          businessTagFailed = true
-          console.error('business-tag failed:', tagError.message)
-        }
-      }
-
       // Images, one at a time with progress (P0-2). A failure keeps
       // the listing (already live) and offers a retry for the failed
       // photos only — the old rollback that deleted the listing and
@@ -1150,17 +992,6 @@ function NewListingForm() {
         }
       }
 
-      // Items engine (§8, 034B): tag the listing's offerings through
-      // the server route, which enforces ownership, business
-      // consistency and attribution. Best-effort like the business
-      // tag above: the listing is already live, and tags are
-      // optional — a failure here must not strand the user on the
-      // form with a published listing (a retry would duplicate it).
-      let itemTagsFailed = false
-      if (selectedItems.length > 0) {
-        itemTagsFailed = !(await postItemTags(listing.id))
-      }
-
       if (imagesFailed) {
         setError('Tu anuncio ya está publicado, pero no se pudieron subir todas las fotos. Revisa tu conexión y reintenta solo las fotos.')
         setLoading(false)
@@ -1168,11 +999,6 @@ function NewListingForm() {
       }
       if (videoFailedUpload) {
         setError('Tu anuncio ya está publicado, pero no se pudo subir el video. Revisa tu conexión y reintenta solo el video.')
-        setLoading(false)
-        return
-      }
-      if (businessTagFailed || itemTagsFailed) {
-        setTagWarning(businessTagFailed ? 'business' : 'items')
         setLoading(false)
         return
       }
@@ -1551,8 +1377,9 @@ function NewListingForm() {
           </p>
         )}
 
-        {/* 3-step progress — "Paso X de 3" + thin bar. Store users
-            have a fixed type, so they see 2 steps (details, finish). */}
+        {/* 4-step progress — "Paso X de 4" + thin bar. Store users
+            have a fixed type, so they see 3 steps (details, photos,
+            location). */}
         <div className="mb-6">
           <p className="text-sm font-medium text-gray-900">Paso {displayStep} de {totalSteps}</p>
           <div className="h-1 bg-gray-200 rounded-full mt-2">
@@ -1613,15 +1440,16 @@ function NewListingForm() {
           )}
 
           {/* ══════════════════════════════════════════════
-              PASO 3 — Fotos, lugar y publicar
+              PASO 3 — Fotos
               (photos first, then card color below)
               ══════════════════════════════════════════════ */}
           {effectiveStep === 3 && (
           <>
-          {/* PHOTOS + VIDEO — visual first. The section is "Fotos y
-              video" (migration 050): photos as before, then one
-              native clip for news, then the link field moved out of
-              the collapsed extras. */}
+          {/* PHOTOS + VIDEO — visual first. One media area
+              (consolidated): a single picker and dropzone for
+              photos and, for news, one native clip (migration
+              050). The clip renders as a tile in the same grid,
+              with its detail block directly below. */}
           <div className="py-6 first:pt-0">
             <p className="text-base font-semibold text-gray-900 mb-3">
               Fotos y video {(listingType === 'news' || listingType === 'event') && (
@@ -1632,12 +1460,12 @@ function NewListingForm() {
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
-              onClick={() => images.length < MAX_LISTING_IMAGES && fileInputRef.current?.click()}
+              onClick={() => (images.length < MAX_LISTING_IMAGES || (listingType === 'news' && !videoFile)) && fileInputRef.current?.click()}
               className={`
                 relative rounded-xl border-2 border-dashed transition-all cursor-pointer
                 ${isDragging
                   ? 'border-gray-900 bg-gray-100 scale-[1.01]'
-                  : images.length > 0
+                  : images.length > 0 || videoFile
                     ? 'border-gray-300 bg-gray-50/50'
                     : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100/50'
                 }
@@ -1646,38 +1474,82 @@ function NewListingForm() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept={listingType === 'news' ? 'image/*,video/mp4,video/quicktime,video/webm' : 'image/*'}
                 multiple
-                onChange={handleImageChange}
+                onChange={handleMediaChange}
                 className="hidden"
               />
 
-              {imagePreviews.length === 0 ? (
+              {imagePreviews.length === 0 && !videoFile ? (
                 /* Empty state — inviting, not clinical */
                 <div className="flex flex-col items-center justify-center py-10 px-4">
                   <div className="h-14 w-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
                     <ImagePlus className="h-7 w-7 text-gray-500" />
                   </div>
-                  <p className="text-sm font-medium text-gray-700">
-                    Agrega fotos
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Arrastra aquí o toca para seleccionar (máx. 10)
-                  </p>
+                  {listingType === 'news' ? (
+                    <>
+                      <p className="text-sm font-medium text-gray-700">
+                        Agrega fotos o un video
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Arrastra aquí o toca para seleccionar · Fotos: máx. 10 · Video: 1 clip, hasta 60 s
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-gray-700">
+                        Agrega fotos
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Arrastra aquí o toca para seleccionar (máx. 10)
+                      </p>
+                    </>
+                  )}
                 </div>
               ) : (
-                /* Preview grid */
+                /* Preview grid — photos plus the native clip as
+                    the first tile (news only). Column count and the
+                    single-tile aspect follow the total tile count. */
                 <div className="p-3">
                   <div className={`grid gap-2 ${
-                    imagePreviews.length === 1 ? 'grid-cols-1' :
-                    imagePreviews.length === 2 ? 'grid-cols-2' :
+                    mediaTileCount === 1 ? 'grid-cols-1' :
+                    mediaTileCount === 2 ? 'grid-cols-2' :
                     'grid-cols-3'
                   }`}>
+                    {videoFile && videoPreviewUrl && (
+                      <div className="flex flex-col gap-1.5">
+                        <div
+                          className={`relative rounded-lg overflow-hidden bg-black ${
+                            mediaTileCount === 1 ? 'aspect-[16/9]' : 'aspect-square'
+                          }`}
+                        >
+                          <video src={videoPreviewUrl} muted playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover" />
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="bg-black/60 backdrop-blur-sm text-white rounded-full w-10 h-10 flex items-center justify-center">
+                              <Play className="h-5 w-5 ml-0.5" />
+                            </div>
+                          </div>
+                          {videoDuration != null && (
+                            <span className="absolute bottom-1.5 left-1.5 bg-black/60 backdrop-blur-sm text-white rounded px-1.5 py-0.5 text-[10px] font-medium">
+                              {formatVideoDuration(videoDuration) ?? ''}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); removeVideo() }}
+                            aria-label="Quitar video"
+                            className="absolute top-1.5 right-1.5 bg-black/60 backdrop-blur-sm text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-black/80 transition"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     {imagePreviews.map((preview, index) => (
                       <div key={index} className="flex flex-col gap-1.5">
                         <div
                           className={`relative rounded-lg overflow-hidden ${
-                            imagePreviews.length === 1 ? 'aspect-[16/9]' : 'aspect-square'
+                            mediaTileCount === 1 ? 'aspect-[16/9]' : 'aspect-square'
                           }`}
                         >
                           <Image src={preview} alt={`Foto ${index + 1}`} fill className="object-cover" />
@@ -1706,11 +1578,12 @@ function NewListingForm() {
                       </div>
                     ))}
                     {/* Add more slot — slim row when the grid is 1 column
-                        (1 photo): the square tile rendered as a giant
+                        (1 tile): the square tile rendered as a giant
                         full-width box (~700px tall on desktop). The
-                        2- and 3-column grids keep the square tile. */}
+                        2- and 3-column grids keep the square tile.
+                        Opens the same mixed picker. */}
                     {images.length < MAX_LISTING_IMAGES && (
-                      imagePreviews.length === 1 ? (
+                      mediaTileCount === 1 ? (
                         <div className="h-12 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 transition">
                           <ImagePlus className="h-4 w-4 text-gray-500" />
                           <span className="text-xs text-gray-600">Agregar más fotos · {MAX_LISTING_IMAGES - images.length} más</span>
@@ -1745,121 +1618,59 @@ function NewListingForm() {
               </div>
             )}
 
-            {/* NATIVE VIDEO — news only (migration 050). One clip per
-                post, <=60s / <=50MB, uploaded with the TUS resumable
-                path so a dropped connection resumes instead of
-                restarting. No `capture` attribute: the picker must
-                offer the library, not force the camera (PR #99). */}
-            {listingType === 'news' && (
+            {/* NATIVE CLIP — detail block for the clip in the grid
+                above (news only, migration 050). The picker and
+                empty state used to live in a separate section; the
+                clip is picked from the same media area as photos,
+                and the link field is gone (removed 2026-11-11). */}
+            {listingType === 'news' && videoFile && (
               <div className="mt-5 space-y-2" id="video-field">
-                <Label className="text-sm flex items-center gap-1.5">
-                  <Video className="h-3.5 w-3.5 text-gray-500" />
-                  Video <span className="text-gray-500 font-normal">(opcional)</span>
-                </Label>
-                <input
-                  ref={videoInputRef}
-                  type="file"
-                  accept="video/mp4,video/quicktime,video/webm"
-                  onChange={handleVideoChange}
-                  className="hidden"
-                />
-                {!videoFile ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => videoInputRef.current?.click()}
-                      className="w-full rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100/50 transition-all px-4 py-6 flex flex-col items-center gap-1"
-                    >
-                      <Video className="h-6 w-6 text-gray-500" />
-                      <span className="text-sm font-medium text-gray-700">Graba o elige un video</span>
-                      <span className="text-xs text-gray-500">Hasta 60 segundos · 50 MB · MP4, MOV o WebM</span>
-                    </button>
-                    {videoUrl.trim() && (
-                      <p className="text-[11px] text-gray-500">
-                        Ya pegaste un enlace de video abajo — quítalo para subir un clip en su lugar.
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <div className="space-y-2">
-                    {videoPreviewUrl && (
-                      <video src={videoPreviewUrl} controls playsInline preload="metadata" className="w-full rounded-lg bg-black max-h-64" />
-                    )}
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs text-gray-500 truncate">
-                        {videoFile.name}
-                        {videoDuration != null && ` · ${formatVideoDuration(videoDuration) ?? ''}`}
-                        {` · ${formatVideoSize(videoFile.size)}`}
-                      </p>
-                      <button type="button" onClick={removeVideo} className="text-xs text-gray-500 underline shrink-0">
-                        Quitar
-                      </button>
-                    </div>
-                    {videoProgress && (
-                      <div>
-                        <p className="text-xs text-gray-500">
-                          Subiendo video {Math.round((videoProgress.loaded / videoProgress.total) * 100)}%…
-                        </p>
-                        <div className="h-1 bg-gray-200 rounded-full mt-1.5">
-                          <div
-                            className="h-1 bg-gray-900 rounded-full transition-all"
-                            style={{ width: `${(videoProgress.loaded / videoProgress.total) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                    <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer select-none" id="video-self-filmed">
-                      <input
-                        type="checkbox"
-                        checked={videoSelfFilmed}
-                        onChange={(e) => { setVideoSelfFilmed(e.target.checked); clearFieldError('selfFilmed') }}
-                        className="rounded border-gray-300 mt-0.5"
-                      />
-                      Lo grabé yo mismo
-                    </label>
-                    {fieldErrors.selfFilmed && <p className="text-xs text-red-500">{fieldErrors.selfFilmed}</p>}
-                    <p className="text-[11px] text-gray-500">
-                      El video se publica con tu nombre. Si sales del formulario, el video no se guarda en el borrador — lo eliges de nuevo.
+                <div className="space-y-2">
+                  {videoPreviewUrl && (
+                    <video src={videoPreviewUrl} controls playsInline preload="metadata" className="w-full rounded-lg bg-black max-h-64" />
+                  )}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-gray-500 truncate">
+                      {videoFile.name}
+                      {videoDuration != null && ` · ${formatVideoDuration(videoDuration) ?? ''}`}
+                      {` · ${formatVideoSize(videoFile.size)}`}
                     </p>
+                    <button type="button" onClick={removeVideo} className="text-xs text-gray-500 underline shrink-0">
+                      Quitar
+                    </button>
                   </div>
-                )}
-                {fieldErrors.video && <p className="text-xs text-red-500">{fieldErrors.video}</p>}
+                  {videoProgress && (
+                    <div>
+                      <p className="text-xs text-gray-500">
+                        Subiendo video {Math.round((videoProgress.loaded / videoProgress.total) * 100)}%…
+                      </p>
+                      <div className="h-1 bg-gray-200 rounded-full mt-1.5">
+                        <div
+                          className="h-1 bg-gray-900 rounded-full transition-all"
+                          style={{ width: `${(videoProgress.loaded / videoProgress.total) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer select-none" id="video-self-filmed">
+                    <input
+                      type="checkbox"
+                      checked={videoSelfFilmed}
+                      onChange={(e) => { setVideoSelfFilmed(e.target.checked); clearFieldError('selfFilmed') }}
+                      className="rounded border-gray-300 mt-0.5"
+                    />
+                    Lo grabé yo mismo
+                  </label>
+                  {fieldErrors.selfFilmed && <p className="text-xs text-red-500">{fieldErrors.selfFilmed}</p>}
+                  <p className="text-[11px] text-gray-500">
+                    El video se publica con tu nombre. Si sales del formulario, el video no se guarda en el borrador — lo eliges de nuevo.
+                  </p>
+                </div>
               </div>
             )}
-
-            {/* VIDEO LINK — moved out of the collapsed extras
-                (migration 050): a video that already lives elsewhere
-                is the alternative to uploading a clip, never both. */}
-            <div className="mt-5 space-y-1.5">
-              <Label htmlFor="videoUrl" className="flex items-center gap-1.5 text-sm">
-                <Video className="h-3.5 w-3.5 text-gray-500" />
-                O pega un enlace de video
-              </Label>
-              <Input className="border-gray-300"
-                id="videoUrl"
-                type="url"
-                value={videoUrl}
-                onChange={(e) => { setVideoUrl(e.target.value); clearFieldError('videoUrl') }}
-                onBlur={() => {
-                  if (!videoUrl.trim()) { clearFieldError('videoUrl'); return }
-                  try {
-                    const host = new URL(videoUrl.trim()).hostname.replace(/^www\./, '')
-                    if (!/(youtube\.com|youtu\.be|facebook\.com|fb\.watch|tiktok\.com)$/.test(host)) {
-                      setFieldErrors((prev) => ({ ...prev, videoUrl: 'Pega un enlace válido de YouTube, Facebook o TikTok' }))
-                    } else {
-                      clearFieldError('videoUrl')
-                    }
-                  } catch {
-                    setFieldErrors((prev) => ({ ...prev, videoUrl: 'El enlace de video no es válido' }))
-                  }
-                }}
-                placeholder="https://youtube.com/watch?v=... o link de Facebook/TikTok"
-              />
-              {fieldErrors.videoUrl && <p className="text-xs text-red-500">{fieldErrors.videoUrl}</p>}
-              <p className="text-[11px] text-gray-500">
-                YouTube, Facebook o TikTok — en lugar de subir un clip.
-              </p>
-            </div>
+            {/* A clip that fails validation has no tile — its error
+                shows under the dropzone instead. */}
+            {fieldErrors.video && <p className="text-xs text-red-500 mt-3">{fieldErrors.video}</p>}
           </div>
 
           {/* Title-card color — news/event only. The card only renders
@@ -1934,36 +1745,12 @@ function NewListingForm() {
           )}
 
           {/* ══════════════════════════════════════════════
-              LOCATION
+              WHATSAPP — opt-in at posting time (only when the
+              seller has no number on their profile yet). Stays
+              on Step 3 (photos) with the media.
               ══════════════════════════════════════════════ */}
           {effectiveStep === 3 && (
           <>
-          <div className="py-6 first:pt-0 space-y-4">
-            <p className="text-base font-semibold text-gray-900">Ubicación</p>
-            <LocationPicker
-              city={city}
-              stateRegion={stateRegion}
-              country={countryCode}
-              onCityChange={setCity}
-              onStateRegionChange={setStateRegion}
-              onCountryChange={setCountryCode}
-              onCountryCodeChange={setGpsCountryCode}
-            />
-            <div className="space-y-1.5">
-              <Label htmlFor="location" className="text-sm">Colonia / Barrio</Label>
-              <Input className="border-gray-300"
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Ej: Centro, La Rumorosa, Col. Libertad"
-              />
-            </div>
-          </div>
-
-          {/* ══════════════════════════════════════════════
-              WHATSAPP — opt-in at posting time (only when the
-              seller has no number on their profile yet)
-              ══════════════════════════════════════════════ */}
           {user && profile && !profile.whatsapp_number && (
           <div className="py-6 first:pt-0 space-y-3">
             <p className="text-base font-semibold text-gray-900">Contacto por WhatsApp</p>
@@ -1996,50 +1783,30 @@ function NewListingForm() {
           )}
 
           {/* ══════════════════════════════════════════════
-              EXTRAS (collapsible — reduce overwhelm)
+              PASO 4 — Ubicación y publicar
               ══════════════════════════════════════════════ */}
-          {effectiveStep === 3 && (
+          {effectiveStep === 4 && (
           <>
-          <div className="py-6 first:pt-0">
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="w-full flex items-center justify-between py-3.5 hover:bg-gray-100 transition"
-            >
-              <span className="text-base font-semibold text-gray-900">
-                Opciones adicionales
-              </span>
-              {showAdvanced
-                ? <ChevronUp className="h-4 w-4 text-gray-500" />
-                : <ChevronDown className="h-4 w-4 text-gray-500" />
-              }
-            </button>
-
-            {showAdvanced && (
-              <div className="pb-2 space-y-5 border-t border-gray-200 pt-4">
-                {/* Business Tag */}
-                <BusinessTagPicker
-                  value={taggedBusiness}
-                  onChange={handleBusinessChange}
-                  location={location || undefined}
-                  category={category || undefined}
-                />
-
-                {/* Item Tag — only after a business is tagged (decision 4).
-                    key remounts the picker when the business changes, so
-                    its search state never leaks across businesses. */}
-                {taggedBusiness && (
-                  <ItemTagPicker
-                    key={taggedBusiness.id}
-                    business={taggedBusiness}
-                    listingType={listingType}
-                    textForHashtags={`${title} ${description}`}
-                    value={selectedItems}
-                    onChange={setSelectedItems}
-                  />
-                )}
-              </div>
-            )}
+          <div className="py-6 first:pt-0 space-y-4">
+            <p className="text-base font-semibold text-gray-900">Ubicación</p>
+            <LocationPicker
+              city={city}
+              stateRegion={stateRegion}
+              country={countryCode}
+              onCityChange={setCity}
+              onStateRegionChange={setStateRegion}
+              onCountryChange={setCountryCode}
+              onCountryCodeChange={setGpsCountryCode}
+            />
+            <div className="space-y-1.5">
+              <Label htmlFor="location" className="text-sm">Colonia / Barrio</Label>
+              <Input className="border-gray-300"
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Ej: Centro, La Rumorosa, Col. Libertad"
+              />
+            </div>
           </div>
 
           {/* Review line — one line, Eventbrite's preview lesson in
@@ -2060,19 +1827,6 @@ function NewListingForm() {
           <div className="sticky bottom-0 z-20 -mx-4 px-4 pt-2 pb-3 mt-6 bg-white/95 backdrop-blur border-t border-gray-300">
             {publishedListingId ? (
               <>
-                {tagWarning && (
-                  <div className="text-sm bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 text-gray-700 mb-3">
-                    Se publicó, pero no se pudo etiquetar el {tagWarning === 'business' ? 'negocio' : 'producto'}.
-                    <button
-                      type="button"
-                      onClick={retryTags}
-                      disabled={loading}
-                      className="ml-2 underline font-medium"
-                    >
-                      Reintentar
-                    </button>
-                  </div>
-                )}
                 {failedImages.length > 0 && (
                   <div className="text-sm bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 text-gray-700 mb-3">
                     Faltan {failedImages.length} foto{failedImages.length === 1 ? '' : 's'} por subir.
@@ -2149,11 +1903,31 @@ function NewListingForm() {
                       </Button>
                     </>
                   )}
-                  {/* Paso 3: the publish action, same as before. */}
+                  {/* Paso 3: a middle step — Atrás to details,
+                      Siguiente to location. No validation either
+                      way: photos and location are optional, and the
+                      video self-filmed check still fires at submit. */}
                   {effectiveStep === 3 && (
+                    <>
+                      <Button type="button" variant="outline" onClick={() => goToStep(2)} disabled={loading} className="h-12 px-5 rounded-xl">
+                        Atrás
+                      </Button>
+                      <Button type="button" onClick={() => goToStep(4)} disabled={loading} className="flex-1 h-12 text-base font-medium rounded-xl">
+                        Siguiente
+                      </Button>
+                    </>
+                  )}
+                  {/* Paso 4: the publish action. Atrás returns to
+                      photos (no validation — goToStep only sets the
+                      step, and the draft keeps everything). Ungated:
+                      store users go 4 → 3 too. */}
+                  {effectiveStep === 4 && (
                     <>
                       <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading} className="h-12 px-5 rounded-xl">
                         Cancelar
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => goToStep(3)} disabled={loading} className="h-12 px-5 rounded-xl">
+                        Atrás
                       </Button>
                       <Button type="submit" disabled={loading} className="flex-1 h-12 text-base font-medium rounded-xl">
                         {loading
@@ -2187,8 +1961,9 @@ function NewListingForm() {
   )
 }
 
-// useSearchParams needs a Suspense boundary (Next 15): the form
-// itself is the inner component, this wrapper is the page.
+// The form used to read ?negocio=&item= via useSearchParams,
+// which needed this Suspense boundary (Next 15). The prefill is
+// gone; the wrapper stays as a harmless boundary.
 export default function NewListingPage() {
   return (
     <Suspense>

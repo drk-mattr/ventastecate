@@ -148,6 +148,7 @@ export default async function Home({ searchParams }: HomeProps) {
   // newest first, reusing the same card shell as the main feed.
   let followingIds: string[] = []
   let followedBusinessIds: string[] = []
+  let followedStoreIds: string[] = []
   if (showFollowing) {
     if (currentUser) {
       const { data: follows } = await supabase
@@ -160,6 +161,13 @@ export default async function Home({ searchParams }: HomeProps) {
         .select('business_id')
         .eq('user_id', currentUser.id)
       followedBusinessIds = (bizFollows || []).map((f) => f.business_id)
+      // Pre-058 the store_follows table is missing and the query
+      // errors; treat as following no stores.
+      const { data: storeFollows } = await supabase
+        .from('store_follows')
+        .select('store_id')
+        .eq('follower_id', currentUser.id)
+      followedStoreIds = (storeFollows || []).map((f) => f.store_id)
       if (followingIds.length > 0) {
         feedQuery = feedQuery.in('user_id', followingIds)
       }
@@ -182,10 +190,14 @@ export default async function Home({ searchParams }: HomeProps) {
   let feedListings = showFollowing && followingIds.length === 0 ? [] : feedFresh
   // Following a business adds its mentions to Siguiendo: listings tagged with
   // it, or linked via the junction table, merged and re-sorted newest first.
-  if (showFollowing && followedBusinessIds.length > 0) {
-    const { data: junction } = await supabase
-      .from('listing_business_tags').select('listing_id').in('business_id', followedBusinessIds)
-    const junctionIds = (junction || []).map((j) => j.listing_id)
+  // Following a store adds its own listings the same way (store_id match).
+  if (showFollowing && (followedBusinessIds.length > 0 || followedStoreIds.length > 0)) {
+    let junctionIds: string[] = []
+    if (followedBusinessIds.length > 0) {
+      const { data: junction } = await supabase
+        .from('listing_business_tags').select('listing_id').in('business_id', followedBusinessIds)
+      junctionIds = (junction || []).map((j) => j.listing_id)
+    }
     let bizListings: typeof feedRaw = []
     if (junctionIds.length > 0 || followedBusinessIds.length > 0) {
       const { data } = await supabase
@@ -193,8 +205,15 @@ export default async function Home({ searchParams }: HomeProps) {
         .or(`tagged_business_id.in.(${followedBusinessIds.join(',')})${junctionIds.length ? `,id.in.(${junctionIds.join(',')})` : ''}`)
       bizListings = data
     }
+    let storeListings: typeof feedRaw = []
+    if (followedStoreIds.length > 0) {
+      const { data } = await supabase
+        .from('listings').select(listingSelect).eq('status', 'active')
+        .in('store_id', followedStoreIds)
+      storeListings = data
+    }
     const byId = new Map<string, NonNullable<typeof feedRaw>[number]>()
-    for (const l of [...(feedListings || []), ...(bizListings || [])]) byId.set(l.id, l)
+    for (const l of [...(feedListings || []), ...(bizListings || []), ...(storeListings || [])]) byId.set(l.id, l)
     feedListings = excludePastEvents([...byId.values()].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())).slice(0, 30)
   }
 

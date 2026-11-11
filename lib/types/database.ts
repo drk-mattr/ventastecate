@@ -34,6 +34,9 @@ export type Store = {
   city?: string
   state_region?: string
   country_code?: string
+  // Follower count (migration 058): maintained by the
+  // handle_store_follow_count trigger on store_follows.
+  followers_count?: number
   created_at: string
   updated_at: string
 }

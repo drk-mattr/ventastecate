@@ -6,6 +6,7 @@ import { Header } from '@/components/layout/header'
 import { ListingCard } from '@/components/listings/listing-card'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { StoreFollowButton } from '@/components/stores/store-follow-button'
 import { Store, MapPin, MessageSquare } from 'lucide-react'
 
 export default async function StoreProfilePage({ params }: { params: Promise<{ slug: string }> }) {
@@ -46,6 +47,16 @@ export default async function StoreProfilePage({ params }: { params: Promise<{ s
   // Check if current user is the owner
   const { data: { user } } = await supabase.auth.getUser()
   const isOwner = user?.id === store.owner_id
+
+  // Follow state for the viewer. Pre-058 the store_follows table
+  // is missing and the query errors; treat as not following.
+  let initialIsFollowingStore = false
+  if (user) {
+    const { data: storeFollow } = await supabase
+      .from('store_follows').select('id')
+      .eq('follower_id', user.id).eq('store_id', store.id).maybeSingle()
+    initialIsFollowingStore = !!storeFollow
+  }
 
   // Get business entity linked to this store (for mentions)
   const { data: linkedBusiness } = await supabase
@@ -109,6 +120,8 @@ export default async function StoreProfilePage({ params }: { params: Promise<{ s
                 )}
                 <span>{listings?.length || 0} anuncios</span>
                 <span>•</span>
+                <span>{store.followers_count ?? 0} seguidores</span>
+                <span>•</span>
                 <span>Desde {memberSince}</span>
               </div>
               {store.owner && (
@@ -123,11 +136,14 @@ export default async function StoreProfilePage({ params }: { params: Promise<{ s
                 </p>
               )}
             </div>
-            {isOwner && (
-              <Button asChild size="sm">
-                <Link href={`/stores/${store.slug}/edit`}>Editar Tienda</Link>
-              </Button>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              <StoreFollowButton storeId={store.id} initialFollowing={initialIsFollowingStore} ownerId={store.owner_id} />
+              {isOwner && (
+                <Button asChild size="sm">
+                  <Link href={`/stores/${store.slug}/edit`}>Editar Tienda</Link>
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 

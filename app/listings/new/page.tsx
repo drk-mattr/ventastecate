@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useMemo, Suspense } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useTranslations } from '@/lib/hooks/use-translations'
@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { RealEstateMetadata, AutomotiveMetadata, ListingType } from '@/lib/types/database'
+import { RealEstateMetadata, AutomotiveMetadata, ListingType, Business } from '@/lib/types/database'
 import { firstListingError, LISTING_TITLE_MAX, LISTING_DESC_MAX, MAX_LISTING_IMAGES } from '@/lib/validation'
 import { CARD_COLORS, type CardColorId } from '@/lib/listings/card-colors'
 import { normalizeTownName, LOCATION_COOKIE, TOWN_REGIONS, townsForLocation } from '@/lib/business-regions'
@@ -27,9 +27,12 @@ import { validateVideoFile, captureVideoPoster, formatVideoDuration, formatVideo
 import { uploadVideoResumable } from '@/lib/video/tus-upload'
 import { humanizePostError } from '@/lib/errors'
 import { useListingDraft, draftKeyForUser } from '@/lib/hooks/use-listing-draft'
+import { BusinessTagPicker } from '@/components/listings/business-tag-picker'
+import { ItemTagPicker } from '@/components/listings/item-tag-picker'
+import type { SelectedItemTag } from '@/lib/items/types'
 import Image from 'next/image'
 import {
-  ImagePlus, X, Play, Check,
+  ImagePlus, X, Play, Check, ChevronUp, ChevronDown,
   ShoppingBag, Handshake, CalendarHeart, Megaphone, Store
 } from 'lucide-react'
 
@@ -177,6 +180,20 @@ function NewListingForm() {
   // video keeps its own state so the two never mix).
   const [videoProgress, setVideoProgress] = useState<{ loaded: number; total: number } | null>(null)
   const [videoFailed, setVideoFailed] = useState(false)
+  // Mention entry point (items engine, 034B — restored 2026-11-11
+  // after PR #167 removed it): the business this post is about.
+  const [taggedBusiness, setTaggedBusiness] = useState<Business | null>(null)
+  // Optional offering tags for the tagged business. First selected =
+  // primary, the rest secondary.
+  const [selectedItems, setSelectedItems] = useState<SelectedItemTag[]>([])
+  const handleBusinessChange = (biz: Business | null) => {
+    setTaggedBusiness(biz)
+    // Offerings belong to one business — a different business (or
+    // none) invalidates the selection.
+    setSelectedItems([])
+  }
+  // Collapsed "Opciones adicionales" section on Paso 2.
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   // Inline per-field errors (shown under the offending field) + the id
@@ -193,6 +210,9 @@ function NewListingForm() {
   // Captions of the failed photos, parallel to `failedImages` — so a
   // retry uploads each photo with the description the seller wrote.
   const [failedCaptions, setFailedCaptions] = useState<string[]>([])
+  // When the listing is already live but a tag failed, the form
+  // offers a retry for the tag only (same pattern as the photos).
+  const [tagWarning, setTagWarning] = useState<'business' | 'items' | null>(null)
   // WhatsApp opt-in at posting time (P1-6) — only when the seller has
   // no number on their profile yet.
   const [whatsappOptIn, setWhatsappOptIn] = useState(false)
@@ -295,6 +315,8 @@ function NewListingForm() {
     listingType, title, description, price, priceConsultar, currency, isFree, cardColor, category,
     location, city, stateRegion, countryCode,
     eventStartDate, eventStartTime, eventEndDate, eventEndTime, eventVenue, eventTicketUrl,
+    taggedBusinessId: taggedBusiness?.id ?? null,
+    selectedItems,
     propertyType, transactionType, bedrooms, bathrooms, constructionM2,
     lotM2, parkingSpots, make, model, year, mileageKm, transmission,
     fuelType, color, doors, whatsappOptIn, whatsappNumber,
@@ -322,6 +344,7 @@ function NewListingForm() {
     setCity(d.city || '')
     setStateRegion(d.stateRegion || '')
     setCountryCode(d.countryCode || 'MX')
+    setSelectedItems((d.selectedItems as SelectedItemTag[]) || [])
     setPropertyType(d.propertyType || 'casa')
     setTransactionType(d.transactionType || 'venta')
     setBedrooms(d.bedrooms || '')
@@ -342,6 +365,11 @@ function NewListingForm() {
     // Drafts saved before the 4-step flow have no step — land on 1.
     // A step outside 1–4 (corrupt value) also lands on 1.
     setStep(typeof d.step === 'number' && d.step >= 1 && d.step <= 4 ? d.step : 1)
+    if (d.taggedBusinessId) {
+      // Restore the full business row so the picker has a real object.
+      createClient().from('businesses').select('*').eq('id', d.taggedBusinessId).single()
+        .then(({ data }) => { if (data) setTaggedBusiness(data as Business) })
+    }
     setDraftRestored(true)
   }
   const { clearDraft, didRestore } = useListingDraft({
@@ -395,6 +423,104 @@ function NewListingForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [didRestore, storesLoaded])
 
+  // Prefill from an item view's "Agrega tu foto" link
+  // (?negocio=<businessId>&item=<itemId>). Runs once, after the
+  // draft decision: a restored draft wins — only what the draft
+  // didn't set gets prefilled. The business is set before the item
+  // tag, because offerings belong to one business.
+  const searchParams = useSearchParams()
+  const prefillItemDoneRef = useRef(false)
+  useEffect(() => {
+    if (!didRestore || prefillItemDoneRef.current) return
+    prefillItemDoneRef.current = true
+    const negocioId = searchParams.get('negocio')
+    const itemId = searchParams.get('item')
+    if (!negocioId && !itemId) return
+    // What the stored draft already set: the business row fetch in
+    // restoreDraft is async, so state may still be null when this
+    // runs — read the stored draft instead of trusting state.
+    let draftBusinessId: string | null = null
+    let draftHasItems = false
+    try {
+      const key = draftKeyForUser(user?.id)
+      const raw = key ? localStorage.getItem(key) : null
+      if (raw) {
+        const parsed = JSON.parse(raw) as { taggedBusinessId?: unknown; selectedItems?: unknown }
+        draftBusinessId =
+          typeof parsed.taggedBusinessId === 'string' ? parsed.taggedBusinessId : null
+        draftHasItems = Array.isArray(parsed.selectedItems) && parsed.selectedItems.length > 0
+      }
+    } catch {
+      // Unreadable draft — prefill proceeds.
+    }
+    const applyItem = (businessId: string) => {
+      if (!itemId || draftHasItems || selectedItems.length > 0) return
+      createClient()
+        .from('items')
+        .select('id, business_id, kind_id, kind:item_kinds(id, name, slug)')
+        .eq('id', itemId)
+        .eq('business_id', businessId)
+        .eq('status', 'visible')
+        .single()
+        .then(({ data }) => {
+          const row = data as {
+            id: string
+            kind_id: string
+            kind?: { name?: string; slug?: string } | null
+          } | null
+          if (row?.kind?.name && row?.kind?.slug) {
+            setSelectedItems([
+              {
+                itemId: row.id,
+                kindId: row.kind_id,
+                kindName: row.kind.name,
+                kindSlug: row.kind.slug,
+              },
+            ])
+          }
+        })
+    }
+    if (negocioId && !draftBusinessId && !taggedBusiness) {
+      createClient()
+        .from('businesses')
+        .select('*')
+        .eq('id', negocioId)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setTaggedBusiness(data as Business)
+            applyItem((data as Business).id)
+          }
+        })
+    } else if (itemId && (draftBusinessId || taggedBusiness)) {
+      applyItem(draftBusinessId ?? taggedBusiness!.id)
+    } else if (itemId) {
+      // No business anywhere yet: learn it from the item, then set both.
+      createClient()
+        .from('items')
+        .select('id, business_id')
+        .eq('id', itemId)
+        .eq('status', 'visible')
+        .single()
+        .then(({ data }) => {
+          const row = data as { id: string; business_id: string } | null
+          if (!row) return
+          createClient()
+            .from('businesses')
+            .select('*')
+            .eq('id', row.business_id)
+            .single()
+            .then(({ data: biz }) => {
+              if (biz) {
+                setTaggedBusiness(biz as Business)
+                applyItem((biz as Business).id)
+              }
+            })
+        })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [didRestore])
+
 
   // Reset the whole form (used by "Descartar" on a restored draft).
   const resetForm = () => {
@@ -402,7 +528,7 @@ function NewListingForm() {
     setListingType('product')
     setTitle(''); setDescription(''); setPrice(''); setPriceConsultar(false); setCurrency('MXN'); setIsFree(false)
     setCategory(''); setLocation(''); setCity(''); setStateRegion(''); setCountryCode('MX')
-    setGpsCountryCode(null);
+    setGpsCountryCode(null); setTaggedBusiness(null); setSelectedItems([]); setTagWarning(null); setShowAdvanced(false)
     setPropertyType('casa'); setTransactionType('venta'); setBedrooms(''); setBathrooms('')
     setConstructionM2(''); setLotM2(''); setParkingSpots('')
     setMake(''); setModel(''); setYear(''); setMileageKm(''); setTransmission('automatica')
@@ -700,6 +826,35 @@ function NewListingForm() {
     return { failed: [], failedCaptions: [], uploaded }
   }
 
+  // Tag the listing's offerings through the server route. Returns true
+  // on success; a failure is the caller's to surface, not to swallow.
+  const postItemTags = async (listingId: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/listings/${listingId}/item-tags`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: selectedItems.map((s) =>
+            s.itemId
+              ? { item_id: s.itemId }
+              : s.kindId
+                ? { kind_id: s.kindId }
+                : { kind_name: s.kindName },
+          ),
+        }),
+      })
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null
+        console.error('item-tags failed:', data?.error || res.status)
+        return false
+      }
+      return true
+    } catch (tagErr) {
+      console.error('item-tags failed:', tagErr)
+      return false
+    }
+  }
+
   // Retry only the photos that failed to upload for the live listing.
   const retryFailedImages = async () => {
     if (!publishedListingId || failedImages.length === 0 || !user) return
@@ -715,6 +870,33 @@ function NewListingForm() {
       router.push(`/listings/${publishedListingId}`)
     } else {
       setError('Todavía no se pudieron subir todas las fotos. Revisa tu conexión e inténtalo de nuevo.')
+    }
+  }
+
+  // Retry the tag operation that failed for the live listing.
+  const retryTags = async () => {
+    if (!publishedListingId || !tagWarning) return
+    setLoading(true)
+    setError('')
+    let ok = true
+    if (tagWarning === 'business' && taggedBusiness) {
+      const { error: tagError } = await supabase.from('listing_business_tags').insert({
+        listing_id: publishedListingId,
+        business_id: taggedBusiness.id,
+      })
+      if (tagError) {
+        console.error('business-tag retry failed:', tagError.message)
+        ok = false
+      }
+    } else if (tagWarning === 'items' && selectedItems.length > 0) {
+      ok = await postItemTags(publishedListingId)
+    }
+    setLoading(false)
+    if (ok) {
+      setTagWarning(null)
+      router.push(`/listings/${publishedListingId}`)
+    } else {
+      setError('Todavía no se pudo guardar la etiqueta. Inténtalo de nuevo.')
     }
   }
 
@@ -940,6 +1122,7 @@ function NewListingForm() {
         city: normalizeTownName(city),
         state_region: stateRegion || null,
         metadata,
+        tagged_business_id: taggedBusiness?.id || null,
         status: 'active',
       }
       let { data: listing, error: listingError } = await supabase
@@ -977,6 +1160,20 @@ function NewListingForm() {
           })
       }
 
+      // Business tag junction — a failure is surfaced with a retry
+      // (P1-4), not swallowed as before.
+      let businessTagFailed = false
+      if (taggedBusiness) {
+        const { error: tagError } = await supabase.from('listing_business_tags').insert({
+          listing_id: listing.id,
+          business_id: taggedBusiness.id,
+        })
+        if (tagError) {
+          businessTagFailed = true
+          console.error('business-tag failed:', tagError.message)
+        }
+      }
+
       // Images, one at a time with progress (P0-2). A failure keeps
       // the listing (already live) and offers a retry for the failed
       // photos only — the old rollback that deleted the listing and
@@ -1006,6 +1203,17 @@ function NewListingForm() {
         }
       }
 
+      // Items engine (§8, 034B): tag the listing's offerings through
+      // the server route, which enforces ownership, business
+      // consistency and attribution. Best-effort like the business
+      // tag above: the listing is already live, and tags are
+      // optional — a failure here must not strand the user on the
+      // form with a published listing (a retry would duplicate it).
+      let itemTagsFailed = false
+      if (selectedItems.length > 0) {
+        itemTagsFailed = !(await postItemTags(listing.id))
+      }
+
       if (imagesFailed) {
         setError('Tu anuncio ya está publicado, pero no se pudieron subir todas las fotos. Revisa tu conexión y reintenta solo las fotos.')
         setLoading(false)
@@ -1013,6 +1221,11 @@ function NewListingForm() {
       }
       if (videoFailedUpload) {
         setError('Tu anuncio ya está publicado, pero no se pudo subir el video. Revisa tu conexión y reintenta solo el video.')
+        setLoading(false)
+        return
+      }
+      if (businessTagFailed || itemTagsFailed) {
+        setTagWarning(businessTagFailed ? 'business' : 'items')
         setLoading(false)
         return
       }
@@ -1755,6 +1968,51 @@ function NewListingForm() {
                 {typeSpecificFields}
               </>
             )}
+            {/* Mention entry point (items engine, 034B): what business
+                is this post about, and what did you try or buy there.
+                Collapsed by default so Paso 2 stays short; tagging is
+                optional — a post without it publishes exactly as before. */}
+            <div className="border-t border-gray-200 pt-5">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="w-full flex items-center justify-between py-3.5 hover:bg-gray-100 transition"
+              >
+                <span className="text-base font-semibold text-gray-900">
+                  Opciones adicionales
+                </span>
+                {showAdvanced
+                  ? <ChevronUp className="h-4 w-4 text-gray-500" />
+                  : <ChevronDown className="h-4 w-4 text-gray-500" />
+                }
+              </button>
+
+              {showAdvanced && (
+                <div className="pb-2 space-y-5 border-t border-gray-200 pt-4">
+                  {/* Business Tag */}
+                  <BusinessTagPicker
+                    value={taggedBusiness}
+                    onChange={handleBusinessChange}
+                    location={location || undefined}
+                    category={category || undefined}
+                  />
+
+                  {/* Item Tag — only after a business is tagged (decision 4).
+                      key remounts the picker when the business changes, so
+                      its search state never leaks across businesses. */}
+                  {taggedBusiness && (
+                    <ItemTagPicker
+                      key={taggedBusiness.id}
+                      business={taggedBusiness}
+                      listingType={listingType}
+                      textForHashtags={`${title} ${description}`}
+                      value={selectedItems}
+                      onChange={setSelectedItems}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
           </div>
           )}
 
@@ -1841,6 +2099,19 @@ function NewListingForm() {
           <div className="sticky bottom-0 z-20 -mx-4 px-4 pt-2 pb-3 mt-6 bg-white/95 backdrop-blur border-t border-gray-300">
             {publishedListingId ? (
               <>
+                {tagWarning && (
+                  <div className="text-sm bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 text-gray-700 mb-3">
+                    Se publicó, pero no se pudo etiquetar el {tagWarning === 'business' ? 'negocio' : 'producto'}.
+                    <button
+                      type="button"
+                      onClick={retryTags}
+                      disabled={loading}
+                      className="ml-2 underline font-medium"
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                )}
                 {failedImages.length > 0 && (
                   <div className="text-sm bg-gray-100 border border-gray-300 rounded-lg px-3 py-2 text-gray-700 mb-3">
                     Faltan {failedImages.length} foto{failedImages.length === 1 ? '' : 's'} por subir.
@@ -1975,9 +2246,9 @@ function NewListingForm() {
   )
 }
 
-// The form used to read ?negocio=&item= via useSearchParams,
-// which needed this Suspense boundary (Next 15). The prefill is
-// gone; the wrapper stays as a harmless boundary.
+// The form reads ?negocio=&item= via useSearchParams for the item
+// page's "Agrega tu foto" prefill, which needs this Suspense
+// boundary (Next 15).
 export default function NewListingPage() {
   return (
     <Suspense>

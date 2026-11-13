@@ -14,10 +14,16 @@ import {
   Store, Tag, TrendingUp, User, UserCircle, X,
 } from 'lucide-react'
 
-// Shared side panel, in the style of the Muse app's own sidebar: a black
-// panel, small-caps section labels, icon rows, the current page as a
-// filled pill, and a bottom bar with settings and an orange compose
+// Shared side panel, in the style of the Muse app's own sidebar: an
+// orange panel (orange-600, the site accent, same as Publish),
+// small-caps section labels, icon rows, the current page as a
+// filled pill, and a bottom bar with settings and a white compose
 // button.
+//
+// Secondary text and icons are white/70 so they stay legible on the
+// orange; the active row pill is the darker orange-700, and the
+// compose button is white with orange-600 text so it reads against
+// the panel.
 //
 // One panel, two sides: the mobile hamburger opens it from the LEFT
 // (the old MobileSidebar), the desktop avatar opens the same panel
@@ -92,11 +98,11 @@ export function SidePanel({ open, onClose, onReport, side }: { open: boolean; on
 
   const rowClass = (href: string) =>
     `flex items-center gap-3 px-4 h-12 text-[15px] rounded-full transition-colors ${
-      isActive(href) ? 'bg-white/10 text-white font-medium' : 'text-zinc-300 hover:bg-white/5'
+      isActive(href) ? 'bg-orange-700 text-white font-medium' : 'text-white hover:bg-white/10'
     }`
 
   const actionRowClass =
-    'flex w-full items-center gap-3 px-4 h-12 text-[15px] text-zinc-300 hover:bg-white/5 rounded-full transition-colors'
+    'flex w-full items-center gap-3 px-4 h-12 text-[15px] text-white hover:bg-white/10 rounded-full transition-colors'
 
   return (
     // Left panel lives below md (mobile hamburger); the right panel
@@ -122,7 +128,7 @@ export function SidePanel({ open, onClose, onReport, side }: { open: boolean; on
         role="dialog"
         aria-modal={side === 'left'}
         aria-label="Menú"
-        className={`fixed top-0 z-[70] flex h-full w-[85vw] max-w-[340px] flex-col bg-black text-white shadow-xl transition-transform duration-300 ease-out ${
+        className={`fixed top-0 z-[70] flex h-full w-[85vw] max-w-[340px] flex-col bg-orange-600 text-white shadow-xl transition-transform duration-300 ease-out ${
           side === 'left' ? 'left-0' : 'right-0'
         } ${
           open ? 'translate-x-0' : side === 'left' ? '-translate-x-full' : 'translate-x-full'
@@ -133,7 +139,7 @@ export function SidePanel({ open, onClose, onReport, side }: { open: boolean; on
           <button
             onClick={onClose}
             aria-label="Cerrar menú"
-            className="p-1 -mr-1 text-zinc-400 hover:text-white"
+            className="p-1 -mr-1 text-white/70 hover:text-white"
           >
             <X className="h-5 w-5" />
           </button>
@@ -141,12 +147,12 @@ export function SidePanel({ open, onClose, onReport, side }: { open: boolean; on
 
         {user && (
           <div className="flex items-center gap-3 px-5 py-3 shrink-0">
-            <span className="relative h-10 w-10 rounded-full bg-zinc-800 flex items-center justify-center text-sm font-medium overflow-hidden shrink-0">
+            <span className="relative h-10 w-10 rounded-full bg-white/20 flex items-center justify-center text-sm font-medium overflow-hidden shrink-0">
               {activeStore ? (
                 activeStore.avatar_url ? (
                   <Image src={activeStore.avatar_url} alt={activeStore.name} fill className="object-cover" />
                 ) : (
-                  <Store className="h-5 w-5 text-zinc-400" />
+                  <Store className="h-5 w-5 text-white/70" />
                 )
               ) : profile?.avatar_url ? (
                 <Image src={profile.avatar_url} alt={profile.display_name} fill className="object-cover" />
@@ -158,7 +164,7 @@ export function SidePanel({ open, onClose, onReport, side }: { open: boolean; on
               <span className="block truncate text-sm font-medium">
                 {activeStore ? activeStore.name : profile?.display_name}
               </span>
-              <span className="block truncate text-xs text-zinc-500">
+              <span className="block truncate text-xs text-white/70">
                 {activeStore ? t.nav.storeMode : `@${profile?.username}`}
               </span>
             </span>
@@ -166,15 +172,15 @@ export function SidePanel({ open, onClose, onReport, side }: { open: boolean; on
         )}
 
         <nav className="flex-1 overflow-y-auto px-2 pb-4">
-          <p className="px-4 pt-4 pb-1 text-[11px] uppercase tracking-wider text-zinc-500 font-medium">Explorar</p>
+          <p className="px-4 pt-4 pb-1 text-[11px] uppercase tracking-wider text-white/70 font-medium">Explorar</p>
           <Link href="/" onClick={onClose} className={rowClass('/')}>
-            <Home className="h-5 w-5 text-zinc-400" />Inicio
+            <Home className="h-5 w-5 text-white/70" />Inicio
           </Link>
           <Link href="/businesses" onClick={onClose} className={rowClass('/businesses')}>
-            <Store className="h-5 w-5 text-zinc-400" />Negocios
+            <Store className="h-5 w-5 text-white/70" />Negocios
           </Link>
           <Link href="/garita" onClick={onClose} className={rowClass('/garita')}>
-            <Clock className="h-5 w-5 text-zinc-400" />Garita
+            <Clock className="h-5 w-5 text-white/70" />Garita
           </Link>
           {/* Reporting on mobile: the header chip is desktop-only,
               so the sidebar carries the entry — same row style,
@@ -185,13 +191,13 @@ export function SidePanel({ open, onClose, onReport, side }: { open: boolean; on
             onClick={() => { onClose(); onReport() }}
             className={actionRowClass}
           >
-            <PenLine className="h-5 w-5 text-zinc-400" />Reportar la fila
+            <PenLine className="h-5 w-5 text-white/70" />Reportar la fila
           </button>
           {user && (
             <Link href="/messages" onClick={onClose} className={rowClass('/messages')}>
-              <MessageCircle className="h-5 w-5 text-zinc-400" />Mensajes
+              <MessageCircle className="h-5 w-5 text-white/70" />Mensajes
               {unreadMessages > 0 && (
-                <span className="ml-auto h-4 min-w-4 px-1 rounded-full bg-white text-black text-[10px] font-semibold inline-flex items-center justify-center">
+                <span className="ml-auto h-4 min-w-4 px-1 rounded-full bg-white text-orange-700 text-[10px] font-semibold inline-flex items-center justify-center">
                   {unreadMessages > 99 ? '99+' : unreadMessages}
                 </span>
               )}
@@ -200,46 +206,46 @@ export function SidePanel({ open, onClose, onReport, side }: { open: boolean; on
 
           {user ? (
             <>
-              <div className="mx-4 my-3 border-t border-white/10" />
-              <p className="px-4 pt-1 pb-1 text-[11px] uppercase tracking-wider text-zinc-500 font-medium">Mi cuenta</p>
+              <div className="mx-4 my-3 border-t border-white/20" />
+              <p className="px-4 pt-1 pb-1 text-[11px] uppercase tracking-wider text-white/70 font-medium">Mi cuenta</p>
               <Link href="/cuenta" onClick={onClose} className={rowClass('/cuenta')}>
-                <CircleUserRound className="h-5 w-5 text-zinc-400" />Mi cuenta
+                <CircleUserRound className="h-5 w-5 text-white/70" />Mi cuenta
               </Link>
               <Link href={`/users/${profile?.username}`} onClick={onClose} className={rowClass(`/users/${profile?.username}`)}>
-                <UserCircle className="h-5 w-5 text-zinc-400" />{t.nav.myProfile}
+                <UserCircle className="h-5 w-5 text-white/70" />{t.nav.myProfile}
               </Link>
               <button
                 type="button"
                 onClick={() => { setActiveStore(null); onClose() }}
                 className={`${actionRowClass} justify-between`}
               >
-                <span className="flex items-center gap-3"><User className="h-5 w-5 text-zinc-400" />{t.nav.publishAs}</span>
+                <span className="flex items-center gap-3"><User className="h-5 w-5 text-white/70" />{t.nav.publishAs}</span>
                 {!activeStore && <Check className="h-4 w-4 text-white" />}
               </button>
               <Link href="/my-listings" onClick={onClose} className={rowClass('/my-listings')}>
-                <Tag className="h-5 w-5 text-zinc-400" />{t.nav.myListings}
+                <Tag className="h-5 w-5 text-white/70" />{t.nav.myListings}
               </Link>
               <Link href="/profile/edit" onClick={onClose} className={rowClass('/profile/edit')}>
-                <Settings className="h-5 w-5 text-zinc-400" />{t.nav.settings}
+                <Settings className="h-5 w-5 text-white/70" />{t.nav.settings}
               </Link>
               {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
                 <Link href="/admin/reports" onClick={onClose} className={rowClass('/admin/reports')}>
-                  <Flag className="h-5 w-5 text-zinc-400" />Reportes (admin)
+                  <Flag className="h-5 w-5 text-white/70" />Reportes (admin)
                 </Link>
               )}
               {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
                 <Link href="/admin/alerts" onClick={onClose} className={rowClass('/admin/alerts')}>
-                  <Mail className="h-5 w-5 text-zinc-400" />Alertas (admin)
+                  <Mail className="h-5 w-5 text-white/70" />Alertas (admin)
                 </Link>
               )}
               {(profile as unknown as { is_superadmin?: boolean })?.is_superadmin && (
                 <Link href="/admin/liquidity" onClick={onClose} className={rowClass('/admin/liquidity')}>
-                  <TrendingUp className="h-5 w-5 text-zinc-400" />Liquidez (admin)
+                  <TrendingUp className="h-5 w-5 text-white/70" />Liquidez (admin)
                 </Link>
               )}
 
-              <div className="mx-4 my-3 border-t border-white/10" />
-              <p className="px-4 pt-1 pb-1 text-[11px] uppercase tracking-wider text-zinc-500 font-medium flex items-center gap-1.5">
+              <div className="mx-4 my-3 border-t border-white/20" />
+              <p className="px-4 pt-1 pb-1 text-[11px] uppercase tracking-wider text-white/70 font-medium flex items-center gap-1.5">
                 <Store className="h-3 w-3" />{t.nav.myStores}
               </p>
               {visibleStores.map((store) => (
@@ -250,11 +256,11 @@ export function SidePanel({ open, onClose, onReport, side }: { open: boolean; on
                   className={`${actionRowClass} justify-between`}
                 >
                   <span className="flex items-center gap-3 min-w-0">
-                    <span className="h-6 w-6 rounded-full bg-zinc-800 flex items-center justify-center overflow-hidden shrink-0">
+                    <span className="h-6 w-6 rounded-full bg-white/20 flex items-center justify-center overflow-hidden shrink-0">
                       {store.avatar_url ? (
                         <Image src={store.avatar_url} alt={store.name} width={24} height={24} className="h-6 w-6 object-cover" />
                       ) : (
-                        <Store className="h-3.5 w-3.5 text-zinc-400" />
+                        <Store className="h-3.5 w-3.5 text-white/70" />
                       )}
                     </span>
                     <span className="truncate">{store.name}</span>
@@ -271,39 +277,39 @@ export function SidePanel({ open, onClose, onReport, side }: { open: boolean; on
                 {t.nav.createStore}
               </Link>
 
-              <div className="mx-4 my-3 border-t border-white/10" />
+              <div className="mx-4 my-3 border-t border-white/20" />
               <button type="button" onClick={() => { onClose(); openReport() }} className={actionRowClass}>
-                <Flag className="h-5 w-5 text-zinc-400" />{t.nav.reportProblem}
+                <Flag className="h-5 w-5 text-white/70" />{t.nav.reportProblem}
               </button>
               <button type="button" onClick={() => { onClose(); signOut() }} className={actionRowClass}>
-                <LogOut className="h-5 w-5 text-zinc-400" />{t.nav.logout}
+                <LogOut className="h-5 w-5 text-white/70" />{t.nav.logout}
               </button>
             </>
           ) : (
             <>
-              <div className="mx-4 my-3 border-t border-white/10" />
+              <div className="mx-4 my-3 border-t border-white/20" />
               <button
                 type="button"
                 onClick={() => { onClose(); openAuth('login') }}
                 className={actionRowClass}
               >
-                <UserCircle className="h-5 w-5 text-zinc-400" />{t.nav.login}
+                <UserCircle className="h-5 w-5 text-white/70" />{t.nav.login}
               </button>
               <button
                 type="button"
                 onClick={() => { onClose(); openAuth('signup') }}
                 className={actionRowClass}
               >
-                <User className="h-5 w-5 text-zinc-400" />{t.nav.register}
+                <User className="h-5 w-5 text-white/70" />{t.nav.register}
               </button>
             </>
           )}
 
-          <div className="mx-4 my-3 border-t border-white/10" />
-          <Link href="/terms" onClick={onClose} className="block px-4 py-2 text-xs text-zinc-500 hover:text-zinc-300">
+          <div className="mx-4 my-3 border-t border-white/20" />
+          <Link href="/terms" onClick={onClose} className="block px-4 py-2 text-xs text-white/60 hover:text-white">
             {t.footer.termsOfService}
           </Link>
-          <Link href="/privacy" onClick={onClose} className="block px-4 py-2 text-xs text-zinc-500 hover:text-zinc-300">
+          <Link href="/privacy" onClick={onClose} className="block px-4 py-2 text-xs text-white/60 hover:text-white">
             {t.footer.privacyPolicy}
           </Link>
         </nav>
@@ -312,13 +318,13 @@ export function SidePanel({ open, onClose, onReport, side }: { open: boolean; on
             pill used to live here — it went to the same bare /search as
             the bottom-nav tab and the sidebar row, so it was deleted
             with them (2026-11-06 search rebuild). */}
-        <div className="flex shrink-0 items-center gap-3 border-t border-white/10 bg-black p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <div className="flex shrink-0 items-center gap-3 border-t border-white/20 bg-orange-700 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           {user && (
             <Link
               href="/profile/edit"
               onClick={onClose}
               aria-label={t.nav.settings}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/20 text-zinc-300 hover:text-white"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/20 text-white/80 hover:text-white"
             >
               <Settings className="h-5 w-5" />
             </Link>
@@ -328,7 +334,7 @@ export function SidePanel({ open, onClose, onReport, side }: { open: boolean; on
             href="/listings/new"
             onClick={onClose}
             aria-label={t.nav.publish}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-600 text-white shadow"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-orange-600 shadow"
           >
             <PenLine className="h-5 w-5" />
           </Link>

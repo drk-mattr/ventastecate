@@ -1345,7 +1345,7 @@ function NewListingForm() {
               type="button"
               onClick={() => setCurrency(cur)}
               aria-pressed={currency === cur}
-              className={`px-2.5 py-1.5 rounded-md text-xs font-medium ${currency === cur ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
+              className={`px-2.5 py-2.5 rounded-md text-xs font-medium ${currency === cur ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
             >
               {cur}
             </button>
@@ -1377,12 +1377,12 @@ function NewListingForm() {
   ) : null
 
   const categoryField = storeType === 'general' ? (
-    <div className="space-y-1.5" id="category-field">
+    <div className="min-w-0 space-y-1.5" id="category-field">
       <Label htmlFor="category" className="text-sm">
         Categoría <span className="text-red-400">*</span>
       </Label>
       <Select value={category} onValueChange={(v) => { setCategory(v); clearFieldError('category') }} required>
-        <SelectTrigger className="border-gray-300">
+        <SelectTrigger className="w-full border-gray-300">
           <SelectValue placeholder="Elige una categoría" />
         </SelectTrigger>
         <SelectContent>
@@ -1412,7 +1412,7 @@ function NewListingForm() {
     <div className="space-y-1.5">
       <Label className="text-sm">Tipo de Operación *</Label>
       <Select value={transactionType} onValueChange={setTransactionType}>
-        <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
+        <SelectTrigger className="w-full border-gray-300"><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="venta">Venta</SelectItem>
           <SelectItem value="renta">Renta</SelectItem>
@@ -1433,7 +1433,7 @@ function NewListingForm() {
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <Label htmlFor="event-start-date" className="text-sm">
             Fecha de inicio <span className="text-red-400">*</span>
           </Label>
@@ -1446,7 +1446,7 @@ function NewListingForm() {
           />
           {fieldErrors.eventStartDate && <p className="text-xs text-red-500">{fieldErrors.eventStartDate}</p>}
         </div>
-        <div className="space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <Label htmlFor="event-start-time" className="text-sm">Hora</Label>
           <Input className="border-gray-300"
             id="event-start-time"
@@ -1455,7 +1455,7 @@ function NewListingForm() {
             onChange={(e) => setEventStartTime(e.target.value)}
           />
         </div>
-        <div className="space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <Label htmlFor="event-end-date" className="text-sm">Fecha de término</Label>
           <Input className="border-gray-300"
             id="event-end-date"
@@ -1465,7 +1465,7 @@ function NewListingForm() {
           />
           {fieldErrors.eventEndDate && <p className="text-xs text-red-500">{fieldErrors.eventEndDate}</p>}
         </div>
-        <div className="space-y-1.5">
+        <div className="min-w-0 space-y-1.5">
           <Label htmlFor="event-end-time" className="text-sm">Hora</Label>
           <Input className="border-gray-300"
             id="event-end-time"
@@ -1512,7 +1512,7 @@ function NewListingForm() {
           <div className="space-y-1.5">
             <Label className="text-sm">Tipo de Propiedad *</Label>
             <Select value={propertyType} onValueChange={setPropertyType}>
-              <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full border-gray-300"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="casa">Casa</SelectItem>
                 <SelectItem value="departamento">Departamento</SelectItem>
@@ -1541,15 +1541,15 @@ function NewListingForm() {
             {fieldErrors.year && <p className="text-xs text-red-500">{fieldErrors.year}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5"><Label htmlFor="auto-make" className="text-sm">Marca *</Label><Input className="border-gray-300" id="auto-make" value={make} onChange={(e) => { setMake(e.target.value); clearFieldError('make') }} required placeholder="Toyota" />{fieldErrors.make && <p className="text-xs text-red-500">{fieldErrors.make}</p>}</div>
-            <div className="space-y-1.5"><Label htmlFor="auto-model" className="text-sm">Modelo *</Label><Input className="border-gray-300" id="auto-model" value={model} onChange={(e) => { setModel(e.target.value); clearFieldError('model') }} required placeholder="Tacoma" />{fieldErrors.model && <p className="text-xs text-red-500">{fieldErrors.model}</p>}</div>
+            <div className="min-w-0 space-y-1.5"><Label htmlFor="auto-make" className="text-sm">Marca *</Label><Input className="border-gray-300" id="auto-make" value={make} onChange={(e) => { setMake(e.target.value); clearFieldError('make') }} required placeholder="Toyota" />{fieldErrors.make && <p className="text-xs text-red-500">{fieldErrors.make}</p>}</div>
+            <div className="min-w-0 space-y-1.5"><Label htmlFor="auto-model" className="text-sm">Modelo *</Label><Input className="border-gray-300" id="auto-model" value={model} onChange={(e) => { setModel(e.target.value); clearFieldError('model') }} required placeholder="Tacoma" />{fieldErrors.model && <p className="text-xs text-red-500">{fieldErrors.model}</p>}</div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="space-y-1.5"><Label className="text-sm">Kilómetros</Label><Input className="border-gray-300" type="number" min="0" value={mileageKm} onChange={(e) => setMileageKm(e.target.value)} placeholder="45000" /></div>
             <div className="space-y-1.5">
               <Label className="text-sm">Transmisión</Label>
               <Select value={transmission} onValueChange={setTransmission}>
-                <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full border-gray-300"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="automatica">Automática</SelectItem>
                   <SelectItem value="manual">Manual</SelectItem>
@@ -1559,7 +1559,7 @@ function NewListingForm() {
             <div className="space-y-1.5">
               <Label className="text-sm">Combustible</Label>
               <Select value={fuelType} onValueChange={setFuelType}>
-                <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full border-gray-300"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="gasolina">Gasolina</SelectItem>
                   <SelectItem value="diesel">Diésel</SelectItem>
@@ -1570,11 +1570,11 @@ function NewListingForm() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5"><Label className="text-sm">Color</Label><Input className="border-gray-300" value={color} onChange={(e) => setColor(e.target.value)} placeholder="Blanco" /></div>
-            <div className="space-y-1.5">
+            <div className="min-w-0 space-y-1.5"><Label className="text-sm">Color</Label><Input className="border-gray-300" value={color} onChange={(e) => setColor(e.target.value)} placeholder="Blanco" /></div>
+            <div className="min-w-0 space-y-1.5">
               <Label className="text-sm">Puertas</Label>
               <Select value={doors} onValueChange={setDoors}>
-                <SelectTrigger className="border-gray-300"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full border-gray-300"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="2">2 puertas</SelectItem>
                   <SelectItem value="4">4 puertas</SelectItem>
@@ -1765,15 +1765,15 @@ function NewListingForm() {
                             type="button"
                             onClick={(e) => { e.stopPropagation(); removeVideo() }}
                             aria-label="Quitar video"
-                            className="absolute top-1.5 right-1.5 bg-black/60 backdrop-blur-sm text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-black/80 transition"
+                            className="absolute top-1.5 right-1.5 bg-black/60 backdrop-blur-sm text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/80 transition"
                           >
-                            <X className="h-3.5 w-3.5" />
+                            <X className="h-4 w-4" />
                           </button>
                         </div>
                       </div>
                     )}
                     {imagePreviews.map((preview, index) => (
-                      <div key={index} className="flex flex-col gap-1.5">
+                      <div key={index} className="min-w-0 flex flex-col gap-1.5">
                         <div
                           className={`relative rounded-lg overflow-hidden ${
                             mediaTileCount === 1 ? 'aspect-[16/9]' : 'aspect-square'
@@ -1783,9 +1783,10 @@ function NewListingForm() {
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); removeImage(index) }}
-                            className="absolute top-1.5 right-1.5 bg-black/60 backdrop-blur-sm text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-black/80 transition"
+                            aria-label="Quitar foto"
+                            className="absolute top-1.5 right-1.5 bg-black/60 backdrop-blur-sm text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-black/80 transition"
                           >
-                            <X className="h-3.5 w-3.5" />
+                            <X className="h-4 w-4" />
                           </button>
                         </div>
                         {/* Optional caption, shown under the photo on the
@@ -1800,7 +1801,7 @@ function NewListingForm() {
                           onClick={(e) => e.stopPropagation()}
                           placeholder="Descripción de la foto (opcional)"
                           aria-label={`Descripción de la foto ${index + 1}`}
-                          className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
+                          className="w-full min-w-0 rounded-md border border-gray-300 bg-white px-2 py-2 text-base text-gray-900 placeholder:text-gray-400 focus:border-gray-900 focus:outline-none"
                         />
                       </div>
                     ))}
@@ -2096,7 +2097,7 @@ function NewListingForm() {
           {/* ══════════════════════════════════════════════
               STICKY PUBLISH BAR — the action is always visible
               ══════════════════════════════════════════════ */}
-          <div className="sticky bottom-0 z-20 -mx-4 px-4 pt-2 pb-3 mt-6 bg-white/95 backdrop-blur border-t border-gray-300">
+          <div className="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 z-20 -mx-4 px-4 pt-2 pb-3 mt-6 bg-white border-t border-gray-300">
             {publishedListingId ? (
               <>
                 {tagWarning && (

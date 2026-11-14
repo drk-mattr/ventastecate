@@ -140,7 +140,7 @@ export function BusinessTagPicker({ value, onChange, location, category }: Busin
           <button
             type="button"
             onClick={clearSelection}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 -m-1.5 rounded-full"
           >
             <X className="h-4 w-4" />
           </button>
@@ -156,7 +156,10 @@ export function BusinessTagPicker({ value, onChange, location, category }: Busin
   const showCreateOption = trimmedQuery.length >= 2 && !exactMatch && !searching
 
   return (
-    <div className="space-y-2" ref={wrapperRef}>
+    // Relative: the results dropdown below is absolute, so it anchors
+    // to this search field — without it, it positioned against the
+    // page and overflowed the form on mobile.
+    <div className="relative space-y-2" ref={wrapperRef}>
       <Label className="flex items-center gap-1.5">
         <Store className="h-3.5 w-3.5 text-gray-500" />
         Negocio / Restaurante (opcional)

@@ -83,7 +83,7 @@ export function LocationPicker({
           size="sm"
           onClick={handleGetLocation}
           disabled={detecting}
-          className="h-7 px-2 text-xs text-gray-900 hover:text-gray-600 hover:bg-gray-100"
+          className="h-9 px-3 text-xs text-gray-900 hover:text-gray-600 hover:bg-gray-100"
         >
           {detecting ? (
             <>
@@ -133,7 +133,7 @@ export function LocationPicker({
             value={city}
             onChange={(e) => onCityChange(e.target.value)}
             placeholder={f.cityFormPlaceholder}
-            className="h-9 text-sm"
+            className="h-9"
           />
         </div>
         <div className="space-y-1">
@@ -145,7 +145,7 @@ export function LocationPicker({
             value={stateRegion}
             onChange={(e) => onStateRegionChange(e.target.value)}
             placeholder={f.statePlaceholder}
-            className="h-9 text-sm"
+            className="h-9"
           />
         </div>
       </div>

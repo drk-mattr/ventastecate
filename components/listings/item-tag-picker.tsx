@@ -137,7 +137,7 @@ export function ItemTagPicker({
               <button
                 type="button"
                 onClick={() => removeTag(tag.kindSlug)}
-                className="hover:opacity-70"
+                className="hover:opacity-70 p-1.5 -m-1.5 rounded-full"
                 aria-label={`Quitar ${tag.kindName}`}
               >
                 <X className="h-3 w-3" />

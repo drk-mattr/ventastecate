@@ -23,9 +23,12 @@ export function Header() {
   // Business views have their own way to find things (the index's own
   // search on /businesses, the gallery and info on a business page),
   // so the header search is noise there — hide it on /businesses and
-  // /businesses/*, and nowhere else.
+  // /businesses/*. The posting form is a focused flow with the same
+  // problem (the search row eats a full row of a 4-step form), so it
+  // hides on /listings/new too. Wordmark, bell, and avatar stay.
   const hideHeaderSearch =
-    pathname === '/businesses' || (pathname?.startsWith('/businesses/') ?? false)
+    pathname === '/businesses' || (pathname?.startsWith('/businesses/') ?? false) ||
+    pathname === '/listings/new'
   const t = useTranslations()
   const [menuOpen, setMenuOpen] = useState(false)
   // The avatar opens the same black panel from the RIGHT on desktop
@@ -94,7 +97,7 @@ export function Header() {
         </div>
 
         {/* Search lives in the nav bar on every page except business
-            views, including the homepage — the old big hero search was
+            views and the posting form, including the homepage — the old big hero search was
             removed 2026-11-04. The Garita chip rides in this same
             cluster, immediately right of the search bar (desktop
             only), so it hides together with the search on business

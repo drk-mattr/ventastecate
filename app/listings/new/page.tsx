@@ -61,6 +61,7 @@ const NEWS_CATEGORIES = [
 const TYPE_CONFIG: Record<ListingType, {
   Icon: React.ComponentType<{ className?: string }>
   label: string
+  hint?: string
   verb: string
   titlePlaceholder: string
   descPlaceholder: string
@@ -71,6 +72,7 @@ const TYPE_CONFIG: Record<ListingType, {
   product: {
     Icon: ShoppingBag,
     label: 'Venta',
+    hint: 'Carros, casas, terrenos, rentas y más',
     verb: 'Vender o intercambiar',
     titlePlaceholder: 'Ej: iPhone 13, Mueble de cocina, Bicicleta...',
     descPlaceholder: 'Describe lo que ofreces: estado, detalles, por qué lo vendes...',
@@ -1657,6 +1659,11 @@ function NewListingForm() {
                       <span className={`text-xs font-medium leading-tight text-center ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
                         {cfg.label}
                       </span>
+                      {cfg.hint && (
+                        <span className="text-[11px] leading-tight text-center text-gray-500">
+                          {cfg.hint}
+                        </span>
+                      )}
                     </button>
                   )
                 })}

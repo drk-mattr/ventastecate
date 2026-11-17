@@ -14,7 +14,7 @@ export type Profile = {
 }
 
 
-export type ListingType = 'product' | 'service' | 'event' | 'news'
+export type ListingType = 'product' | 'service' | 'event' | 'news' | 'mention'
 
 export type StoreType = 'general' | 'real_estate' | 'automotive'
 
@@ -85,6 +85,9 @@ export type Listing = {
   event_ends_at?: string | null
   event_venue?: string | null
   event_ticket_url?: string | null
+  /** Pin coordinates (migration 060): device location at post time, NULL when posted without GPS. */
+  latitude?: number | null
+  longitude?: number | null
   category: string
   location: string
   country_code?: string | null

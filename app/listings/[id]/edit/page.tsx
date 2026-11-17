@@ -177,6 +177,7 @@ export default function EditListingPage() {
     service: { icon: '🔧', label: f.typeServiceLabel },
     event: { icon: '📢', label: f.typeEventLabel },
     news: { icon: '📰', label: f.typeNewsLabel },
+    mention: { icon: '👍', label: 'Recomendación' },
   }
 
   useEffect(() => {

@@ -111,6 +111,41 @@ export function useItemSearch(businessId: string | null) {
     [businessId],
   )
 
+  // Business-free hashtag resolution (mention flow): #tags in the
+  // caption resolve to kinds through the public kinds endpoint,
+  // which is NOT scoped to one business — unlike /api/items/search.
+  // Same rule as above: offered, never applied silently. A hashtag
+  // that does not resolve is simply not suggested.
+  const loadHashtagSuggestionsNoBusiness = useCallback(
+    async (text: string, alreadySelectedSlugs: Set<string>) => {
+      const tags = extractHashtags(text)
+      if (tags.length === 0) {
+        setHashtagSuggestions([])
+        return
+      }
+      const found: HashtagSuggestion[] = []
+      await Promise.all(
+        tags.map(async (tag) => {
+          try {
+            const res = await fetch(`/api/items/kinds?q=${encodeURIComponent(tag)}&limit=5`)
+            if (!res.ok) return
+            const data = (await res.json()) as {
+              kinds?: { id: string; name: string; slug: string }[]
+            }
+            const kind = (data.kinds ?? [])[0] ?? null
+            if (kind && !alreadySelectedSlugs.has(kind.slug)) {
+              found.push({ tag, kindId: kind.id, kindName: kind.name, kindSlug: kind.slug })
+            }
+          } catch {
+            // A hashtag that does not resolve is simply not suggested.
+          }
+        }),
+      )
+      setHashtagSuggestions(found.slice(0, 3))
+    },
+    [],
+  )
+
   const reset = useCallback(() => {
     setQuery('')
     setResults({ items: [], kinds: [] })
@@ -125,6 +160,7 @@ export function useItemSearch(businessId: string | null) {
     handleQueryChange,
     searchNow,
     loadHashtagSuggestions,
+    loadHashtagSuggestionsNoBusiness,
     reset,
     setHashtagSuggestions,
   }

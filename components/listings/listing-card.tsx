@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Wrench, Megaphone, Store, Play } from 'lucide-react'
+import { Wrench, Megaphone, Store, Play, ThumbsUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ListingWithImages } from '@/lib/types/database'
 import { formatPrice } from '@/lib/listings/format-price'
@@ -25,6 +25,7 @@ const TYPE_STYLES = {
   event:   { gradient: 'from-amber-500 to-orange-600' },
   product: { gradient: 'from-gray-500 to-gray-700' },
   news:    { gradient: 'from-slate-700 to-slate-900' },
+  mention: { gradient: 'from-gray-500 to-gray-700' },
 } as const
 
 const TYPE_BADGE: Record<string, { icon: React.ElementType; label: string } | null> = {
@@ -32,6 +33,7 @@ const TYPE_BADGE: Record<string, { icon: React.ElementType; label: string } | nu
   event:   { icon: Megaphone, label: 'Evento' },
   product: null,
   news:    null,
+  mention: { icon: ThumbsUp,  label: 'Recomendación' },
 }
 
 const NEWS_CATEGORY_COLORS: Record<string, string> = {

@@ -48,14 +48,19 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Protected routes that require authentication
-  const protectedRoutes = ['/listings/new', '/my-listings', '/my-stores', '/messages', '/profile/edit', '/admin']
+  // Protected routes that require authentication. /listings/new is
+  // NOT protected: a signed-out visitor composes under a guest draft
+  // and is asked to sign in only when they hit Publicar — the form
+  // itself gates the publish and preserves the return destination.
+  const protectedRoutes = ['/my-listings', '/my-stores', '/messages', '/profile/edit', '/admin']
   const isProtectedRoute = protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route))
 
   if (isProtectedRoute && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    url.searchParams.set('redirect', request.nextUrl.pathname)
+    // Carry the FULL destination — path + query — so a deep link
+    // (e.g. /my-listings?tab=... ) resumes where the visitor was.
+    url.searchParams.set('redirect', request.nextUrl.pathname + request.nextUrl.search)
     return NextResponse.redirect(url)
   }
 

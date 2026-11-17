@@ -3,12 +3,15 @@
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/hooks/use-translations'
+import { safeRedirect } from '@/lib/auth/redirect'
 import { Card, CardContent } from '@/components/ui/card'
 import { AuthForm } from '@/components/auth/auth-form'
 
 function LoginForm() {
   const searchParams = useSearchParams()
-  const redirect = searchParams.get('redirect') || '/'
+  // The destination is validated as an internal path — a crafted
+  // ?redirect= must never bounce a fresh login to an outside site.
+  const redirect = safeRedirect(searchParams.get('redirect'))
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">

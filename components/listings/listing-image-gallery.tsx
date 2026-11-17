@@ -101,6 +101,71 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
   const heroIdx = images[selected] ? selected : 0
   const hero = images[heroIdx]
 
+  // ── News hero: the photo at its own aspect ratio — no fixed-height
+  // box, no blurred backdrop, no letterbox gray. The container is
+  // white, so even a capped very-tall photo shows no gray zones
+  // against the white article page. Never cropped: object-contain,
+  // never object-cover. News only — products/events keep the hero
+  // below.
+  if (listingType === 'news') {
+    return (
+      <>
+        <div className="mb-6">
+          <div
+            className="relative max-h-[75svh] sm:max-h-[560px] rounded-none sm:rounded-xl overflow-hidden bg-white cursor-pointer"
+            onClick={() => openLightbox(heroIdx)}
+          >
+            <Image
+              src={hero.image_url}
+              alt={listingTitle}
+              width={1200}
+              height={900}
+              className="w-full h-auto max-h-[75svh] sm:max-h-[560px] object-contain hover:opacity-[0.98] transition-opacity"
+              sizes="(max-width: 1024px) 100vw, 55vw"
+              priority
+            />
+            {banner}
+            {soldOverlay}
+            {images.length > 1 && (
+              <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[11px] px-2 py-0.5 rounded-full">
+                {heroIdx + 1} / {images.length}
+              </div>
+            )}
+          </div>
+
+          {/* Caption under the current photo, El Imparcial-style —
+              small gray text, only when the seller wrote one. */}
+          {hero.caption && (
+            <p className="mt-2 text-sm text-gray-500">{hero.caption}</p>
+          )}
+
+          {/* Thumbnail strip */}
+          {images.length > 1 && (
+            <div className="flex gap-2 mt-2 overflow-x-auto pb-1 -mx-1 px-1">
+              {images.map((image, idx) => (
+                <button
+                  key={image.id}
+                  type="button"
+                  onClick={() => setSelected(idx)}
+                  aria-label={`Ver imagen ${idx + 1}`}
+                  className={`relative h-16 w-16 sm:h-[72px] sm:w-[72px] shrink-0 rounded-lg overflow-hidden transition-all ${
+                    idx === heroIdx ? 'ring-2 ring-gray-900' : 'opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <Image src={image.image_url} alt="" fill className="object-cover" sizes="72px" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {lightboxOpen && (
+          <ImageLightbox images={images} initialIndex={selected} onClose={() => setLightboxOpen(false)} />
+        )}
+      </>
+    )
+  }
+
   return (
     <>
       <div className={fullBleed ? '-mx-4 sm:mx-0 mb-6' : 'mb-6'}>

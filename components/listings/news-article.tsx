@@ -180,16 +180,17 @@ export function NewsArticle({
         </div>
       </aside>
       <article className="max-w-2xl mx-auto lg:mx-0 w-full flex flex-col">
-      {/* Tag pills — derived only (category + place), each tappable
-          to a filtered list. They replace the category Badge +
+      {/* Tag caps — derived only (category + place), each tappable
+          to a filtered list. Quiet small caps, not pills: the
+          headline owns the header. They replace the category Badge +
           "Noticia / Aviso" breadcrumb row. */}
       {tags.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
           {tags.map((tag) => (
             <Link
               key={tag.href}
               href={tag.href}
-              className="text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full px-3 py-1"
+              className="text-[9px] font-semibold uppercase tracking-[0.08em] text-gray-400 hover:text-gray-500"
             >
               {tag.label}
             </Link>
@@ -200,17 +201,21 @@ export function NewsArticle({
       {/* Headline — the logo type (Fraunces, font-forum), like the
           body below it: the sans bold headline looked generic next
           to the serif article text. Same size and weight, the face
-          is what changes. */}
+          is what changes. Centered, like a newspaper headline —
+          the body below stays left-aligned. */}
       {!isTitleCardHero && (
-        <h1 className="font-forum text-[28px] leading-[1.15] sm:text-4xl md:text-[40px] font-bold text-gray-900 mb-4">
+        <h1 className="font-forum text-[28px] leading-[1.15] sm:text-4xl md:text-[40px] font-bold text-gray-900 mb-4 text-center">
           {listing.title}
         </h1>
       )}
 
-      {/* Byline — 44px avatar, name + badges, Follow, reading time.
-          Location left the byline: it lives in the place pill. */}
-      <div className="flex items-center gap-3 pb-4">
-        <div className="relative h-11 w-11 rounded-full bg-gray-200 flex items-center justify-center text-sm font-semibold overflow-hidden shrink-0">
+      {/* Byline — 26px avatar, name + badges, Follow, reading time.
+          Centered as one cluster under the headline; the rail
+          avatar (desktop, h-14) is untouched — that is the
+          publication identity. Location left the byline: it lives
+          in the place cap. */}
+      <div className="flex items-center justify-center gap-2.5 pb-4">
+        <div className="relative h-[26px] w-[26px] rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-semibold overflow-hidden shrink-0">
           {listing.store?.avatar_url ? (
             <Image src={listing.store.avatar_url} alt={listing.store.name} fill className="object-cover" />
           ) : listing.profile.avatar_url ? (
@@ -219,7 +224,7 @@ export function NewsArticle({
             <span>{(listing.store?.name || listing.profile.display_name)[0].toUpperCase()}</span>
           )}
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0">
           {listing.store ? (
             <span className="flex items-center gap-2">
               <Link href={`/stores/${listing.store.slug}`} className="text-sm font-semibold hover:underline">
@@ -246,13 +251,13 @@ export function NewsArticle({
               {isLocalReporter(listing.profile) && <ReporterBadge />}
             </span>
           )}
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-gray-500 mt-0.5 text-center">
             {minutes} min de lectura · {shortDate}
           </p>
           {/* Mobile only: the description lives in the rail on
               desktop, so the byline carries it compactly here. */}
           {entityDescription && (
-            <p className="lg:hidden text-xs text-gray-600 mt-1 line-clamp-2">{entityDescription}</p>
+            <p className="lg:hidden text-xs text-gray-600 mt-1 line-clamp-2 text-center">{entityDescription}</p>
           )}
         </div>
         {/* Entity-aware Follow — the line-176 gate that suppressed

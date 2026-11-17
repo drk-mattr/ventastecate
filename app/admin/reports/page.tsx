@@ -203,9 +203,9 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
           Solo visibles para superadmin. {newCount ? `${newCount} sin revisar.` : 'Nada pendiente.'} Los reportes también llegan a Discord como aviso.
         </p>
         <div className="flex flex-wrap gap-2 mb-6">
-          <Link href="/admin/reports" className={`px-3 py-1.5 rounded-full text-xs font-medium border ${!sp.status ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200'}`}>Todos</Link>
+          <Link href="/admin/reports" className={`px-3 py-1.5 rounded-full text-xs font-medium border ${!sp.status ? 'bg-gray-100 text-gray-900 border-gray-300' : 'border-gray-200'}`}>Todos</Link>
           {Object.entries(STATUS_LABEL).map(([v, l]) => (
-            <Link key={v} href={`/admin/reports?status=${v}`} className={`px-3 py-1.5 rounded-full text-xs font-medium border ${sp.status === v ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200'}`}>{l}</Link>
+            <Link key={v} href={`/admin/reports?status=${v}`} className={`px-3 py-1.5 rounded-full text-xs font-medium border ${sp.status === v ? 'bg-gray-100 text-gray-900 border-gray-300' : 'border-gray-200'}`}>{l}</Link>
           ))}
         </div>
         {entries.length === 0 ? (
@@ -216,7 +216,7 @@ export default async function AdminReportsPage({ searchParams }: { searchParams:
               <Link key={e.key} href={e.href} className="block border rounded-xl p-4 hover:border-gray-400 transition">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-semibold">{e.typeLabel}</span>
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${e.status === 'new' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}`}>{STATUS_LABEL[e.status] || e.status}</span>
+                  <span className={`text-[11px] px-2 py-0.5 rounded-full ${e.status === 'new' ? 'bg-gray-200 text-gray-900' : 'bg-gray-100 text-gray-600'}`}>{STATUS_LABEL[e.status] || e.status}</span>
                   <span className="text-xs text-gray-400 ml-auto">{new Date(e.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 </div>
                 <p className="text-sm text-gray-700 mt-2 line-clamp-2">{e.description}</p>

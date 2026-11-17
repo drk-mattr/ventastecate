@@ -40,7 +40,7 @@ export default async function AdminAlertsPage({ searchParams }: { searchParams: 
             <Link
               key={t.label}
               href={t.value ? `/admin/alerts?status=${t.value}` : '/admin/alerts'}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border ${sp.status === t.value ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200'}`}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border ${sp.status === t.value ? 'bg-gray-100 text-gray-900 border-gray-300' : 'border-gray-200'}`}
             >
               {t.label}
             </Link>

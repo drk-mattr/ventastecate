@@ -178,7 +178,7 @@ export function HeaderSearch() {
         <button
           type="submit"
           aria-label="Buscar"
-          className="shrink-0 bg-gray-900 text-white h-9 sm:h-7 my-1 mr-1 px-3 rounded-md text-sm font-medium flex items-center gap-1.5"
+          className="shrink-0 bg-primary text-white h-9 sm:h-7 my-1 mr-1 px-3 rounded-md text-sm font-medium flex items-center gap-1.5"
         >
           <Search className="h-4 w-4" />
           <span className="hidden sm:inline">Buscar</span>

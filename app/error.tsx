@@ -41,7 +41,7 @@ export default function Error({
         <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button
             onClick={() => reset()}
-            className="rounded-md bg-gray-900 px-4 py-2 text-white hover:bg-gray-800"
+            className="rounded-md bg-primary px-4 py-2 text-white hover:bg-primary/90"
           >
             Intentar de nuevo
           </button>

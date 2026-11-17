@@ -258,7 +258,7 @@ export function MessageComposer({
             size="icon"
             disabled={!text.trim()}
             aria-label={f.sendMessage}
-            className="h-11 w-11 shrink-0 rounded-full bg-gray-900 text-white hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400"
+            className="h-11 w-11 shrink-0 rounded-full bg-primary text-white hover:bg-primary/90 disabled:bg-gray-200 disabled:text-gray-400"
           >
             <SendHorizontal className="h-5 w-5" />
           </Button>

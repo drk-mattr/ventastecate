@@ -195,7 +195,7 @@ export function SearchFilters({
 
   const segmented = (active: boolean) =>
     `px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${
-      active ? 'bg-gray-900 text-white' : 'text-gray-600 hover:text-gray-900'
+      active ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:text-gray-900'
     }`
 
   return (

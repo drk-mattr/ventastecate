@@ -40,7 +40,7 @@ export function ReportActions({ reportId, status, hasEmail }: { reportId: string
         <Label className="text-sm font-medium text-gray-700">Estado</Label>
         <div className="flex gap-2 mt-2">
           {(['new', 'reviewed', 'resolved'] as const).map((s) => (
-            <button key={s} type="button" disabled={busy} onClick={() => setStatus(s)} className={`px-3 py-1.5 rounded-full text-xs font-medium border ${status === s ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200'}`}>
+            <button key={s} type="button" disabled={busy} onClick={() => setStatus(s)} className={`px-3 py-1.5 rounded-full text-xs font-medium border ${status === s ? 'bg-gray-100 text-gray-900 border-gray-300' : 'border-gray-200'}`}>
               {s === 'new' ? 'Nuevo' : s === 'reviewed' ? 'En revisión' : 'Resuelto'}
             </button>
           ))}

@@ -116,14 +116,14 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
 
         <div className="flex flex-wrap gap-1 mb-2">
           {LETTERS.map((letter) => (
-            <Link key={letter} href={hrefWith(filters, { letra: letter, page: 1 })} className={`text-xs px-1.5 py-1 rounded ${letra === letter ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900'}`}>{letter}</Link>
+            <Link key={letter} href={hrefWith(filters, { letra: letter, page: 1 })} className={`text-xs px-1.5 py-1 rounded ${letra === letter ? 'bg-gray-200 text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>{letter}</Link>
           ))}
           {letra && <Link href={hrefWith(filters, { letra: undefined, page: 1 })} className="text-xs px-1.5 py-1 text-gray-900 underline">Quitar letra</Link>}
         </div>
 
         <div className="flex flex-wrap gap-2 mb-6">
           {shownCategories.map(({ category: cat, count }) => (
-            <Link key={cat} href={hrefWith(filters, { categoria: cat, page: 1 })} className={`text-xs px-3 py-1 rounded-full border ${categoria === cat ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200 text-gray-700 hover:border-gray-400'}`}>{cat} <span className="text-gray-400">{count}</span></Link>
+            <Link key={cat} href={hrefWith(filters, { categoria: cat, page: 1 })} className={`text-xs px-3 py-1 rounded-full border ${categoria === cat ? 'bg-gray-100 text-gray-900 border-gray-300' : 'border-gray-200 text-gray-700 hover:border-gray-400'}`}>{cat} <span className="text-gray-400">{count}</span></Link>
           ))}
           <Link href="/businesses/categorias" className="text-xs px-3 py-1 text-gray-900 underline">Todas las categorías ({allCategories.length}) →</Link>
           {categoria && <Link href={hrefWith(filters, { categoria: undefined, page: 1 })} className="text-xs px-3 py-1 text-gray-900 underline">Quitar categoría</Link>}
@@ -133,7 +133,7 @@ export default async function BusinessesPage({ searchParams }: { searchParams: P
           <h2 className="text-base font-medium text-gray-700">Índice</h2>
           <div className="flex gap-1">
             {SORTS.map((s) => (
-              <Link key={s.value} href={hrefWith(filters, { sort: s.value, page: 1 })} className={`text-xs px-2 py-1 rounded ${sortValue === s.value ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900'}`}>{s.label}</Link>
+              <Link key={s.value} href={hrefWith(filters, { sort: s.value, page: 1 })} className={`text-xs px-2 py-1 rounded ${sortValue === s.value ? 'bg-gray-200 text-gray-900' : 'text-gray-500 hover:text-gray-900'}`}>{s.label}</Link>
             ))}
           </div>
         </div>

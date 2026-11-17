@@ -478,7 +478,7 @@ export function MessageThread({
                 type="button"
                 onClick={() => void handleBlock()}
                 disabled={actionBusy}
-                className="rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
               >
                 Bloquear
               </button>
@@ -522,7 +522,7 @@ export function MessageThread({
                       onClick={() => setReportReason(reason.value)}
                       className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
                         reportReason === reason.value
-                          ? 'border-gray-900 bg-gray-900 text-white'
+                          ? 'border-gray-300 bg-gray-100 text-gray-900'
                           : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                       }`}
                     >
@@ -543,7 +543,7 @@ export function MessageThread({
                     type="button"
                     onClick={() => void handleReport()}
                     disabled={actionBusy}
-                    className="rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                    className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
                   >
                     Enviar reporte
                   </button>

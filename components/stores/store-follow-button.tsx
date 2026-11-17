@@ -67,7 +67,7 @@ export function StoreFollowButton({ storeId, initialFollowing = false, ownerId }
       className={`h-8 px-4 rounded-full text-xs font-medium transition-colors shrink-0 ${
         following
           ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-          : 'bg-black text-white hover:bg-gray-800'
+          : 'bg-primary text-white hover:bg-primary/90'
       }`}
     >
       {following ? 'Siguiendo' : 'Seguir'}

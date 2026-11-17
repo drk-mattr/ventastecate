@@ -26,7 +26,7 @@ export function EmailAlertCard({ alert }: { alert: EmailAlert }) {
       <div className="flex items-center gap-2 flex-wrap">
         {alert.status === 'new' && <span className="h-2 w-2 rounded-full bg-gray-900 shrink-0" aria-label="Sin leer" />}
         <span className="text-xs font-semibold truncate max-w-[60%]">{alert.from_address}</span>
-        <span className={`text-[11px] px-2 py-0.5 rounded-full ${alert.status === 'new' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}`}>{STATUS_LABEL[alert.status] || alert.status}</span>
+        <span className={`text-[11px] px-2 py-0.5 rounded-full ${alert.status === 'new' ? 'bg-gray-200 text-gray-900' : 'bg-gray-100 text-gray-600'}`}>{STATUS_LABEL[alert.status] || alert.status}</span>
         <span className="text-xs text-gray-400 ml-auto">{new Date(alert.received_at).toLocaleString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
       </div>
       <p className="text-sm font-medium text-gray-900 mt-2">{alert.subject || '(sin asunto)'}</p>

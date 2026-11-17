@@ -723,16 +723,11 @@ function NewListingForm() {
   }
 
   // Paso 2 validation: the same checks as validateForm — every field
-  // it checks lives on Paso 2 — plus the automotive year/make/model
-  // check that submit enforces. Never stricter than submit.
+  // it checks lives on Paso 2. Never stricter than submit.
+  // Automotive year/make/model are optional (an unbranded food
+  // truck often has no known brand) — they never block Paso 2.
   const validateStep2 = (): { errors: Record<string, string>; firstId: string | null } => {
     const { errors, firstId } = validateForm()
-    if (isAutomotive && (!year || !make.trim() || !model.trim())) {
-      if (!year) errors.year = 'Falta el año'
-      if (!make.trim()) errors.make = 'Falta la marca'
-      if (!model.trim()) errors.model = 'Falta el modelo'
-      return { errors, firstId: firstId ?? 'auto-fields' }
-    }
     return { errors, firstId }
   }
 
@@ -1100,19 +1095,8 @@ function NewListingForm() {
       if (firstId) scrollToField(firstId)
       return
     }
-    // Automotive required fields are validated here, before any DB
-    // write (P1-7) — not only at the very end of submit.
-    if (isAutomotive && (!year || !make.trim() || !model.trim())) {
-      const autoErrors: Record<string, string> = {}
-      if (!year) autoErrors.year = 'Falta el año'
-      if (!make.trim()) autoErrors.make = 'Falta la marca'
-      if (!model.trim()) autoErrors.model = 'Falta el modelo'
-      setFieldErrors(autoErrors)
-      setError('Completa año, marca y modelo del vehículo')
-      scrollToField('auto-fields')
-      return
-    }
-
+    // Automotive year/make/model are optional — an unbranded truck
+    // often has no known brand, so nothing here gates the DB write.
     setLoading(true)
     setError('')
     setFieldErrors({})
@@ -1147,9 +1131,12 @@ function NewListingForm() {
           ...(parkingSpots && { parking_spots: parseInt(parkingSpots) }),
         } as RealEstateMetadata
       } else if (isAutomotive) {
+        // Year/make/model are optional: an unbranded truck often
+        // has no known brand — omit empties instead of storing "".
         metadata = {
           type: 'automotive',
-          make, model,
+          ...(make.trim() && { make: make.trim() }),
+          ...(model.trim() && { model: model.trim() }),
           ...(year && { year: parseInt(year) }),
           ...(mileageKm && { mileage_km: parseInt(mileageKm) }),
           transmission, fuel_type: fuelType,
@@ -1644,13 +1631,13 @@ function NewListingForm() {
       {isAutomotive && (
         <div id="auto-fields" className="space-y-5">
           <div className="space-y-1.5">
-            <Label htmlFor="auto-year" className="text-sm">Año *</Label>
-            <Input className="border-gray-300" id="auto-year" type="number" min="1950" max="2027" value={year} onChange={(e) => { setYear(e.target.value); clearFieldError('year') }} required placeholder="2024" />
+            <Label htmlFor="auto-year" className="text-sm">Año</Label>
+            <Input className="border-gray-300" id="auto-year" type="number" min="1950" max="2027" value={year} onChange={(e) => { setYear(e.target.value); clearFieldError('year') }} placeholder="2024" />
             {fieldErrors.year && <p className="text-xs text-red-500">{fieldErrors.year}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="min-w-0 space-y-1.5"><Label htmlFor="auto-make" className="text-sm">Marca *</Label><Input className="border-gray-300" id="auto-make" value={make} onChange={(e) => { setMake(e.target.value); clearFieldError('make') }} required placeholder="Toyota" />{fieldErrors.make && <p className="text-xs text-red-500">{fieldErrors.make}</p>}</div>
-            <div className="min-w-0 space-y-1.5"><Label htmlFor="auto-model" className="text-sm">Modelo *</Label><Input className="border-gray-300" id="auto-model" value={model} onChange={(e) => { setModel(e.target.value); clearFieldError('model') }} required placeholder="Tacoma" />{fieldErrors.model && <p className="text-xs text-red-500">{fieldErrors.model}</p>}</div>
+            <div className="min-w-0 space-y-1.5"><Label htmlFor="auto-make" className="text-sm">Marca</Label><Input className="border-gray-300" id="auto-make" value={make} onChange={(e) => { setMake(e.target.value); clearFieldError('make') }} placeholder="Toyota" />{fieldErrors.make && <p className="text-xs text-red-500">{fieldErrors.make}</p>}</div>
+            <div className="min-w-0 space-y-1.5"><Label htmlFor="auto-model" className="text-sm">Modelo</Label><Input className="border-gray-300" id="auto-model" value={model} onChange={(e) => { setModel(e.target.value); clearFieldError('model') }} placeholder="Tacoma" />{fieldErrors.model && <p className="text-xs text-red-500">{fieldErrors.model}</p>}</div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="space-y-1.5"><Label className="text-sm">Kilómetros</Label><Input className="border-gray-300" type="number" min="0" value={mileageKm} onChange={(e) => setMileageKm(e.target.value)} placeholder="45000" /></div>

@@ -35,13 +35,15 @@ export const listingInputSchema = z.object({
   // B2: the description is required only for news. For product /
   // service / event it is optional — a listing can publish with an
   // empty description (the DB column is NOT NULL, so the forms insert
-  // '' rather than null). An unknown or missing type stays strict:
+  // '' rather than null). A mention's description is its caption, so
+  // it is required too (the superRefine below only exempts product /
+  // service / event). An unknown or missing type stays strict:
   // description required, so no caller silently loosens the rule.
   description: z
     .string()
     .trim()
     .max(LISTING_DESC_MAX, `La descripción no puede exceder ${LISTING_DESC_MAX} caracteres`),
-  listingType: z.enum(['product', 'service', 'event', 'news']).optional(),
+  listingType: z.enum(['product', 'service', 'event', 'news', 'mention']).optional(),
   // News posts are free; everything else must be a finite, non-negative price.
   price: z
     .number()

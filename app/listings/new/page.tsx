@@ -27,13 +27,16 @@ import { validateVideoFile, captureVideoPoster, formatVideoDuration, formatVideo
 import { uploadVideoResumable } from '@/lib/video/tus-upload'
 import { humanizePostError } from '@/lib/errors'
 import { useListingDraft, draftKeyForUser } from '@/lib/hooks/use-listing-draft'
+import { useItemSearch } from '@/lib/hooks/use-item-search'
+import { FOOD_ROOT_SLUGS } from '@/lib/items/food-kinds'
 import { BusinessTagPicker } from '@/components/listings/business-tag-picker'
 import { ItemTagPicker } from '@/components/listings/item-tag-picker'
 import type { SelectedItemTag } from '@/lib/items/types'
 import Image from 'next/image'
 import {
   ImagePlus, X, Play, Check, ChevronUp, ChevronDown,
-  ShoppingBag, Handshake, CalendarHeart, Megaphone, Store
+  ShoppingBag, Handshake, CalendarHeart, Megaphone, Store,
+  ThumbsUp, Hash, Plus
 } from 'lucide-react'
 
 // Categories whose selection reveals structured real-estate fields. Values must
@@ -106,6 +109,20 @@ const TYPE_CONFIG: Record<ListingType, {
     verb: 'Informar a la comunidad',
     titlePlaceholder: 'Ej: Corte de agua mañana, Se busca perro perdido...',
     descPlaceholder: 'Describe lo que está pasando con todos los detalles relevantes...',
+    color: 'text-gray-900',
+    colorBg: 'bg-gray-100',
+    colorBorder: 'border-gray-900',
+  },
+  // Mention (060): the fast path — a recommendation, not an ad. No
+  // title field, no price, no category picker; the caption IS the
+  // post and the title is derived from it at publish.
+  mention: {
+    Icon: ThumbsUp,
+    label: 'Recomendar',
+    hint: 'Foto, #tag y listo',
+    verb: 'Recomendar algo',
+    titlePlaceholder: '',
+    descPlaceholder: 'Ej: best #tamales in Tkt',
     color: 'text-gray-900',
     colorBg: 'bg-gray-100',
     colorBorder: 'border-gray-900',
@@ -188,11 +205,59 @@ function NewListingForm() {
   // Optional offering tags for the tagged business. First selected =
   // primary, the rest secondary.
   const [selectedItems, setSelectedItems] = useState<SelectedItemTag[]>([])
+  // Pin coordinates (migration 060): device location at post time,
+  // captured from the GPS button on the location step. NULL when the
+  // user posts without GPS — city-only still posts.
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null)
+  // Business-free hashtag search for the mention flow: #tags in the
+  // caption resolve to kinds without a business picked.
+  const mentionSearch = useItemSearch(null)
+  const mentionTagTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const handleBusinessChange = (biz: Business | null) => {
     setTaggedBusiness(biz)
     // Offerings belong to one business — a different business (or
     // none) invalidates the selection.
     setSelectedItems([])
+  }
+  // Mention flow: add a tag from a hashtag suggestion. Same guards as
+  // the picker (max 5, no duplicates); the suggestion leaves the row
+  // once taken.
+  const addMentionTag = (tag: SelectedItemTag) => {
+    if (selectedItems.length >= 5) return
+    if (selectedItems.some((t) => t.kindSlug === tag.kindSlug)) return
+    setSelectedItems([...selectedItems, tag])
+    mentionSearch.setHashtagSuggestions((prev) => prev.filter((p) => p.kindSlug !== tag.kindSlug))
+  }
+  // Mention flow: resolve #tags as the caption is typed (debounced —
+  // the kinds lookup is a network round-trip per tag).
+  const scheduleMentionHashtagLoad = (text: string) => {
+    if (mentionTagTimerRef.current) clearTimeout(mentionTagTimerRef.current)
+    mentionTagTimerRef.current = setTimeout(() => {
+      mentionSearch.loadHashtagSuggestionsNoBusiness(
+        text,
+        new Set(selectedItems.map((s) => s.kindSlug)),
+      )
+    }, 400)
+  }
+  // Mention flow: the category is derived from the primary tag's kind
+  // (food → 'Comida y Restaurantes'), so search filters keep working
+  // with no category picker in the fast flow. No tag, a brand-new kind
+  // (not approved yet, so the lookup can't find it), or a failed
+  // lookup falls back to 'Otros' — never blocks the publish.
+  const deriveMentionCategory = async (primary: SelectedItemTag | null): Promise<string> => {
+    if (!primary || primary.isNewKind) return 'Otros'
+    try {
+      const res = await fetch(`/api/items/kinds?q=${encodeURIComponent(primary.kindSlug)}&limit=5`)
+      if (!res.ok) return 'Otros'
+      const data = (await res.json()) as { kinds?: { slug: string; parent_slug: string | null }[] }
+      const hit = (data.kinds ?? []).find((k) => k.slug === primary.kindSlug) ?? (data.kinds ?? [])[0]
+      if (!hit) return 'Otros'
+      const foodRoots = new Set<string>(FOOD_ROOT_SLUGS)
+      const isFood = foodRoots.has(hit.slug) || (hit.parent_slug !== null && foodRoots.has(hit.parent_slug))
+      return isFood ? 'Comida y Restaurantes' : 'Otros'
+    } catch {
+      return 'Otros'
+    }
   }
   // Collapsed "Opciones adicionales" section on Paso 2.
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -262,7 +327,11 @@ function NewListingForm() {
   const storeType = activeStore?.store_type || 'general'
   const supabase = createClient()
   const config = TYPE_CONFIG[listingType]
-  const showPrice = listingType !== 'news'
+  // Mention flow (060): a recommendation, not an ad — no price, no
+  // title field, no category picker. The condensed step order is
+  // photo (3) → caption (2) → location (4).
+  const isMention = listingType === 'mention'
+  const showPrice = listingType !== 'news' && listingType !== 'mention'
 
   // Media tiles in the Step 3 grid: photos + the native clip as the
   // first tile. The grid column count and the single-tile aspect
@@ -271,8 +340,10 @@ function NewListingForm() {
 
   // Structured fields are driven by the selected CATEGORY (available to everyone),
   // or by an active typed store — not gated on owning a store.
-  const isRealEstate = storeType === 'real_estate' || REAL_ESTATE_CATEGORIES.includes(category)
-  const isAutomotive = storeType === 'automotive' || category === 'Vehículos'
+  // Mentions derive their category from the tag at publish, so the
+  // structured-field triggers never apply to them.
+  const isRealEstate = listingType !== 'mention' && (storeType === 'real_estate' || REAL_ESTATE_CATEGORIES.includes(category))
+  const isAutomotive = listingType !== 'mention' && (storeType === 'automotive' || category === 'Vehículos')
 
   // Store users have a fixed type, so they never see Paso 1 — they
   // land on Paso 2. Derived, never synced with an effect: the step
@@ -282,8 +353,14 @@ function NewListingForm() {
   // effectiveStep stayed 2, so they could never reach photos or
   // publish. With the floor they land on 2 and advance to 3 and 4.
   const effectiveStep = storeType === 'general' ? step : Math.max(step, 2)
-  const totalSteps = storeType === 'general' ? 4 : 3
-  const displayStep = storeType === 'general' ? effectiveStep : effectiveStep - 1
+  // Mentions run 3 condensed steps (foto → caption → ubicación)
+  // over the same 1–4 step state: photo is 1, caption is 2,
+  // location is 3. A restored draft on step 1 still shows the type
+  // tiles, with Recomendar active.
+  const totalSteps = isMention ? 3 : storeType === 'general' ? 4 : 3
+  const displayStep = isMention
+    ? ({ 3: 1, 2: 2, 4: 3 } as Record<number, number>)[effectiveStep] ?? effectiveStep
+    : storeType === 'general' ? effectiveStep : effectiveStep - 1
 
   // News canvas word count (computed, no state).
   const wordCount = description.trim() ? description.trim().split(/\s+/).length : 0
@@ -291,8 +368,10 @@ function NewListingForm() {
   // Paso 4 review line — one line, Eventbrite's preview lesson in
   // miniature: "Evento · Jazz en el CEART · 12 nov".
   const reviewLine = (() => {
-    const typeShort = { product: 'Producto', service: 'Servicio', event: 'Evento', news: 'Noticia' }[listingType]
-    const parts = [typeShort, title.trim() || 'Sin título']
+    const typeShort = { product: 'Producto', service: 'Servicio', event: 'Evento', news: 'Noticia', mention: 'Recomendación' }[listingType]
+    // Mentions have no title field — the review shows the caption's
+    // first line, same text the publish derives the title from.
+    const parts = [typeShort, isMention ? (description.trim().slice(0, 80) || 'Sin título') : (title.trim() || 'Sin título')]
     if (listingType === 'event' && eventStartDate) parts.push(formatShortDate(eventStartDate, eventStartTime))
     if (showPrice && !priceConsultar && !isFree && price) parts.push(`$${price} ${currency}`)
     if (showPrice && isFree) parts.push('Gratis')
@@ -319,6 +398,7 @@ function NewListingForm() {
     eventStartDate, eventStartTime, eventEndDate, eventEndTime, eventVenue, eventTicketUrl,
     taggedBusinessId: taggedBusiness?.id ?? null,
     selectedItems,
+    coords,
     propertyType, transactionType, bedrooms, bathrooms, constructionM2,
     lotM2, parkingSpots, make, model, year, mileageKm, transmission,
     fuelType, color, doors, whatsappOptIn, whatsappNumber,
@@ -347,6 +427,7 @@ function NewListingForm() {
     setStateRegion(d.stateRegion || '')
     setCountryCode(d.countryCode || 'MX')
     setSelectedItems((d.selectedItems as SelectedItemTag[]) || [])
+    setCoords((d.coords as { latitude: number; longitude: number } | null) ?? null)
     setPropertyType(d.propertyType || 'casa')
     setTransactionType(d.transactionType || 'venta')
     setBedrooms(d.bedrooms || '')
@@ -553,12 +634,21 @@ function NewListingForm() {
   // the first offending field, so submit can scroll to it.
   const validateForm = (): { errors: Record<string, string>; firstId: string | null } => {
     const errors: Record<string, string> = {}
-    if (!title.trim()) errors.title = 'Escribe un título'
+    // Mentions have no title field — the title is derived from the
+    // caption at publish, so there is nothing to check here.
+    if (!title.trim() && listingType !== 'mention') errors.title = 'Escribe un título'
     // B2: description is required only for news; for product / service /
     // event it is optional, so a blank box no longer blocks the publish.
     if (listingType === 'news' && !description.trim()) errors.description = 'Escribe una descripción'
+    // A mention's caption IS the post — it needs at least a few
+    // characters, or the derived title fails the 3-char minimum.
+    if (listingType === 'mention' && description.trim().length < 3) errors.description = 'Escribe qué recomiendas'
     if (showPrice && !priceConsultar && !isFree && !price) errors.price = 'Escribe un precio, o marca Precio a consultar / Gratis'
-    if (storeType === 'general' && !category) errors.category = 'Elige una categoría'
+    if (storeType === 'general' && !category && listingType !== 'mention') errors.category = 'Elige una categoría'
+    // A tag without a business can't attach (item-tags route, decision
+    // 4): the mention can still publish with neither, but not with a
+    // tag and no business.
+    if (listingType === 'mention' && selectedItems.length > 0 && !taggedBusiness) errors.business = 'Elige el negocio para guardar la etiqueta'
     // Native video (migration 050): one video per post, and the
     // self-filmed declaration is required for uploads. The file's
     // size / MIME / duration were checked when it was picked.
@@ -579,22 +669,24 @@ function NewListingForm() {
     const firstId = errors.title
       ? 'title'
       : errors.description
-        ? 'description'
+        ? isMention ? 'mention-caption' : 'description'
         : errors.price
           ? 'price'
           : errors.category
             ? 'category-field'
-            : errors.eventStartDate
-              ? 'event-start-date'
-              : errors.eventEndDate
-                ? 'event-end-date'
-                : errors.eventTicketUrl
-                  ? 'event-ticket-url'
-                  : errors.video
-                    ? 'video-field'
-                    : errors.selfFilmed
-                      ? 'video-self-filmed'
-                      : null
+            : errors.business
+              ? 'mention-business'
+              : errors.eventStartDate
+                ? 'event-start-date'
+                : errors.eventEndDate
+                  ? 'event-end-date'
+                  : errors.eventTicketUrl
+                    ? 'event-ticket-url'
+                    : errors.video
+                      ? 'video-field'
+                      : errors.selfFilmed
+                        ? 'video-self-filmed'
+                        : null
     return { errors, firstId }
   }
 
@@ -1076,13 +1168,23 @@ function NewListingForm() {
       } else if (storeType === 'automotive') {
         finalCategory = 'Vehículos'
       }
+      // Mentions have no category picker — derive it from the primary
+      // tag's kind (see deriveMentionCategory).
+      if (listingType === 'mention') {
+        finalCategory = await deriveMentionCategory(selectedItems[0] ?? null)
+      }
 
       const parsedPrice = parseFloat(price)
-      const finalPrice = listingType === 'news' ? 0 : (priceConsultar || isFree) ? 0 : (Number.isFinite(parsedPrice) ? parsedPrice : 0)
+      const finalPrice = listingType === 'news' || listingType === 'mention' ? 0 : (priceConsultar || isFree) ? 0 : (Number.isFinite(parsedPrice) ? parsedPrice : 0)
+
+      // Mentions have no title field — the title is the caption's
+      // first 80 chars. validateForm already guarantees the caption
+      // is at least 3 chars, so the derived title passes the schema.
+      const effectiveTitle = listingType === 'mention' ? description.trim().slice(0, 80) : title
 
       // Validate user input before touching the DB.
       const validationError = firstListingError({
-        title,
+        title: effectiveTitle,
         description,
         price: finalPrice,
         listingType,
@@ -1112,11 +1214,15 @@ function NewListingForm() {
         event_venue: eventVenue.trim() || null,
         event_ticket_url: eventTicketUrl.trim() || null,
       } : {}
+      // Pin coordinates (migration 060): try with the new columns
+      // first; pre-migration the columns don't exist, so the retry
+      // below inserts without them (same 42703 fallback as events).
+      const coordsInsert = coords ? { latitude: coords.latitude, longitude: coords.longitude } : {}
       const insertBase = {
         user_id: user.id,
         store_id: activeStore?.id || null,
         listing_type: listingType,
-        title, description: description.trim(),
+        title: effectiveTitle, description: description.trim(),
         price: finalPrice,
         category: finalCategory,
         location: location || activeStore?.location || '',
@@ -1129,7 +1235,7 @@ function NewListingForm() {
       }
       let { data: listing, error: listingError } = await supabase
         .from('listings')
-        .insert({ ...insertBase, currency, is_free: isFree, card_color: cardColor, ...eventInsert })
+        .insert({ ...insertBase, currency, is_free: isFree, card_color: cardColor, ...eventInsert, ...coordsInsert })
         .select()
         .single()
       if (listingError && (listingError.code === '42703' || listingError.code === 'PGRST204')) {
@@ -1642,13 +1748,19 @@ function NewListingForm() {
                         clearFieldError('description')
                         // Keep the category when it exists in the new
                         // type's list; only clear when it doesn't apply.
-                        setCategory((prev) => (prev && categoriesForType(type).includes(prev) ? prev : ''))
+                        // Mentions derive their category from the tag,
+                        // so switching to one always clears it — a
+                        // stale 'Vehículos' would otherwise trigger
+                        // the automotive validation at publish.
+                        setCategory((prev) => (type === 'mention' ? '' : (prev && categoriesForType(type).includes(prev) ? prev : '')))
                         // Tapping a type card advances — no separate
-                        // Siguiente tap on Paso 1.
-                        goToStep(2, type)
+                        // Siguiente tap on Paso 1. Mentions jump
+                        // straight to the photo step: camera first.
+                        goToStep(type === 'mention' ? 3 : 2, type)
                       }}
                       className={`
                         relative flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all
+                        ${type === 'mention' ? 'col-span-2 sm:col-span-4' : ''}
                         ${isActive
                           ? `${cfg.colorBorder} ${cfg.colorBg}`
                           : 'border-gray-300 bg-white hover:bg-gray-50 hover:border-gray-400'
@@ -1944,8 +2056,122 @@ function NewListingForm() {
               ══════════════════════════════════════════════ */}
           {effectiveStep === 2 && (
           <div className="py-6 first:pt-0 space-y-5">
-            <p className="text-base font-semibold text-gray-900">Los datos</p>
-            {listingType === 'event' ? (
+            <p className="text-base font-semibold text-gray-900">{isMention ? 'Tu recomendación' : 'Los datos'}</p>
+            {listingType === 'mention' ? (
+              <>
+                {/* Caption — the post. No title field: the title is
+                    derived from this caption at publish (first 80
+                    chars). */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="mention-caption" className="text-sm">
+                    ¿Qué recomiendas? <span className="text-red-400">*</span>
+                  </Label>
+                  <Textarea
+                    id="mention-caption"
+                    value={description}
+                    onChange={(e) => {
+                      setDescription(e.target.value); clearFieldError('description')
+                      scheduleMentionHashtagLoad(e.target.value)
+                    }}
+                    maxLength={LISTING_DESC_MAX}
+                    placeholder={config.descPlaceholder}
+                    rows={4}
+                    className="border-gray-300 resize-none text-base"
+                  />
+                  {fieldErrors.description && <p className="text-xs text-red-500">{fieldErrors.description}</p>}
+                </div>
+                {/* Hashtag suggestions — business-free resolution:
+                    #tags in the caption resolve to kinds through
+                    /api/items/kinds. Offered, never applied silently. */}
+                {mentionSearch.hashtagSuggestions.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] text-gray-400 flex items-center gap-1">
+                      <Hash className="h-3 w-3" /> En tu texto:
+                    </span>
+                    {mentionSearch.hashtagSuggestions.map((s) => (
+                      <button
+                        key={s.kindSlug}
+                        type="button"
+                        onClick={() => addMentionTag({ kindId: s.kindId, kindName: s.kindName, kindSlug: s.kindSlug })}
+                        className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-100"
+                      >
+                        #{s.tag} → {s.kindName}
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {/* Selected tags — first is primary. */}
+                {selectedItems.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedItems.map((tag, index) => (
+                      <span
+                        key={tag.kindSlug}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
+                          index === 0
+                            ? 'border-gray-900 bg-gray-900 text-white'
+                            : 'border-gray-200 bg-white text-gray-700'
+                        }`}
+                      >
+                        {tag.kindName}
+                        {index === 0 ? (
+                          <span className="text-[10px] text-gray-300">Principal</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedItems([tag, ...selectedItems.filter((v) => v.kindSlug !== tag.kindSlug)])}
+                            className="text-[10px] underline hover:text-gray-900"
+                          >
+                            Principal
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedItems(selectedItems.filter((v) => v.kindSlug !== tag.kindSlug))}
+                          className="hover:opacity-70 p-1.5 -m-1.5 rounded-full"
+                          aria-label={`Quitar ${tag.kindName}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {/* Business — un-collapsed in the mention flow.
+                    Optional on its own, required when a tag is
+                    selected (the tag can't attach without a
+                    business — item-tags route, decision 4). */}
+                <div id="mention-business" className="space-y-1.5">
+                  <Label className="text-sm">
+                    ¿De qué negocio es? <span className="text-gray-500 font-normal">(opcional)</span>
+                  </Label>
+                  <BusinessTagPicker
+                    value={taggedBusiness}
+                    onChange={handleBusinessChange}
+                    location={location || undefined}
+                    category={category || undefined}
+                  />
+                  <p className="text-[11px] text-gray-400">
+                    {selectedItems.length > 0
+                      ? 'Para guardar la etiqueta, elige el negocio.'
+                      : 'Si no tiene nombre, crea uno o deja solo la ubicación.'}
+                  </p>
+                  {fieldErrors.business && <p className="text-xs text-red-500">{fieldErrors.business}</p>}
+                </div>
+                {/* Item picker — only after a business is picked,
+                    same as the full form. */}
+                {taggedBusiness && (
+                  <ItemTagPicker
+                    key={taggedBusiness.id}
+                    business={taggedBusiness}
+                    listingType={listingType}
+                    textForHashtags={`${title} ${description}`}
+                    value={selectedItems}
+                    onChange={setSelectedItems}
+                  />
+                )}
+              </>
+            ) : listingType === 'event' ? (
               <>
                 {titleField}
                 {eventFields}
@@ -2027,9 +2253,10 @@ function NewListingForm() {
           {/* ══════════════════════════════════════════════
               WHATSAPP — opt-in at posting time (only when the
               seller has no number on their profile yet). Stays
-              on Step 3 (photos) with the media.
+              on Step 3 (photos) with the media. Not for mentions:
+              a recommendation isn't selling anything.
               ══════════════════════════════════════════════ */}
-          {effectiveStep === 3 && (
+          {effectiveStep === 3 && listingType !== 'mention' && (
           <>
           {user && profile && !profile.whatsapp_number && (
           <div className="py-6 first:pt-0 space-y-3">
@@ -2077,7 +2304,11 @@ function NewListingForm() {
               onStateRegionChange={setStateRegion}
               onCountryChange={setCountryCode}
               onCountryCodeChange={setGpsCountryCode}
+              onCoordsChange={setCoords}
             />
+            {coords && (
+              <p className="text-[11px] text-gray-500">Pin guardado — se muestra en tu publicación.</p>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="location" className="text-sm">Colonia / Barrio</Label>
               <Input className="border-gray-300"
@@ -2183,11 +2414,12 @@ function NewListingForm() {
                   )}
                   {/* Paso 2: Atrás returns to the type picker (general
                       users only — store users never see Paso 1);
-                      Siguiente validates only this step's fields. */}
+                      Siguiente validates only this step's fields.
+                      Mentions: Atrás returns to photos (their step 1). */}
                   {effectiveStep === 2 && (
                     <>
                       {storeType === 'general' && (
-                        <Button type="button" variant="outline" onClick={() => goToStep(1)} disabled={loading} className="h-12 px-5 rounded-xl">
+                        <Button type="button" variant="outline" onClick={() => goToStep(isMention ? 3 : 1)} disabled={loading} className="h-12 px-5 rounded-xl">
                           Atrás
                         </Button>
                       )}
@@ -2199,13 +2431,16 @@ function NewListingForm() {
                   {/* Paso 3: a middle step — Atrás to details,
                       Siguiente to location. No validation either
                       way: photos and location are optional, and the
-                      video self-filmed check still fires at submit. */}
+                      video self-filmed check still fires at submit.
+                      Mentions run photo → caption → location, so
+                      here Atrás returns to the type picker and
+                      Siguiente goes to the caption. */}
                   {effectiveStep === 3 && (
                     <>
-                      <Button type="button" variant="outline" onClick={() => goToStep(2)} disabled={loading} className="h-12 px-5 rounded-xl">
+                      <Button type="button" variant="outline" onClick={() => goToStep(isMention ? 1 : 2)} disabled={loading} className="h-12 px-5 rounded-xl">
                         Atrás
                       </Button>
-                      <Button type="button" onClick={() => goToStep(4)} disabled={loading} className="flex-1 h-12 text-base font-medium rounded-xl">
+                      <Button type="button" onClick={() => goToStep(isMention ? 2 : 4)} disabled={loading} className="flex-1 h-12 text-base font-medium rounded-xl">
                         Siguiente
                       </Button>
                     </>
@@ -2213,13 +2448,14 @@ function NewListingForm() {
                   {/* Paso 4: the publish action. Atrás returns to
                       photos (no validation — goToStep only sets the
                       step, and the draft keeps everything). Ungated:
-                      store users go 4 → 3 too. */}
+                      store users go 4 → 3 too. Mentions: Atrás
+                      returns to the caption. */}
                   {effectiveStep === 4 && (
                     <>
                       <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading} className="h-12 px-5 rounded-xl">
                         Cancelar
                       </Button>
-                      <Button type="button" variant="outline" onClick={() => goToStep(3)} disabled={loading} className="h-12 px-5 rounded-xl">
+                      <Button type="button" variant="outline" onClick={() => goToStep(isMention ? 2 : 3)} disabled={loading} className="h-12 px-5 rounded-xl">
                         Atrás
                       </Button>
                       <Button type="submit" disabled={loading} className="flex-1 h-12 text-base font-medium rounded-xl">

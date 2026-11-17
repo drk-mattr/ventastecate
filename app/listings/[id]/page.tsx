@@ -24,6 +24,8 @@ import { ListingOwnerMenu } from '@/components/listings/listing-owner-menu'
 import { getEngagementCounts } from '@/lib/listings/engagement-counts'
 import { formatPrice } from '@/lib/listings/format-price'
 import { formatEventRangeLong, isEventPast } from '@/lib/listings/event-dates'
+import { extractHashtags } from '@/lib/hooks/use-item-search'
+import { slugifyKindName } from '@/lib/items/normalize'
 
 // Serialize JSON-LD safely: escape characters that could break out of the
 // <script> tag (prevents stored XSS via user-controlled title/description).
@@ -279,6 +281,28 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     taggedBusiness = bizData
   }
 
+  // Hashtag chips (mention flow, 060): #tags in the description
+  // resolve to approved kinds; resolved ones link to /tipos/[slug],
+  // the rest stay plain text. Slug-exact (lowercased tag, or the
+  // slugified form) — a tag that doesn't resolve is simply not a link.
+  const hashtagTags = extractHashtags(listing.description)
+  const hashtagSlugs = new Set<string>()
+  if (hashtagTags.length > 0) {
+    const candidates = [...new Set(hashtagTags.flatMap((t) => [t.toLowerCase(), slugifyKindName(t)]))]
+    const { data: kindRows } = await supabase
+      .from('item_kinds')
+      .select('slug')
+      .eq('status', 'approved')
+      .in('slug', candidates)
+    for (const row of (kindRows ?? []) as { slug: string }[]) hashtagSlugs.add(row.slug)
+  }
+  const resolveHashtag = (tag: string): string | null => {
+    const lower = tag.toLowerCase()
+    if (hashtagSlugs.has(lower)) return lower
+    const slugified = slugifyKindName(tag)
+    return hashtagSlugs.has(slugified) ? slugified : null
+  }
+
   const formattedPrice = formatPrice(listing.price, listing.currency, { isFree: listing.is_free })
 
   // Native video (migration 050): the clip renders in the
@@ -381,6 +405,37 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
         </span>
       )}
     </div>
+  ) : null
+
+  // Hashtag chips + pin line (reused across layouts).
+  const hashtagChips = hashtagTags.length > 0 ? (
+    <div className="flex flex-wrap gap-1.5 pt-1">
+      {hashtagTags.map((tag) => {
+        const slug = resolveHashtag(tag)
+        return slug ? (
+          <Link key={tag} href={`/tipos/${slug}`} className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-100">
+            #{tag}
+          </Link>
+        ) : (
+          <span key={tag} className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-500">
+            #{tag}
+          </span>
+        )
+      })}
+    </div>
+  ) : null
+  const pinLine = listing.latitude != null && listing.longitude != null ? (
+    <p className="flex items-start gap-2 text-sm text-gray-700 pt-1">
+      <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-gray-500" />
+      <a
+        href={`https://www.google.com/maps?q=${listing.latitude},${listing.longitude}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="font-medium text-gray-900 underline"
+      >
+        Ver en el mapa
+      </a>
+    </p>
   ) : null
 
   return (
@@ -507,6 +562,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               {/* Description */}
               <div>
                 <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">{listing.description}</p>
+                {hashtagChips}
+                {pinLine}
               </div>
 
               {/* Tagged business */}
@@ -728,6 +785,8 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 <div className="pt-1">
                   <h2 className="text-base font-semibold mb-3">Descripción</h2>
                   <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{listing.description}</p>
+                  {hashtagChips}
+                  {pinLine}
                 </div>
 
                 {/* Tagged business */}

@@ -16,6 +16,11 @@ interface LocationPickerProps {
   onStateRegionChange: (v: string) => void
   onCountryChange?: (code: string) => void
   onCountryCodeChange?: (code: string) => void
+  // Pin coordinates (migration 060): the raw device location behind
+  // the GPS button, so the caller can store the pin with the post.
+  // Fires only on a successful detection — a denied or failed
+  // lookup leaves the pin unset and the post still publishes.
+  onCoordsChange?: (coords: { latitude: number; longitude: number } | null) => void
   // The country note is worded for a listing by default ("anuncio");
   // callers in a different context (store forms) pass their own.
   countryNote?: string
@@ -29,6 +34,7 @@ export function LocationPicker({
   onStateRegionChange,
   onCountryChange,
   onCountryCodeChange,
+  onCoordsChange,
   countryNote = 'El país del anuncio, no el de tu conexión: un anuncio en San Diego debe quedar como Estados Unidos.',
 }: LocationPickerProps) {
   const t = useTranslations()
@@ -52,6 +58,8 @@ export function LocationPicker({
           position.coords.latitude,
           position.coords.longitude
         )
+        // The pin is the device location behind this detection.
+        onCoordsChange?.({ latitude: position.coords.latitude, longitude: position.coords.longitude })
         if (result.city) onCityChange(result.city)
         if (result.state) onStateRegionChange(result.state)
         if (result.countryCode && onCountryCodeChange) onCountryCodeChange(result.countryCode)

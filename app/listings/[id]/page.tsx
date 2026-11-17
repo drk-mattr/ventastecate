@@ -24,7 +24,7 @@ import { ListingOwnerMenu } from '@/components/listings/listing-owner-menu'
 import { getEngagementCounts } from '@/lib/listings/engagement-counts'
 import { formatPrice } from '@/lib/listings/format-price'
 import { formatEventRangeLong, isEventPast } from '@/lib/listings/event-dates'
-import { extractHashtags } from '@/lib/hooks/use-item-search'
+import { extractHashtags } from '@/lib/hashtags'
 import { slugifyKindName } from '@/lib/items/normalize'
 
 // Serialize JSON-LD safely: escape characters that could break out of the
@@ -285,7 +285,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   // resolve to approved kinds; resolved ones link to /tipos/[slug],
   // the rest stay plain text. Slug-exact (lowercased tag, or the
   // slugified form) — a tag that doesn't resolve is simply not a link.
-  const hashtagTags = extractHashtags(listing.description)
+  const hashtagTags = extractHashtags(listing.description ?? '')
   const hashtagSlugs = new Set<string>()
   if (hashtagTags.length > 0) {
     const candidates = [...new Set(hashtagTags.flatMap((t) => [t.toLowerCase(), slugifyKindName(t)]))]

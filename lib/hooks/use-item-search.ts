@@ -12,17 +12,18 @@
 
 import { useState, useRef, useCallback } from 'react'
 import type { ItemSearchResult } from '@/lib/items/types'
+import { extractHashtags } from '@/lib/hashtags'
+
+// Re-exported so existing importers of this hook keep working;
+// the implementation lives in the server-safe lib/hashtags.ts
+// (the detail page calls it during server render).
+export { extractHashtags }
 
 export type HashtagSuggestion = {
   tag: string
   kindId: string
   kindName: string
   kindSlug: string
-}
-
-export function extractHashtags(text: string): string[] {
-  const tags = [...text.matchAll(/#([\p{L}\p{N}_-]+)/gu)].map((m) => m[1])
-  return [...new Set(tags)].slice(0, 5)
 }
 
 export function useItemSearch(businessId: string | null) {

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { safeRedirect } from '@/lib/auth/redirect'
 import { useTranslations } from '@/lib/hooks/use-translations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -70,7 +71,7 @@ export function AuthForm({ initialMode = 'login', redirect = '/', onSuccess }: A
       onSuccess()
       router.refresh()
     } else {
-      router.push(redirect)
+      router.push(safeRedirect(redirect))
       router.refresh()
     }
   }
@@ -84,7 +85,7 @@ export function AuthForm({ initialMode = 'login', redirect = '/', onSuccess }: A
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'facebook',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirect)}`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeRedirect(redirect))}`,
         scopes: 'email public_profile',
       },
     })
@@ -126,8 +127,10 @@ export function AuthForm({ initialMode = 'login', redirect = '/', onSuccess }: A
       options: {
         // After the user clicks the confirmation email, route through the
         // callback (which exchanges the code + sets the session) and land them
-        // on Home already logged in — not stranded on /login.
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/`,
+        // back where they came from — e.g. the posting form with their
+        // guest draft waiting — not stranded on Home. The destination is
+        // the login page's `redirect` (or '/' when there is none).
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeRedirect(redirect))}`,
         data: { username, display_name: displayName },
       },
     })

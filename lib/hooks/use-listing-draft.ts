@@ -11,9 +11,68 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 export const DRAFT_KEY_PREFIX = 'vt_new_listing_draft_v1'
 export const DRAFT_VERSION = 1
+// Signed-out visitors compose under one shared guest key. When they
+// sign in, the guest draft migrates onto their account key (see
+// migrateGuestDraftToUser) instead of being dropped.
+export const GUEST_DRAFT_KEY = `${DRAFT_KEY_PREFIX}:guest`
 
 export function draftKeyForUser(userId: string | null | undefined): string | null {
   return userId ? `${DRAFT_KEY_PREFIX}:${userId}` : null
+}
+
+/** The storage key for this visitor: their account key, or the guest key while signed out. */
+export function draftKeyFor(userId: string | null | undefined): string {
+  return userId ? `${DRAFT_KEY_PREFIX}:${userId}` : GUEST_DRAFT_KEY
+}
+
+function readStoredDraft(key: string): { draft: Record<string, unknown>; savedAt: number } | null {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { version?: number; savedAt?: number } & Record<string, unknown>
+    if (parsed.version !== DRAFT_VERSION) return null
+    return { draft: parsed, savedAt: typeof parsed.savedAt === 'number' ? parsed.savedAt : 0 }
+  } catch {
+    return null
+  }
+}
+
+export type DraftMigrationResult = {
+  /** Which draft won the migration ('none' when neither key held a draft). */
+  winner: 'guest' | 'user' | 'none'
+  /** The winning draft payload, or null when there was nothing to migrate. */
+  draft: Record<string, unknown> | null
+}
+
+/**
+ * Move a signed-out visitor's draft onto their account key after they
+ * sign in. Newer wins (compared on savedAt); ties — and drafts saved
+ * before savedAt existed — go to the guest draft, which was written
+ * after sign-out and so is the fresher intent. The guest key is
+ * removed afterwards, so a later sign-in never re-migrates stale
+ * text over the account draft.
+ */
+export function migrateGuestDraftToUser(userId: string): DraftMigrationResult {
+  const guest = readStoredDraft(GUEST_DRAFT_KEY)
+  if (!guest) return { winner: 'none', draft: null }
+  const userKey = draftKeyFor(userId)
+  const user = readStoredDraft(userKey)
+  const guestWins = !user || guest.savedAt >= user.savedAt
+  const winner = guestWins ? guest : user
+  try {
+    localStorage.setItem(
+      userKey,
+      JSON.stringify({ ...winner.draft, version: DRAFT_VERSION, savedAt: winner.savedAt })
+    )
+  } catch {
+    // Storage unavailable — the form still works, it just doesn't persist.
+  }
+  try {
+    localStorage.removeItem(GUEST_DRAFT_KEY)
+  } catch {
+    // Ignore — the guest key is best-effort.
+  }
+  return { winner: guestWins ? 'guest' : 'user', draft: winner.draft }
 }
 
 export function useListingDraft<T extends Record<string, unknown>>(options: {
@@ -68,11 +127,13 @@ export function useListingDraft<T extends Record<string, unknown>>(options: {
   }, [storageKey])
 
   // Autosave on change, debounced so typing doesn't hammer storage.
+  // savedAt stamps each write so a later guest→user migration can
+  // tell which draft is newer.
   useEffect(() => {
     if (!storageKey) return
     const handle = setTimeout(() => {
       try {
-        localStorage.setItem(storageKey, JSON.stringify({ ...valueRef.current, version: DRAFT_VERSION }))
+        localStorage.setItem(storageKey, JSON.stringify({ ...valueRef.current, version: DRAFT_VERSION, savedAt: Date.now() }))
       } catch {
         // Storage full / unavailable — the form still works, it just
         // doesn't autosave. Never block posting on this.
@@ -80,6 +141,17 @@ export function useListingDraft<T extends Record<string, unknown>>(options: {
     }, 400)
     return () => clearTimeout(handle)
   }, [storageKey, value])
+
+  // Synchronous save of the current value — for the publish-time auth
+  // gate, which must not lose the last keystrokes to the 400ms debounce.
+  const saveDraftNow = useCallback(() => {
+    if (!storageKey) return
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({ ...valueRef.current, version: DRAFT_VERSION, savedAt: Date.now() }))
+    } catch {
+      // Ignore — the draft is best-effort.
+    }
+  }, [storageKey])
 
   const clearDraft = useCallback(() => {
     if (!storageKey) return
@@ -90,5 +162,5 @@ export function useListingDraft<T extends Record<string, unknown>>(options: {
     }
   }, [storageKey])
 
-  return { clearDraft, didRestore }
+  return { clearDraft, didRestore, saveDraftNow }
 }

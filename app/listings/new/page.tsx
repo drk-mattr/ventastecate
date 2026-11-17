@@ -26,7 +26,7 @@ import { logPostingFunnel } from '@/lib/listings/posting-funnel'
 import { validateVideoFile, captureVideoPoster, formatVideoDuration, formatVideoSize, VIDEO_MAX_PER_DAY } from '@/lib/video/validate'
 import { uploadVideoResumable } from '@/lib/video/tus-upload'
 import { humanizePostError } from '@/lib/errors'
-import { useListingDraft, draftKeyForUser } from '@/lib/hooks/use-listing-draft'
+import { useListingDraft, draftKeyFor, migrateGuestDraftToUser } from '@/lib/hooks/use-listing-draft'
 import { useItemSearch } from '@/lib/hooks/use-item-search'
 import { FOOD_ROOT_SLUGS } from '@/lib/items/food-kinds'
 import { BusinessTagPicker } from '@/components/listings/business-tag-picker'
@@ -455,8 +455,25 @@ function NewListingForm() {
     }
     setDraftRestored(true)
   }
-  const { clearDraft, didRestore } = useListingDraft({
-    storageKey: draftKeyForUser(user?.id),
+  // Guest → user draft migration. A visitor who composed signed out
+  // and then signed in lands back here with the guest draft moved
+  // onto their account key (newer wins; ties go to the guest draft).
+  // Declared BEFORE useListingDraft so this effect runs before the
+  // hook's restore effect in the same commit — the first restore
+  // reads the migrated key. If the account draft wins on a later
+  // auth resolution (the hook restores only once), apply it here.
+  const migratedRef = useRef(false)
+  useEffect(() => {
+    if (!user?.id || migratedRef.current) return
+    migratedRef.current = true
+    const result = migrateGuestDraftToUser(user.id)
+    if (result.winner === 'user' && result.draft) {
+      restoreDraft(result.draft as typeof draftValue)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
+  const { clearDraft, didRestore, saveDraftNow } = useListingDraft({
+    storageKey: draftKeyFor(user?.id),
     value: draftValue,
     onRestore: restoreDraft,
   })
@@ -522,10 +539,12 @@ function NewListingForm() {
     // What the stored draft already set: the business row fetch in
     // restoreDraft is async, so state may still be null when this
     // runs — read the stored draft instead of trusting state.
+    // draftKeyFor covers the guest key too, so a signed-out
+    // visitor's draft wins over the ?negocio= link the same way.
     let draftBusinessId: string | null = null
     let draftHasItems = false
     try {
-      const key = draftKeyForUser(user?.id)
+      const key = draftKeyFor(user?.id)
       const raw = key ? localStorage.getItem(key) : null
       if (raw) {
         const parsed = JSON.parse(raw) as { taggedBusinessId?: unknown; selectedItems?: unknown }
@@ -1086,13 +1105,27 @@ function NewListingForm() {
     e.preventDefault()
     // The listing already exists once published — the form must not
     // re-submit and duplicate it; retries go through the retry buttons.
-    if (!user || publishedListingId) return
+    if (publishedListingId) return
 
     const { errors, firstId } = validateForm()
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors)
       setError('Revisa los datos marcados del anuncio')
       if (firstId) scrollToField(firstId)
+      return
+    }
+    // Guest publish: the form is valid, but there is no account to
+    // publish under yet. Save the draft synchronously (autosave is
+    // debounced 400ms) and send them to login with the FULL return
+    // destination — path + query, so ?negocio=&item= prefill
+    // context survives. After auth they land back here and the
+    // guest draft migrates onto their account key. Validation runs
+    // first, so a guest with missing fields sees those instead of
+    // a login round-trip.
+    if (!user) {
+      saveDraftNow()
+      const destination = `/listings/new${window.location.search}`
+      router.push(`/login?redirect=${encodeURIComponent(destination)}`)
       return
     }
     // Automotive year/make/model are optional — an unbranded truck

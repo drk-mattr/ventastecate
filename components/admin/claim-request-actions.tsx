@@ -30,7 +30,7 @@ export function ClaimRequestActions({ requestId }: { requestId: string }) {
         type="button"
         onClick={() => act('approve')}
         disabled={busy !== null}
-        className="rounded-full bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+        className="rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90 disabled:opacity-50"
       >
         {busy === 'approve' ? 'Aprobando…' : 'Aprobar'}
       </button>

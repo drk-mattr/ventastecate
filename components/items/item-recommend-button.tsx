@@ -102,7 +102,7 @@ export function ItemRecommendButton({
   const pill = (active: boolean) =>
     `rounded-full border px-4 h-8 text-xs font-medium transition-colors ${
       active
-        ? 'bg-gray-900 border-gray-900 text-white'
+        ? 'bg-gray-100 border-gray-300 text-gray-900'
         : 'bg-white border-gray-300 text-gray-700 hover:border-gray-900 hover:text-gray-900'
     }`
 

@@ -58,7 +58,7 @@ export function ContactBusinessButton({
     <Link
       href={href}
       aria-label={`Enviar mensaje a ${businessName}`}
-      className="flex h-7 items-center gap-1.5 rounded-full bg-gray-900 px-3 text-xs font-medium text-white hover:bg-gray-800"
+      className="flex h-7 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-white hover:bg-primary/90"
     >
       <MessageCircle className="h-3.5 w-3.5" />
       Mensaje

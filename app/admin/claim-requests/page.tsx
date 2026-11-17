@@ -60,7 +60,7 @@ export default async function AdminClaimRequestsPage({ searchParams }: { searchP
             <Link
               key={s}
               href={`/admin/claim-requests?status=${s}`}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border ${status === s ? 'bg-gray-900 text-white border-gray-900' : 'border-gray-200'}`}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border ${status === s ? 'bg-gray-100 text-gray-900 border-gray-300' : 'border-gray-200'}`}
             >
               {STATUS_LABEL[s]}
             </Link>
@@ -79,7 +79,7 @@ export default async function AdminClaimRequestsPage({ searchParams }: { searchP
                     <Link href={`/businesses/${businessId}`} className="text-sm font-semibold text-gray-900 hover:underline">
                       {businessNames.get(businessId) || 'Negocio'}
                     </Link>
-                    <span className={`text-[11px] px-2 py-0.5 rounded-full ${status === 'pending' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full ${status === 'pending' ? 'bg-gray-200 text-gray-900' : 'bg-gray-100 text-gray-600'}`}>
                       {STATUS_LABEL[status]}
                     </span>
                     <span className="text-xs text-gray-400 ml-auto">

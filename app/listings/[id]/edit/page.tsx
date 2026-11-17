@@ -542,7 +542,7 @@ export default function EditListingPage() {
                           type="button"
                           onClick={() => setCurrency(cur)}
                           aria-pressed={currency === cur}
-                          className={`px-2.5 py-1.5 rounded-md text-xs font-medium ${currency === cur ? 'bg-gray-900 text-white' : 'text-gray-500'}`}
+                          className={`px-2.5 py-1.5 rounded-md text-xs font-medium ${currency === cur ? 'bg-gray-200 text-gray-900' : 'text-gray-500'}`}
                         >
                           {cur}
                         </button>

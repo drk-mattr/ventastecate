@@ -104,7 +104,7 @@ export function ItemTagPicker({
               key={tag.kindSlug}
               className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${
                 index === 0
-                  ? 'border-gray-900 bg-gray-900 text-white'
+                  ? 'border-gray-300 bg-gray-100 text-gray-900'
                   : 'border-gray-200 bg-white text-gray-700'
               }`}
             >

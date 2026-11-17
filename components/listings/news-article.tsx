@@ -154,7 +154,7 @@ export function NewsArticle({
           beside it. Hidden below lg, where the byline carries the
           same content compactly instead. */}
       <aside className="hidden lg:block w-60 shrink-0">
-        <div className="sticky top-24 flex flex-col items-start gap-3 border-t-2 border-black pt-4">
+        <div className="sticky top-24 flex flex-col items-start gap-3 pt-4">
           <div className="relative h-14 w-14 rounded-full bg-gray-200 flex items-center justify-center text-base font-semibold overflow-hidden shrink-0">
             {entityAvatar ? (
               <Image src={entityAvatar} alt={entityName} fill className="object-cover" />

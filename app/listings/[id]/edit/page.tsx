@@ -345,11 +345,13 @@ export default function EditListingPage() {
           ...(parkingSpots && { parking_spots: parseInt(parkingSpots) }),
         } as RealEstateMetadata
       } else if (metadataType === 'automotive') {
+        // Same as the new form: year/make/model are optional —
+        // omit empties instead of storing "" (or NaN for year).
         metadata = {
           type: 'automotive',
-          make,
-          model,
-          year: parseInt(year),
+          ...(make.trim() && { make: make.trim() }),
+          ...(model.trim() && { model: model.trim() }),
+          ...(year && { year: parseInt(year) }),
           ...(mileageKm && { mileage_km: parseInt(mileageKm) }),
           transmission,
           fuel_type: fuelType,

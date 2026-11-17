@@ -736,16 +736,24 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   const meta = listing.metadata as AutomotiveMetadata
                   const fuelLabels: Record<string, string> = { gasolina: 'Gasolina', diesel: 'Diésel', electrico: 'Eléctrico', hibrido: 'Híbrido' }
                   const transLabels: Record<string, string> = { automatica: 'Automática', manual: 'Manual' }
+                  // Year/make/model are optional — join only the parts
+                  // that exist, so an unbranded truck never renders
+                  // leading spaces or "undefined".
+                  const vehicleTitle = [meta.make, meta.model, meta.year?.toString()].filter(Boolean).join(' ')
                   return (
                     <div className="pt-4 border-t">
-                      <p className="text-base font-medium text-gray-700 mb-4">
-                        {meta.make} {meta.model} {meta.year}
-                      </p>
+                      {vehicleTitle && (
+                        <p className="text-base font-medium text-gray-700 mb-4">
+                          {vehicleTitle}
+                        </p>
+                      )}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <div className="text-center p-3 bg-gray-50 rounded-xl">
-                          <p className="text-lg font-semibold">{meta.year}</p>
-                          <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Calendar className="h-3 w-3" /> Año</div>
-                        </div>
+                        {meta.year != null && (
+                          <div className="text-center p-3 bg-gray-50 rounded-xl">
+                            <p className="text-lg font-semibold">{meta.year}</p>
+                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Calendar className="h-3 w-3" /> Año</div>
+                          </div>
+                        )}
                         {meta.mileage_km != null && (
                           <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{meta.mileage_km.toLocaleString()}</p>

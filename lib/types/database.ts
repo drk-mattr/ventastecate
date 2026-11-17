@@ -54,9 +54,12 @@ export type RealEstateMetadata = {
 
 export type AutomotiveMetadata = {
   type: 'automotive'
-  make: string
-  model: string
-  year: number
+  // Year/make/model are optional: an unbranded truck (e.g. a food
+  // truck) often has no known brand, and unknown details must not
+  // block posting. Omitted from the stored object when empty.
+  make?: string
+  model?: string
+  year?: number
   mileage_km?: number
   transmission?: 'manual' | 'automatica'
   fuel_type?: 'gasolina' | 'diesel' | 'electrico' | 'hibrido'

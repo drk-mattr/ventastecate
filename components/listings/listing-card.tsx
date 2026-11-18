@@ -12,7 +12,7 @@ import { resolveCardColor } from '@/lib/listings/card-colors'
 import { ListingTitleCard } from './listing-title-card'
 import { VideoPlayer } from './video-player'
 import { nativeVideoOf, listingVideoPublicUrl } from '@/lib/video/types'
-import { splitSource, sourceDomain } from '@/lib/listings/article-helpers'
+import { newsLede, splitSource, sourceDomain } from '@/lib/listings/article-helpers'
 
 // Public storage base for native video URLs (URL construction
 // only, no fetch — the same public env the browser client uses).
@@ -75,21 +75,6 @@ function timeAgo(dateStr: string): string {
   const days = Math.floor(hrs / 24)
   if (days < 7) return `${days}d`
   return new Date(dateStr).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
-}
-
-// First ~140 characters of a news body as a card lede: whitespace
-// collapsed, cut back to a word boundary, ellipsis when trimmed.
-// The Fuente line is already stripped by splitSource before this
-// runs, so the lede never shows the source URL. Empty body → null
-// (no lede line, no gap).
-function newsLede(body: string, maxLen = 140): string | null {
-  const flat = body.replace(/\s+/g, ' ').trim()
-  if (!flat) return null
-  if (flat.length <= maxLen) return flat
-  const cut = flat.slice(0, maxLen)
-  const lastSpace = cut.lastIndexOf(' ')
-  const trimmed = (lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trimEnd()
-  return `${trimmed}…`
 }
 
 // Uniform grid construction (2026-11-11): every variant is the SAME

@@ -179,3 +179,18 @@ export function tagLinks(listing: {
   }
   return tags
 }
+
+// First ~N characters of a news body as a lede / dek: whitespace
+// collapsed, cut back to a word boundary, ellipsis when trimmed.
+// The Fuentes block is already stripped by splitSources before
+// this runs, so the lede never shows a source URL. Empty body ->
+// null (no lede line, no gap).
+export function newsLede(body: string, maxLen = 140): string | null {
+  const flat = body.replace(/\s+/g, ' ').trim()
+  if (!flat) return null
+  if (flat.length <= maxLen) return flat
+  const cut = flat.slice(0, maxLen)
+  const lastSpace = cut.lastIndexOf(' ')
+  const trimmed = (lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trimEnd()
+  return `${trimmed}…`
+}

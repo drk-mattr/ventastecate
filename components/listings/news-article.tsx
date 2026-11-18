@@ -12,6 +12,7 @@ import { StoreFollowButton } from '@/components/stores/store-follow-button'
 import { ReporterBadge } from '@/components/user/reporter-badge'
 import { isLocalReporter } from '@/lib/video/types'
 import {
+  newsLede,
   readingMinutes,
   splitSources,
   splitParagraphs,
@@ -109,6 +110,10 @@ export function NewsArticle({
 
   const { body, sources } = splitSources(listing.description)
   const paragraphs = splitParagraphs(body)
+  // Dek (standfirst): the article's own opening line, same lede
+  // the feed card shows — no new field, no migration. Null when
+  // the body is empty; the title-card hero shows no dek either.
+  const dek = newsLede(body, 200)
   const minutes = readingMinutes(body)
   const tags = tagLinks(listing)
   const shortDate = new Date(listing.created_at).toLocaleDateString('es-MX', {
@@ -185,7 +190,7 @@ export function NewsArticle({
           headline owns the header. They replace the category Badge +
           "Noticia / Aviso" breadcrumb row. */}
       {tags.length > 0 && (
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
           {tags.map((tag) => (
             <Link
               key={tag.href}
@@ -198,15 +203,23 @@ export function NewsArticle({
         </div>
       )}
 
-      {/* Headline — the logo type (Fraunces, font-forum), like the
-          body below it: the sans bold headline looked generic next
-          to the serif article text. Same size and weight, the face
-          is what changes. Centered, like a newspaper headline —
-          the body below stays left-aligned. */}
+      {/* Headline — Newsreader (user, 2026-11-17): the serif
+          news face, like the body below it. Centered, like a
+          newspaper headline — the body below stays left-aligned.
+          Room to breathe: wider gaps above (tags) and below
+          (byline) than the body rhythm, and a size up at every
+          breakpoint. */}
       {!isTitleCardHero && (
-        <h1 className="font-news text-[28px] leading-[1.15] sm:text-4xl md:text-[40px] font-bold text-gray-900 mb-4 text-center">
-          {listing.title}
-        </h1>
+        <>
+          <h1 className="font-news text-[32px] leading-[1.15] sm:text-[42px] md:text-[48px] font-bold text-gray-900 mb-6 text-center">
+            {listing.title}
+          </h1>
+          {dek && (
+            <p className="font-news text-[19px] leading-snug sm:text-[21px] text-gray-600 text-center mb-6">
+              {dek}
+            </p>
+          )}
+        </>
       )}
 
       {/* Byline — 26px avatar, name + badges, Follow, reading time,

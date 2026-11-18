@@ -11,7 +11,10 @@ interface ListingEngagementBarProps {
   listingId: string
   likesCount: number
   savesCount: number
-  variant?: 'bar' | 'article'
+  // 'byline' (2026-11-17): the icons live in the article byline
+  // row — no padding, no hairlines, lighter 1.8 stroke. 'article'
+  // is the repeated bottom row; 'bar' is the product/event detail.
+  variant?: 'bar' | 'article' | 'byline'
 }
 
 export function ListingEngagementBar({ listingId, likesCount, savesCount, variant = 'bar' }: ListingEngagementBarProps) {
@@ -84,18 +87,27 @@ export function ListingEngagementBar({ listingId, likesCount, savesCount, varian
   }
 
   const article = variant === 'article'
+  const byline = variant === 'byline'
   // Article variant (news detail, Medium pattern): no pills, no
   // background — plain gray icons on the hairline row, same
-  // monochrome like/save states as the other variants.
-  const pill = article
+  // monochrome like/save states as the other variants. The byline
+  // variant is the same icons with no row of their own: they sit
+  // in the byline row, so no padding and no hairlines.
+  const pill = article || byline
     ? 'inline-flex items-center'
     : 'inline-flex h-9 items-center rounded-full px-3 hover:bg-gray-50 transition-colors'
+  // Lighter stroke (1.8) on every article-surface icon — the
+  // preview's thinner icons read quieter next to the byline.
+  // The product/event 'bar' keeps stroke 2.
+  const iconStroke = article || byline ? 1.8 : 2
 
   return (
     <div className={
-      article
-        ? 'flex items-center gap-5 py-3 border-y border-gray-100'
-        : 'flex items-center gap-1 pt-3 mt-1 border-t'
+      byline
+        ? 'flex items-center gap-4'
+        : article
+          ? 'flex items-center gap-5 py-3 border-y border-gray-100'
+          : 'flex items-center gap-1 pt-3 mt-1 border-t'
     }>
       <span className={pill}>
         <LikeButton
@@ -104,6 +116,7 @@ export function ListingEngagementBar({ listingId, likesCount, savesCount, varian
           initialLiked={userLiked}
           initialCount={likesCount}
           size="md"
+          strokeWidth={iconStroke}
         />
       </span>
       <span className={pill}>
@@ -113,6 +126,7 @@ export function ListingEngagementBar({ listingId, likesCount, savesCount, varian
           initialSaved={userSaved}
           initialCount={savesCount}
           size="md"
+          strokeWidth={iconStroke}
         />
       </span>
       <button
@@ -122,9 +136,9 @@ export function ListingEngagementBar({ listingId, likesCount, savesCount, varian
         title={shared ? 'Enlace copiado' : 'Compartir'}
       >
         {shared ? (
-          <Check className="h-5 w-5" />
+          <Check className="h-5 w-5" strokeWidth={iconStroke} />
         ) : (
-          <Share className="h-5 w-5" />
+          <Share className="h-5 w-5" strokeWidth={iconStroke} />
         )}
       </button>
     </div>

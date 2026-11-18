@@ -209,8 +209,10 @@ export function NewsArticle({
         </h1>
       )}
 
-      {/* Byline — 26px avatar, name + badges, Follow, reading time.
-          Left-aligned under the centered headline — the title
+      {/* Byline — 26px avatar, name + badges, Follow, reading time,
+          and the like / save / share actions at the right end
+          (2026-11-17: the icons moved up from their own row below
+          — one less row of vertical space per article). The title
           centers, the byline doesn't. The rail avatar (desktop,
           h-14) is untouched — that is the publication identity.
           Location left the byline: it lives in the place cap. */}
@@ -226,7 +228,7 @@ export function NewsArticle({
         </div>
         <div className="flex-1 min-w-0">
           {listing.store ? (
-            <span className="flex items-center gap-2">
+            <span className="flex flex-wrap items-center gap-2">
               <Link href={`/stores/${listing.store.slug}`} className="text-sm font-semibold hover:underline">
                 {listing.store.name}
               </Link>
@@ -238,7 +240,7 @@ export function NewsArticle({
               )}
             </span>
           ) : (
-            <span className="flex items-center gap-2">
+            <span className="flex flex-wrap items-center gap-2">
               <Link href={`/users/${listing.profile.username}`} className="text-sm font-semibold hover:underline">
                 {listing.profile.display_name}
               </Link>
@@ -260,6 +262,16 @@ export function NewsArticle({
             <p className="lg:hidden text-xs text-gray-600 mt-1 line-clamp-2">{entityDescription}</p>
           )}
         </div>
+        {/* Like / save / share in the byline row — the bar's
+            'byline' variant has no padding and no hairlines. */}
+        <div className="shrink-0">
+          <ListingEngagementBar
+            listingId={listing.id}
+            likesCount={likesCount}
+            savesCount={savesCount}
+            variant="byline"
+          />
+        </div>
         {/* Entity-aware Follow — the line-176 gate that suppressed
             Follow for store authors is gone: a store-authored post
             follows the store. Mobile only: on desktop the rail
@@ -271,18 +283,6 @@ export function NewsArticle({
             <Link href={`/listings/${listing.id}/edit`}>Editar</Link>
           </Button>
         )}
-      </div>
-
-      {/* Action row — quiet, between hairlines. The one like/save
-          control on every width now: the mobile hero overlay is gone
-          for news. */}
-      <div className="mb-6">
-        <ListingEngagementBar
-          listingId={listing.id}
-          likesCount={likesCount}
-          savesCount={savesCount}
-          variant="article"
-        />
       </div>
 
       {/* Hero — video takes the slot when it exists (the clip is the

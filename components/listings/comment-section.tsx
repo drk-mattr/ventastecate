@@ -156,6 +156,21 @@ export function CommentSection({ listingId, initialComments, currentUserId }: Co
           {error && <p className="text-xs text-red-600">{error}</p>}
         </form>
       )}
+
+      {/* Guest prompt (2026-11-17): for signed-out visitors the
+          empty state above ("Sé el primero en comentar.") was dead
+          text — no input anywhere, a tap did nothing. A tap here
+          goes to sign-in and back to this listing (the redirect
+          param is validated server-side since PR #184). Signed-in
+          visitors never see this — they get the form above. */}
+      {!currentUserId && (
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+          <p className="text-sm text-gray-600">Inicia sesión para comentar.</p>
+          <Button asChild size="sm" className="shrink-0">
+            <Link href={`/login?redirect=/listings/${listingId}`}>Iniciar sesión</Link>
+          </Button>
+        </div>
+      )}
     </section>
   )
 }

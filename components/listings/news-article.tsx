@@ -204,7 +204,7 @@ export function NewsArticle({
           is what changes. Centered, like a newspaper headline —
           the body below stays left-aligned. */}
       {!isTitleCardHero && (
-        <h1 className="font-forum text-[28px] leading-[1.15] sm:text-4xl md:text-[40px] font-bold text-gray-900 mb-4 text-center">
+        <h1 className="font-news text-[28px] leading-[1.15] sm:text-4xl md:text-[40px] font-bold text-gray-900 mb-4 text-center">
           {listing.title}
         </h1>
       )}

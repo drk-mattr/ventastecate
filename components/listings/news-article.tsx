@@ -190,7 +190,7 @@ export function NewsArticle({
           headline owns the header. They replace the category Badge +
           "Noticia / Aviso" breadcrumb row. */}
       {tags.length > 0 && (
-        <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
+        <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
           {tags.map((tag) => (
             <Link
               key={tag.href}

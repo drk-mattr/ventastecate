@@ -148,7 +148,7 @@ function EditorialNewsTextArea({
             <span className={`ml-1 ${categoryColor}`}>· {listing.category}</span>
           )}
         </p>
-        <h3 className="font-forum font-bold text-[16px] leading-snug line-clamp-3 mb-1.5 group-hover:underline">
+        <h3 className="font-news font-bold text-[16px] leading-snug line-clamp-3 mb-1.5 group-hover:underline">
           {listing.title}
         </h3>
         {lede && (

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Fraunces } from "next/font/google";
+import { Geist, Geist_Mono, Fraunces, Newsreader } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/auth-context";
@@ -31,6 +31,16 @@ const fraunces = Fraunces({
   // weight, and without 400 the browser fell back to 500, which
   // read as too bold/heavy (2026-11-10).
   weight: ["400", "500", "600", "700"],
+});
+
+// Newsreader is the news headline face only (user, 2026-11-17):
+// Fraunces reads too "aesthetic" for a serious news title. The
+// article headline and the news feed-card headline use it; the
+// article body and everything else stay Fraunces.
+const newsreader = Newsreader({
+  variable: "--font-news",
+  subsets: ["latin"],
+  weight: ["600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -102,7 +112,7 @@ export default async function RootLayout({
         <GoogleAnalytics />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} antialiased pb-14 md:pb-0`}
+        className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${newsreader.variable} antialiased pb-14 md:pb-0`}
       >
         <AuthProvider>
           <BrandProvider brandName={brandName}>

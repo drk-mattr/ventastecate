@@ -210,11 +210,11 @@ export function NewsArticle({
       )}
 
       {/* Byline — 26px avatar, name + badges, Follow, reading time.
-          Centered as one cluster under the headline; the rail
-          avatar (desktop, h-14) is untouched — that is the
-          publication identity. Location left the byline: it lives
-          in the place cap. */}
-      <div className="flex items-center justify-center gap-2.5 pb-4">
+          Left-aligned under the centered headline — the title
+          centers, the byline doesn't. The rail avatar (desktop,
+          h-14) is untouched — that is the publication identity.
+          Location left the byline: it lives in the place cap. */}
+      <div className="flex items-center gap-2.5 pb-4">
         <div className="relative h-[26px] w-[26px] rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-semibold overflow-hidden shrink-0">
           {listing.store?.avatar_url ? (
             <Image src={listing.store.avatar_url} alt={listing.store.name} fill className="object-cover" />
@@ -224,7 +224,7 @@ export function NewsArticle({
             <span>{(listing.store?.name || listing.profile.display_name)[0].toUpperCase()}</span>
           )}
         </div>
-        <div className="min-w-0">
+        <div className="flex-1 min-w-0">
           {listing.store ? (
             <span className="flex items-center gap-2">
               <Link href={`/stores/${listing.store.slug}`} className="text-sm font-semibold hover:underline">
@@ -251,13 +251,13 @@ export function NewsArticle({
               {isLocalReporter(listing.profile) && <ReporterBadge />}
             </span>
           )}
-          <p className="text-xs text-gray-500 mt-0.5 text-center">
+          <p className="text-xs text-gray-500 mt-0.5">
             {minutes} min de lectura · {shortDate}
           </p>
           {/* Mobile only: the description lives in the rail on
               desktop, so the byline carries it compactly here. */}
           {entityDescription && (
-            <p className="lg:hidden text-xs text-gray-600 mt-1 line-clamp-2 text-center">{entityDescription}</p>
+            <p className="lg:hidden text-xs text-gray-600 mt-1 line-clamp-2">{entityDescription}</p>
           )}
         </div>
         {/* Entity-aware Follow — the line-176 gate that suppressed

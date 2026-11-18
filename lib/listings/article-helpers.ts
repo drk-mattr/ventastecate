@@ -15,26 +15,100 @@ export function readingMinutes(text: string): number {
   return Math.max(1, Math.round(words / 200))
 }
 
+export type ArticleSource = { label: string; url: string }
+
+/** Parse one source line: `Label — <url>` (or a bare URL, whose label is its domain). */
+function parseSourceLine(line: string): ArticleSource | null {
+  const m = /(https?:\/\/\S+)/.exec(line)
+  if (!m) return null
+  const url = m[1].replace(/[),.;]+$/, '')
+  const label =
+    line
+      .slice(0, m.index)
+      .replace(/[\s\u2014\u2013\-:|]+$/, '')
+      .trim() || sourceDomain(url).replace(/^www\./, '')
+  return { label, url }
+}
+
 /**
- * Split a trailing `Fuente: <url>` line off a description. The
- * internal community-post endpoint appends "\n\nFuente: {source}"
- * to every community post, so the citation lives at the end of the
- * body as raw URL text. Only a TRAILING line is stripped — a
- * "Fuente:" mention mid-body is the author's own text and stays.
- * Returns the body (trailing whitespace trimmed) and the URL, or
- * null when no trailing Fuente line exists (user-posted news).
+ * Split trailing sources off a description. Two formats, both
+ * trailing-only — a "Fuente(s)" mention mid-body is the author's
+ * own text and stays.
+ * - Multi-source (merged stories): a `Fuentes:` line followed by
+ *   one `Label — <url>` line per source, nothing after it.
+ * - Single-source (the community-post endpoint's
+ *   "\n\nFuente: {source}"): a trailing `Fuente: <url>` line,
+ *   or a bare trailing URL line.
+ * Returns the body (trailing whitespace trimmed) and the sources
+ * in order; no trailing sources → empty list, body as-is.
+ * The card and the detail page both read this, so a merged story
+ * keeps its first source's domain on the card.
  */
-export function splitSource(description: string): { body: string; sourceUrl: string | null } {
+export function splitSources(description: string): { body: string; sources: ArticleSource[] } {
   const lines = description.split('\n')
   let lastIdx = lines.length - 1
   while (lastIdx >= 0 && lines[lastIdx].trim() === '') lastIdx--
-  if (lastIdx < 0) return { body: description, sourceUrl: null }
-  const match = /^Fuente:\s+(https?:\/\/\S+)\s*$/.exec(lines[lastIdx].trim())
-  if (!match) return { body: description, sourceUrl: null }
-  return {
-    body: lines.slice(0, lastIdx).join('\n').replace(/\s+$/, ''),
-    sourceUrl: match[1],
+  if (lastIdx < 0) return { body: description, sources: [] }
+
+  // 1. Trailing `Fuentes:` block: contiguous run of URL lines
+  // ending at a `Fuentes:` line.
+  {
+    let j = lastIdx
+    const tail: string[] = []
+    let found = false
+    while (j >= 0) {
+      const line = lines[j].trim()
+      if (line === '') {
+        j--
+        continue
+      }
+      if (/^Fuentes:\s*$/.test(line)) {
+        found = true
+        break
+      }
+      if (!/https?:\/\/\S+/.test(line)) break
+      tail.unshift(line)
+      j--
+    }
+    if (found) {
+      const sources = tail.map(parseSourceLine).filter((x): x is ArticleSource => x !== null)
+      if (sources.length > 0 && sources.length === tail.length) {
+        return { body: lines.slice(0, j).join('\n').replace(/\s+$/, ''), sources }
+      }
+    }
   }
+
+  // 2. Single trailing `Fuente: <url>` line.
+  const lastLine = lines[lastIdx].trim()
+  const single = /^Fuente:\s+(https?:\/\/\S+)\s*$/.exec(lastLine)
+  if (single) {
+    const url = single[1]
+    return {
+      body: lines.slice(0, lastIdx).join('\n').replace(/\s+$/, ''),
+      sources: [{ label: sourceDomain(url).replace(/^www\./, ''), url }],
+    }
+  }
+
+  // 3. Bare trailing URL line.
+  if (/^https?:\/\/\S+$/.test(lastLine)) {
+    const url = lastLine
+    return {
+      body: lines.slice(0, lastIdx).join('\n').replace(/\s+$/, ''),
+      sources: [{ label: sourceDomain(url).replace(/^www\./, ''), url }],
+    }
+  }
+
+  return { body: description, sources: [] }
+}
+
+/**
+ * Single-source view of splitSources, for the feed card: the body
+ * with the trailing sources stripped, and the FIRST source's URL
+ * (or null when there is none — user-posted news).
+ */
+export function splitSource(description: string): { body: string; sourceUrl: string | null } {
+  const { body, sources } = splitSources(description)
+  return { body, sourceUrl: sources.length > 0 ? sources[0].url : null }
 }
 
 /**

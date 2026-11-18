@@ -13,7 +13,7 @@ import { ReporterBadge } from '@/components/user/reporter-badge'
 import { isLocalReporter } from '@/lib/video/types'
 import {
   readingMinutes,
-  splitSource,
+  splitSources,
   splitParagraphs,
   tagLinks,
   sourceDomain,
@@ -107,7 +107,7 @@ export function NewsArticle({
   const isTitleCardHero = !hasPhotos && !hasVideo
   const isLostPost = listing.category === 'Objetos Perdidos'
 
-  const { body, sourceUrl } = splitSource(listing.description)
+  const { body, sources } = splitSources(listing.description)
   const paragraphs = splitParagraphs(body)
   const minutes = readingMinutes(body)
   const tags = tagLinks(listing)
@@ -326,17 +326,30 @@ export function NewsArticle({
         ))}
       </div>
 
-      {/* Source footer — the trailing "Fuente: <url>" line, split off
-          the body and rendered as a linked citation (domain only).
-          User-posted news has no Fuente line: nothing renders. */}
-      {sourceUrl && (
+      {/* Sources block — the trailing "Fuentes:" block (or a single
+          "Fuente:" line), split off the body and rendered as its own
+          section: one small row per source, outlet name linked, domain
+          in gray. User-posted news has no sources: nothing renders. */}
+      {sources.length > 0 && (
         <div className="border-t border-gray-100 mt-10 pt-4">
-          <p className="text-xs text-gray-500">
-            Fuente:{' '}
-            <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
-              {sourceDomain(sourceUrl)}
-            </a>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-2">
+            Fuentes
           </p>
+          <ul className="space-y-1.5">
+            {sources.map((src) => (
+              <li key={src.url} className="text-xs text-gray-500">
+                <a
+                  href={src.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline hover:text-gray-700"
+                >
+                  {src.label}
+                </a>
+                <span className="text-gray-400"> · {sourceDomain(src.url).replace(/^www\./, '')}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

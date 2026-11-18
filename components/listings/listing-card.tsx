@@ -77,21 +77,21 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
 }
 
-// Uniform grid construction (2026-11-11): every variant is the SAME
-// height in a grid row, by construction — media slot aspect-[4/5]
-// of the column width + a fixed h-[90px] text area, top-aligned,
-// nothing bottom-pinned, no mt-auto. The 90px fits the tallest
-// text content (news eyebrow + title line-clamp-2 + meta row,
-// ~86px); shorter variants carry the slack as bottom padding inside
-// their text block. The card is only as tall as those two blocks:
-// no h-full, so a tall neighbor cannot stretch it (the grids use
-// items-start). The one exception: editorial news cards
-// (2026-11-17, non-lost only) use a landscape 16:9 media slot,
-// and the text area below is taller by exactly the height the
-// photo lost — pb-[calc(68.75%+90px)] — so the total still equals
-// 5/4 W + 90px, the same as every row-mate. Lost posts are no
-// exception: the SE BUSCA heading sits INSIDE the media slot as
-// its top strip (2026-11-17).
+// Uniform grid construction (2026-11-11, tightened 2026-11-18): every
+// variant is the SAME height in a grid row, by construction — media
+// slot aspect-[4/5] of the column width + a fixed h-[78px] text area,
+// top-aligned, nothing bottom-pinned, no mt-auto. The 78px fits the
+// tallest standard text content (2-line title + meta row, ~73px);
+// shorter variants carry the slack as bottom padding inside their
+// text block. The card is only as tall as those two blocks: no
+// h-full, so a tall neighbor cannot stretch it (the grids use
+// items-start). Total: 5/4 W + 78px. Exceptions, all compensated to
+// the same total: editorial news cards (non-lost only) use a 3:2
+// media slot (2/3 W) with the text area at 7/12 W + 78px, and
+// date-first events keep a 90px text area (a priced event needs
+// ~88px) with the media slot trimmed 12px (5/4 W − 12px) to match.
+// Lost posts are no exception: the SE BUSCA heading sits INSIDE
+// the media slot as its top strip (2026-11-17).
 function CardShell({ id, children }: { id: string; children: React.ReactNode }) {
   return (
     <Link href={`/listings/${id}`} className="group">
@@ -102,15 +102,18 @@ function CardShell({ id, children }: { id: string; children: React.ReactNode }) 
   )
 }
 
-// Editorial news text area (non-lost news only, 2026-11-17): the
-// media slot went landscape (16:9), so this area is taller than
-// the 90px of every other variant by exactly the height the photo
-// lost — 0.6875 × the column width — keeping the card's total
-// height identical to its row-mates: 9/16 W + (11/16 W + 90px) =
-// 5/4 W + 90px. The height is padding-bottom (percentages resolve
-// against the card width), with the content absolutely positioned
-// inside; content is top-aligned, nothing bottom-pinned. Contents:
-// red NOTICIA marker + category eyebrow, serif headline
+// Editorial news text area (non-lost news only, 2026-11-17; 3:2 media
+// since the 2026-11-18 tighten): the media slot is 3:2 (2/3 W), so
+// this area is taller than the 78px of every other variant by
+// exactly the height the photo lost vs 4:5 — 7/12 × the column
+// width — keeping the card's total height identical to its
+// row-mates: 2/3 W + (7/12 W + 78px) = 5/4 W + 78px. The height
+// is padding-bottom (percentages resolve against the card width),
+// with the content absolutely positioned inside; content is
+// top-aligned, nothing bottom-pinned. Worst-case content is ~161px
+// (eyebrow + 3-line headline + 2-line lede + source line), so the
+// area fits it at any card width ≥ ~143px (viewport ≥ ~330px).
+// Contents: red NOTICIA marker + category eyebrow, serif headline
 // (font-forum, the news typeface), a two-line lede, source domain
 // + time. No lede → no lede line, no gap.
 function EditorialNewsTextArea({
@@ -125,7 +128,7 @@ function EditorialNewsTextArea({
   sourceHost: string | null
 }) {
   return (
-    <div className="relative w-full shrink-0 pb-[calc(68.75%+90px)]">
+    <div className="relative w-full shrink-0 pb-[calc(58.33%+78px)]">
       <div className="absolute inset-0 px-2.5 pt-2 pb-2 flex flex-col">
         <p className="text-[9px] font-bold uppercase tracking-wider mb-1.5 leading-none">
           <span className="text-red-600">Noticia</span>
@@ -210,7 +213,7 @@ export function ListingCard({ listing }: ListingCardProps) {
     // slot, the photo inset with a white margin, grayscale,
     // object-contain (it shows FULLY — it is the evidence for
     // identifying the animal). This branch is untouched by the
-    // editorial news change below: same 4:5 slot, same h-[90px]
+    // editorial news change below: same 4:5 slot, same h-[78px]
     // text area, and the card now matches its row-mates exactly.
     if (isLostPost) {
       if (!primaryImage && !nativeVideo) {
@@ -228,7 +231,7 @@ export function ListingCard({ listing }: ListingCardProps) {
                 {listing.status === 'sold' && soldOverlay}
               </div>
             </div>
-            <div className="h-[90px] shrink-0 px-2.5 pt-1.5 pb-2">
+            <div className="h-[78px] shrink-0 px-2.5 pt-1.5 pb-2">
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-[10px] text-gray-400">{timeAgo(listing.created_at)}</span>
               </div>
@@ -271,7 +274,7 @@ export function ListingCard({ listing }: ListingCardProps) {
               </div>
             )}
           </div>
-          <div className="h-[90px] shrink-0 px-2.5 pt-1.5 pb-2">
+          <div className="h-[78px] shrink-0 px-2.5 pt-1.5 pb-2">
             <h3 className="font-semibold text-[13px] line-clamp-2 mb-1 group-hover:underline leading-snug">
               {listing.title}
             </h3>
@@ -287,9 +290,8 @@ export function ListingCard({ listing }: ListingCardProps) {
 
     // ── Editorial news card (non-lost only, 2026-11-17): a news
     // story should read as news, not as an item for sale. The photo
-    // slot is landscape 16:9 — a landscape news photo now shows as
-    // a landscape photo instead of a portrait crop — and the text
-    // area below carries the editorial treatment: red NOTICIA
+    // slot is 3:2 — a landscape news photo now shows as a landscape
+    // photo instead of a portrait crop — and the text area below carries the editorial treatment: red NOTICIA
     // marker + category, serif headline, a two-line lede, source
     // domain + time. The text area is taller by exactly the height
     // the photo lost, so the card ends at exactly the same height
@@ -308,14 +310,14 @@ export function ListingCard({ listing }: ListingCardProps) {
     // news story — text-first, NO photo slot at all. The whole card
     // is the text area, at exactly the same total height as its
     // row-mates (the padding trick from EditorialNewsTextArea, full
-    // 5/4 W + 90px). AVISO label + location, serif title, the
+    // 5/4 W + 78px). AVISO label + location, serif title, the
     // notice itself, time pinned to the bottom. A photo on the
     // listing still shows on the detail page — the card just
     // doesn't lead with it.
     if (listing.category === 'Anuncios Comunitarios') {
       return (
         <CardShell id={listing.id}>
-          <div className="relative w-full shrink-0 pb-[calc(125%+90px)]">
+          <div className="relative w-full shrink-0 pb-[calc(125%+78px)]">
             <div className="absolute inset-0 px-2.5 pt-2.5 pb-2 flex flex-col">
               <p className="text-[9px] font-bold uppercase tracking-wider mb-1.5 leading-none">
                 <span className="text-red-600">Aviso</span>
@@ -338,7 +340,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       )
     }
 
-    // Photo-less news: the orange title card fills the 16:9 media
+    // Photo-less news: the orange title card fills the 3:2 media
     // slot instead of 4:5 (title still white on orange, same
     // treatment, just wider/shorter). A native video is not
     // photo-less — it takes the media slot below instead.
@@ -347,10 +349,10 @@ export function ListingCard({ listing }: ListingCardProps) {
         <CardShell id={listing.id}>
           {/* Inset (2026-11-17): the image does not bleed to the card
               edges — a blog/news figure with a white margin and
-              rounded corners. The slot keeps its exact 16:9 box, so
+              rounded corners. The slot keeps its exact 3:2 box, so
               the card height is unchanged; the margin lives inside
               it. Same treatment for the photo and the clip below. */}
-          <div className="relative aspect-video w-full shrink-0 p-2.5">
+          <div className="relative aspect-[3/2] w-full shrink-0 p-2.5">
             <div className="relative h-full w-full rounded-lg overflow-hidden">
               <ListingTitleCard
                 title={listing.title}
@@ -371,9 +373,9 @@ export function ListingCard({ listing }: ListingCardProps) {
         {nativeVideo && nativeVideoUrl ? (
           /* Native clip: muted autoplay in view, tap for sound.
              The photo (if any) stays on the detail page gallery.
-             The clip letterboxes (object-contain) in the 16:9 slot —
+             The clip letterboxes (object-contain) in the 3:2 slot —
              it shows fully, never cropped, at the uniform height. */
-          <div className="relative aspect-video w-full shrink-0 p-2.5">
+          <div className="relative aspect-[3/2] w-full shrink-0 p-2.5">
             <VideoPlayer
               src={nativeVideoUrl}
               posterUrl={nativeVideo.thumbnailUrl}
@@ -384,7 +386,7 @@ export function ListingCard({ listing }: ListingCardProps) {
             />
           </div>
         ) : (
-          <div className="relative aspect-video w-full shrink-0 p-2.5">
+          <div className="relative aspect-[3/2] w-full shrink-0 p-2.5">
             <div className="relative h-full w-full rounded-lg overflow-hidden">
               <Image src={primaryImage!} alt={listing.title} fill className="object-cover"
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
@@ -420,7 +422,7 @@ export function ListingCard({ listing }: ListingCardProps) {
             )}
           </div>
         </div>
-        <div className="h-[90px] shrink-0 px-2.5 pt-1.5 pb-2">
+        <div className="h-[78px] shrink-0 px-2.5 pt-1.5 pb-2">
           <h3 className="font-semibold text-[13px] line-clamp-2 mb-1 leading-snug group-hover:underline">
             {listing.title}
           </h3>
@@ -436,16 +438,19 @@ export function ListingCard({ listing }: ListingCardProps) {
   // leads with the calendar — a white date chip (day + month) and an
   // EVENTO · town label up top, the serif title at the bottom — so
   // the card reads as an event at a glance, not as an item for sale.
-  // Same 4:5 slot and h-[90px] text area as every row-mate. The text
-  // area splits what used to be one joined subtitle: the date line
-  // bold on its own line, the venue below it. Poster events are
-  // untouched — the poster already carries the date.
+  // The text area keeps 90px (a priced event needs ~88px: price +
+  // date line + venue + time), so the media slot is trimmed 12px
+  // (pb-[calc(125%-12px)]) to keep the total at 5/4 W + 78px like
+  // every row-mate. The text area splits what used to be one joined
+  // subtitle: the date line bold on its own line, the venue below
+  // it. Poster events are untouched — the poster already carries
+  // the date.
   if (listingType === 'event' && !primaryImage) {
     const chip = eventDateChip(eventStartsAt)
     const eventColor = resolveCardColor(listing.card_color).hex
     return (
       <CardShell id={listing.id}>
-        <div className="relative aspect-[4/5] w-full shrink-0" style={{ backgroundColor: eventColor }}>
+        <div className="relative w-full shrink-0 pb-[calc(125%-12px)]" style={{ backgroundColor: eventColor }}>
           <div className="absolute inset-0 flex flex-col p-3">
             <div className="flex items-start gap-2">
               {chip && (
@@ -536,11 +541,11 @@ export function ListingCard({ listing }: ListingCardProps) {
           </div>
         )}
       </div>
-      {/* Content — fixed-height text area (h-[90px], uniform grid):
+      {/* Content — fixed-height text area (h-[78px], uniform grid):
           price + title line-clamp-1 + seller/time meta. Nothing is
           bottom-pinned (mt-auto); the slack below the meta row is
           the same on every product card, so rows end even. */}
-      <div className="h-[90px] shrink-0 px-2.5 pt-1.5 pb-2 flex flex-col">
+      <div className="h-[78px] shrink-0 px-2.5 pt-1.5 pb-2 flex flex-col">
         {/* Price — the dominant element */}
         <p className="text-[15px] font-bold text-gray-900 leading-tight">
           {formattedPrice}

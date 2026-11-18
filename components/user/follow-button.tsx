@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/auth-context'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
+import { Check } from 'lucide-react'
 
 interface FollowButtonProps {
   profileId: string
@@ -99,9 +100,9 @@ export function FollowButton({ profileId, initialIsFollowing = false, quiet = fa
       disabled={loading}
       variant={quiet || isFollowing ? 'outline' : 'default'}
       size="sm"
-      className={quiet ? 'h-7 px-3 text-[11px]' : 'h-8 px-4 text-xs'}
+      className={quiet ? 'h-6 px-2.5 text-[10px] gap-1.5' : 'h-8 px-4 text-xs gap-1.5'}
     >
-      {loading ? '...' : isFollowing ? 'Siguiendo' : 'Seguir'}
+      {loading ? '...' : isFollowing ? (<><Check className="h-3 w-3" />Siguiendo</>) : 'Seguir'}
     </Button>
   )
 }

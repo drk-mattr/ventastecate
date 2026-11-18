@@ -308,10 +308,12 @@ export function ListingCard({ listing }: ListingCardProps) {
     // domain + time. The text area is taller by exactly the height
     // the photo lost, so the card ends at exactly the same height
     // as its product/event row-mates (see EditorialNewsTextArea).
-    // The source comes from the trailing "Fuente: <url>" line the
-    // community-post endpoint appends to the description (the
-    // detail page reads it the same way); user-posted news has no
-    // Fuente line and shows the time alone.
+    // The source comes from the trailing sources the description
+    // carries — a "Fuentes:" block (merged stories) or the single
+    // "Fuente: <url>" line the community-post endpoint appends
+    // (splitSources reads both; the card shows the first source's
+    // domain). The detail page reads it the same way; user-posted
+    // news has no sources and shows the time alone.
     const { body, sourceUrl } = splitSource(listing.description ?? '')
     const lede = newsLede(body)
     const sourceHost = sourceUrl ? sourceDomain(sourceUrl).replace(/^www\./, '') : null

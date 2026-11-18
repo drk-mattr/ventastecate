@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getCategoriesForType } from '@/lib/categories'
 import { MAX_LISTING_IMAGES } from '@/lib/validation'
 import { isCardColorId } from '@/lib/listings/card-colors'
+import { validateSubtitle } from '@/lib/listings/subtitle-validation'
 
 function authorized(request: NextRequest): boolean {
   const expected = process.env.INTERNAL_POST_TOKEN
@@ -48,9 +49,13 @@ export async function POST(request: NextRequest) {
     const cardColor = isCardColorId(cardColorRaw) ? cardColorRaw : 'orange'
     // AI-written subtitle (migration 063): optional, one tight line
     // about the story — never a restatement of the opening sentence.
-    // Stored when present; the article falls back to the lede when
-    // it is absent. Capped at 300 chars.
+    // Validated against the title + body (dek rules spec); an invalid
+    // subtitle is NOT stored — the post still goes out, and the caller
+    // gets subtitle_validated: false + the reasons so it can regenerate
+    // once. Capped at 300 chars.
     const subtitle = typeof body.subtitle === 'string' ? body.subtitle.trim().slice(0, 300) : ''
+    const subtitleValidation = subtitle ? validateSubtitle(subtitle, title, description) : null
+    const subtitleToStore = subtitleValidation?.ok ? subtitle : ''
     if (title.length < 3 || title.length > 120) {
       return NextResponse.json({ error: 'Title must be 3-120 characters' }, { status: 400 })
     }
@@ -93,7 +98,7 @@ export async function POST(request: NextRequest) {
     // 42703 pattern the public forms use).
     let { data: listing, error: insertError } = await admin
       .from('listings')
-      .insert({ ...insertPayload, card_color: cardColor, ...(subtitle ? { subtitle } : {}) })
+      .insert({ ...insertPayload, card_color: cardColor, ...(subtitleToStore ? { subtitle: subtitleToStore } : {}) })
       .select('id')
       .single()
     if (insertError?.code === '42703') {
@@ -118,7 +123,16 @@ export async function POST(request: NextRequest) {
       )
       if (imgError) console.error('listing_images insert error:', imgError.message)
     }
-    return NextResponse.json({ id: listing.id, url: `/listings/${listing.id}` }, { status: 201 })
+    return NextResponse.json(
+      {
+        id: listing.id,
+        url: `/listings/${listing.id}`,
+        ...(subtitleValidation
+          ? { subtitle_validated: subtitleValidation.ok, subtitle_validation_reasons: subtitleValidation.reasons }
+          : {}),
+      },
+      { status: 201 }
+    )
   } catch {
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }

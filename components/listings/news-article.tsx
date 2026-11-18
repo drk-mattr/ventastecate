@@ -326,27 +326,28 @@ export function NewsArticle({
         ))}
       </div>
 
-      {/* Sources block — the trailing "Fuentes:" block (or a single
+      {/* Sources card — the trailing "Fuentes:" block (or a single
           "Fuente:" line), split off the body and rendered as its own
-          section: one small row per source, outlet name linked, domain
-          in gray. User-posted news has no sources: nothing renders. */}
+          gray card: one row per source, outlet name on top and the
+          full URL below it, the whole row linked. User-posted news
+          has no sources: nothing renders. */}
       {sources.length > 0 && (
-        <div className="border-t border-gray-100 mt-10 pt-4">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-2">
+        <div className="mt-10 rounded-xl bg-gray-50 border border-gray-100 p-4 sm:p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-400 mb-3">
             Fuentes
           </p>
-          <ul className="space-y-1.5">
+          <ul className="space-y-3">
             {sources.map((src) => (
-              <li key={src.url} className="text-xs text-gray-500">
+              <li key={src.url}>
                 <a
                   href={src.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:underline hover:text-gray-700"
+                  className="block hover:underline"
                 >
-                  {src.label}
+                  <span className="block text-sm font-medium text-gray-900">{src.label}</span>
+                  <span className="block text-xs text-gray-500 break-all">{src.url}</span>
                 </a>
-                <span className="text-gray-400"> · {sourceDomain(src.url).replace(/^www\./, '')}</span>
               </li>
             ))}
           </ul>

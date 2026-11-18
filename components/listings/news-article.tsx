@@ -174,7 +174,7 @@ export function NewsArticle({
             )}
           </div>
           {entityDescription && (
-            <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">{entityDescription}</p>
+            <p className="text-xs text-gray-600 leading-relaxed line-clamp-3 max-w-[190px]">{entityDescription}</p>
           )}
           {followButton}
         </div>

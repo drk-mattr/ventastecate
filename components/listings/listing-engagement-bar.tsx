@@ -5,7 +5,7 @@ import { createBrowserClient } from '@supabase/ssr'
 import { useAuth } from '@/lib/auth/auth-context'
 import { LikeButton } from '@/components/listings/like-button'
 import { SaveButton } from '@/components/listings/save-button'
-import { Check, Share2 } from 'lucide-react'
+import { Check, Share } from 'lucide-react'
 
 interface ListingEngagementBarProps {
   listingId: string
@@ -124,7 +124,7 @@ export function ListingEngagementBar({ listingId, likesCount, savesCount, varian
         {shared ? (
           <Check className="h-5 w-5" />
         ) : (
-          <Share2 className="h-5 w-5" />
+          <Share className="h-5 w-5" />
         )}
       </button>
     </div>

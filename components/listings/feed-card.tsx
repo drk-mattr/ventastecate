@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { MapPin, MessageCircle, Wrench, Megaphone, Newspaper, Tag, Share2 } from 'lucide-react'
+import { MapPin, MessageCircle, Wrench, Megaphone, Newspaper, Tag, Share } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { LikeButton } from '@/components/listings/like-button'
 import { SaveButton } from '@/components/listings/save-button'
@@ -187,7 +187,7 @@ export function FeedCard({ listing }: FeedCardProps) {
             className="flex items-center gap-1 text-gray-400 hover:text-gray-600 text-xs transition-colors"
             aria-label="Compartir"
           >
-            <Share2 className="h-4 w-4" />
+            <Share className="h-4 w-4" />
           </button>
         </div>
         <SaveButton

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import QRCodeStyling from 'qr-code-styling'
-import { Check, Download, QrCode, Share2 } from 'lucide-react'
+import { Check, Download, QrCode, Share } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -312,7 +312,7 @@ export function BusinessQrDialog({ businessId, businessName, businessTown, asLin
             Descargar PNG
           </Button>
           <Button onClick={handleShare} disabled={!cardUrl}>
-            {shared || copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+            {shared || copied ? <Check className="h-4 w-4" /> : <Share className="h-4 w-4" />}
             {shared ? 'Compartido' : copied ? 'Enlace copiado' : 'Compartir'}
           </Button>
         </div>

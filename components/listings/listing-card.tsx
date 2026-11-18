@@ -46,17 +46,18 @@ const NEWS_CATEGORY_COLORS: Record<string, string> = {
 }
 
 // Lost posts look like a printed missing-pet poster: "SE BUSCA" in
-// plain red letters above the photo (or title card), the image inset
-// with a generous white margin on all sides — no banner strip. The
-// feed photo is black-and-white (grayscale) and shows FULLY
-// (object-contain in the 4:5 media slot — it is the evidence for
+// plain red letters as the top strip INSIDE the 4:5 media slot, the
+// image inset with a generous white margin on all sides — no banner
+// strip. The feed photo is black-and-white (grayscale) and shows
+// FULLY (object-contain in the media slot — it is the evidence for
 // identifying the animal, so it is never cropped); the card shows
 // heading + image + title + time only, no description (the full
-// description stays on the detail page). The heading is the one
-// accepted exception to uniform card heights: a lost-post card ends
-// ~one line taller than its row. The detail-page hero keeps full
-// color and full bleed, because color matters for actually
-// identifying the animal.
+// description stays on the detail page). The heading lives inside
+// the slot, so a lost-post card is exactly the same height as every
+// other card in its row — the photo (or title card) gives up ~28px
+// of slot height to the heading strip instead. The detail-page hero
+// keeps full color and full bleed, because color matters for
+// actually identifying the animal.
 const SE_BUSCA_HEADING = (
   <p className="shrink-0 px-2.5 pt-2 pb-1 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-red-600">
     Se busca
@@ -98,13 +99,13 @@ function newsLede(body: string, maxLen = 140): string | null {
 // ~86px); shorter variants carry the slack as bottom padding inside
 // their text block. The card is only as tall as those two blocks:
 // no h-full, so a tall neighbor cannot stretch it (the grids use
-// items-start). Exceptions: (1) lost posts add the SE BUSCA heading
-// above the media (~28px taller) — the printed-poster treatment is
-// not negotiable, so that row ends ~one line lower. (2) Editorial
-// news cards (2026-11-17, non-lost only) use a landscape 16:9
-// media slot, and the text area below is taller by exactly the
-// height the photo lost — pb-[calc(68.75%+90px)] — so the total
-// still equals 5/4 W + 90px, the same as every row-mate.
+// items-start). The one exception: editorial news cards
+// (2026-11-17, non-lost only) use a landscape 16:9 media slot,
+// and the text area below is taller by exactly the height the
+// photo lost — pb-[calc(68.75%+90px)] — so the total still equals
+// 5/4 W + 90px, the same as every row-mate. Lost posts are no
+// exception: the SE BUSCA heading sits INSIDE the media slot as
+// its top strip (2026-11-17).
 function CardShell({ id, children }: { id: string; children: React.ReactNode }) {
   return (
     <Link href={`/listings/${id}`} className="group">
@@ -226,24 +227,27 @@ export function ListingCard({ listing }: ListingCardProps) {
     const isLostPost = listing.category === 'Objetos Perdidos'
 
     // ── Lost posts: the printed-poster treatment, EXACTLY as-is.
-    // SE BUSCA in red letters above the media, the photo inset with
-    // a white margin, grayscale, object-contain (it shows FULLY —
-    // it is the evidence for identifying the animal). This branch
-    // is untouched by the editorial news change below: same 4:5
-    // slot, same h-[90px] text area, same ~28px-taller card.
+    // SE BUSCA in red letters as the top strip INSIDE the media
+    // slot, the photo inset with a white margin, grayscale,
+    // object-contain (it shows FULLY — it is the evidence for
+    // identifying the animal). This branch is untouched by the
+    // editorial news change below: same 4:5 slot, same h-[90px]
+    // text area, and the card now matches its row-mates exactly.
     if (isLostPost) {
       if (!primaryImage && !nativeVideo) {
         return (
           <CardShell id={listing.id}>
-            {SE_BUSCA_HEADING}
-            <div className="relative aspect-[4/5] w-full shrink-0">
-              <ListingTitleCard
-                title={listing.title}
-                cardColor={listing.card_color}
-                size="card"
-                className="absolute inset-x-4 top-0 bottom-2"
-              />
-              {listing.status === 'sold' && soldOverlay}
+            <div className="relative aspect-[4/5] w-full shrink-0 bg-white flex flex-col">
+              {SE_BUSCA_HEADING}
+              <div className="relative flex-1 min-h-0 mx-4 mb-2">
+                <ListingTitleCard
+                  title={listing.title}
+                  cardColor={listing.card_color}
+                  size="card"
+                  className="absolute inset-0"
+                />
+                {listing.status === 'sold' && soldOverlay}
+              </div>
             </div>
             <div className="h-[90px] shrink-0 px-2.5 pt-1.5 pb-2">
               <div className="flex items-center gap-2 mt-1">
@@ -256,35 +260,38 @@ export function ListingCard({ listing }: ListingCardProps) {
 
       return (
         <CardShell id={listing.id}>
-          {SE_BUSCA_HEADING}
-          {nativeVideo && nativeVideoUrl ? (
-            /* Native clip: muted autoplay in view, tap for sound.
-               The photo (if any) stays on the detail page gallery.
-               The clip letterboxes (object-contain) in the 4:5 slot —
-               it shows fully, never cropped, at the uniform height. */
-            <VideoPlayer
-              src={nativeVideoUrl}
-              posterUrl={nativeVideo.thumbnailUrl}
-              durationSeconds={nativeVideo.durationSeconds}
-              title={listing.title}
-              autoplayInView
-              className="aspect-[4/5] w-full shrink-0"
-            />
-          ) : (
-            /* Lost post: a printed-poster look — SE BUSCA in red
-               letters above the photo, the photo inset with a white
-               margin on all sides. The photo shows FULLY
-               (object-contain) — it is the evidence for identifying
-               the animal. No category eyebrow — the heading says
-               what it is. */
-            <div className="relative aspect-[4/5] w-full shrink-0 bg-white">
-              <div className="absolute inset-x-4 top-2 bottom-2">
+          {/* Lost post: a printed-poster look — SE BUSCA in red
+             letters as the top strip INSIDE the 4:5 media slot, the
+             photo inset with a white margin below it. The photo
+             shows FULLY (object-contain) — it is the evidence for
+             identifying the animal. No category eyebrow — the
+             heading says what it is. The heading strip takes ~28px
+             from the slot, so the card is exactly the same height
+             as every other card in its row. A native video takes
+             the same slot below the heading. */}
+          <div className="relative aspect-[4/5] w-full shrink-0 bg-white flex flex-col">
+            {SE_BUSCA_HEADING}
+            {nativeVideo && nativeVideoUrl ? (
+              /* Native clip: muted autoplay in view, tap for sound.
+                 The photo (if any) stays on the detail page gallery.
+                 The clip letterboxes (object-contain) in the slot —
+                 it shows fully, never cropped, at the uniform height. */
+              <VideoPlayer
+                src={nativeVideoUrl}
+                posterUrl={nativeVideo.thumbnailUrl}
+                durationSeconds={nativeVideo.durationSeconds}
+                title={listing.title}
+                autoplayInView
+                className="flex-1 min-h-0 w-full"
+              />
+            ) : (
+              <div className="relative flex-1 min-h-0 mx-4 mb-2">
                 <Image src={primaryImage!} alt={listing.title} fill className="object-contain grayscale"
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
                 {listing.status === 'sold' && soldOverlay}
               </div>
-            </div>
-          )}
+            )}
+          </div>
           <div className="h-[90px] shrink-0 px-2.5 pt-1.5 pb-2">
             <h3 className="font-semibold text-[13px] line-clamp-2 mb-1 group-hover:underline leading-snug">
               {listing.title}

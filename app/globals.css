@@ -132,3 +132,26 @@
   from { width: 0%; }
   to { width: 100%; }
 }
+
+/* Like burst (2026-11-18): on like, the heart pops and six small
+   dots radiate outward and fade. Monochrome — the dots match the
+   filled heart (gray-900); orange stays reserved for Publish +
+   side panel. Applied via inline style, same pattern as the story
+   progress animation above. */
+@keyframes heart-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  70% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+@keyframes heart-particle {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(0); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* No burst at all: the pop is suppressed and the particles are
+     hidden — otherwise they would sit as static dots. The 550ms
+     fallback timer in LikeButton still clears the burst state. */
+  .heart-burst-particle { display: none; }
+  .heart-pop-target { animation: none !important; }
+}

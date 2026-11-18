@@ -11,9 +11,13 @@ interface LikeButtonProps {
   initialLiked: boolean
   initialCount: number
   size?: 'sm' | 'md'
+  // Lighter stroke for the article treatment (2026-11-17): the
+  // preview's 1.8-stroke icons read quieter next to the byline.
+  // Default 2 keeps every other surface exactly as-is.
+  strokeWidth?: number
 }
 
-export function LikeButton({ listingId, initialLiked, initialCount, size = 'sm' }: LikeButtonProps) {
+export function LikeButton({ listingId, initialLiked, initialCount, size = 'sm', strokeWidth = 2 }: LikeButtonProps) {
   const { user } = useAuth()
   const router = useRouter()
   const [liked, setLiked] = useState(initialLiked)
@@ -81,6 +85,7 @@ export function LikeButton({ listingId, initialLiked, initialCount, size = 'sm' 
       aria-label={liked ? 'Quitar me gusta' : 'Me gusta'}
     >
       <Heart
+        strokeWidth={strokeWidth}
         className={`${iconSize} transition-transform duration-300 ${
           animating ? 'scale-125' : 'scale-100'
         } ${liked ? 'fill-current' : ''}`}

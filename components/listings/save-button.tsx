@@ -11,9 +11,12 @@ interface SaveButtonProps {
   initialSaved: boolean
   initialCount: number
   size?: 'sm' | 'md'
+  // Lighter stroke for the article treatment (2026-11-17) — see
+  // like-button.tsx. Default 2 keeps every other surface as-is.
+  strokeWidth?: number
 }
 
-export function SaveButton({ listingId, initialSaved, initialCount, size = 'sm' }: SaveButtonProps) {
+export function SaveButton({ listingId, initialSaved, initialCount, size = 'sm', strokeWidth = 2 }: SaveButtonProps) {
   const { user } = useAuth()
   const router = useRouter()
   const [saved, setSaved] = useState(initialSaved)
@@ -78,6 +81,7 @@ export function SaveButton({ listingId, initialSaved, initialCount, size = 'sm' 
       aria-label={saved ? 'Quitar guardado' : 'Guardar'}
     >
       <Bookmark
+        strokeWidth={strokeWidth}
         className={`${iconSize} transition-transform duration-300 ${
           animating ? 'scale-125' : 'scale-100'
         } ${saved ? 'fill-current' : ''}`}

@@ -46,6 +46,11 @@ export async function POST(request: NextRequest) {
     // default orange. Unknown values fall back to orange.
     const cardColorRaw = typeof body.card_color === 'string' ? body.card_color.trim() : ''
     const cardColor = isCardColorId(cardColorRaw) ? cardColorRaw : 'orange'
+    // AI-written subtitle (migration 063): optional, one tight line
+    // about the story — never a restatement of the opening sentence.
+    // Stored when present; the article falls back to the lede when
+    // it is absent. Capped at 300 chars.
+    const subtitle = typeof body.subtitle === 'string' ? body.subtitle.trim().slice(0, 300) : ''
     if (title.length < 3 || title.length > 120) {
       return NextResponse.json({ error: 'Title must be 3-120 characters' }, { status: 400 })
     }
@@ -83,11 +88,12 @@ export async function POST(request: NextRequest) {
       status: 'active',
       metadata: { source, posted_via: 'internal-community' },
     }
-    // Pre-039 the card_color column doesn't exist — retry without it
-    // (same 42703 pattern the public forms use).
+    // Pre-039 the card_color column doesn't exist, and pre-063 the
+    // subtitle column doesn't exist — retry without either (same
+    // 42703 pattern the public forms use).
     let { data: listing, error: insertError } = await admin
       .from('listings')
-      .insert({ ...insertPayload, card_color: cardColor })
+      .insert({ ...insertPayload, card_color: cardColor, ...(subtitle ? { subtitle } : {}) })
       .select('id')
       .single()
     if (insertError?.code === '42703') {

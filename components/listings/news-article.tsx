@@ -38,6 +38,9 @@ export interface NewsArticleListing {
   id: string
   title: string
   description: string
+  /** AI-written subtitle (migration 063). Null → the article falls
+      back to the opening-line lede. */
+  subtitle?: string | null
   category: string
   location: string
   city?: string | null
@@ -110,10 +113,13 @@ export function NewsArticle({
 
   const { body, sources } = splitSources(listing.description)
   const paragraphs = splitParagraphs(body)
-  // Dek (standfirst): the article's own opening line, same lede
-  // the feed card shows — no new field, no migration. Null when
-  // the body is empty; the title-card hero shows no dek either.
-  const dek = newsLede(body, 200)
+  // Dek (standfirst): an AI-written subtitle stored at post time
+  // (migration 063) when one exists — a fresh line about the story,
+  // not a restatement of the opening sentence. Falls back to the
+  // article's own opening line when no subtitle was stored. Null
+  // when the body is empty; the title-card hero shows no dek either.
+  const storedSubtitle = listing.subtitle?.trim()
+  const dek = storedSubtitle ? storedSubtitle : newsLede(body, 200)
   const minutes = readingMinutes(body)
   const tags = tagLinks(listing)
   const shortDate = new Date(listing.created_at).toLocaleDateString('es-MX', {

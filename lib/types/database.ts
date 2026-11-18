@@ -76,6 +76,9 @@ export type Listing = {
   listing_type: ListingType
   title: string
   description: string
+  /** AI-written article subtitle (migration 063). Null → the article
+      falls back to the opening-line lede. */
+  subtitle?: string | null
   price: number
   /** Listing currency (migration 038). Absent pre-038 → treat as MXN. */
   currency?: 'MXN' | 'USD'

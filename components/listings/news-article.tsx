@@ -229,79 +229,93 @@ export function NewsArticle({
       )}
 
       {/* Byline — 26px avatar, name + badges, Follow, reading time,
-          and the like / save / share actions at the right end
-          (2026-11-17: the icons moved up from their own row below
-          — one less row of vertical space per article). The title
-          centers, the byline doesn't. The rail avatar (desktop,
-          h-14) is untouched — that is the publication identity.
-          Location left the byline: it lives in the place cap. */}
-      <div className="flex items-center gap-2.5 pb-4">
-        <div className="relative h-[26px] w-[26px] rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-semibold overflow-hidden shrink-0">
-          {listing.store?.avatar_url ? (
-            <Image src={listing.store.avatar_url} alt={listing.store.name} fill className="object-cover" />
-          ) : listing.profile.avatar_url ? (
-            <Image src={listing.profile.avatar_url} alt={listing.profile.display_name} fill className="object-cover" />
-          ) : (
-            <span>{(listing.store?.name || listing.profile.display_name)[0].toUpperCase()}</span>
+          and the like / save / share actions. Mobile (2026-11-18):
+          two tidy rows — avatar + two-line identity, then actions +
+          Follow in a clean row aligned under the text — because the
+          single-row crowding pushed "2026" onto its own line and
+          let the bio run two truncated lines. Desktop (sm+): the
+          original single row, unchanged. The title centers, the
+          byline doesn't. The rail avatar (desktop, h-14) is
+          untouched — that is the publication identity. Location
+          left the byline: it lives in the place cap. */}
+      <div className="flex flex-col gap-2 pb-4 sm:flex-row sm:items-center sm:gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0 sm:flex-1">
+          <div className="relative h-[26px] w-[26px] rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-semibold overflow-hidden shrink-0">
+            {listing.store?.avatar_url ? (
+              <Image src={listing.store.avatar_url} alt={listing.store.name} fill className="object-cover" />
+            ) : listing.profile.avatar_url ? (
+              <Image src={listing.profile.avatar_url} alt={listing.profile.display_name} fill className="object-cover" />
+            ) : (
+              <span>{(listing.store?.name || listing.profile.display_name)[0].toUpperCase()}</span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            {listing.store ? (
+              <span className="flex items-center gap-1.5 min-w-0">
+                <Link href={`/stores/${listing.store.slug}`} className="text-sm font-semibold hover:underline truncate">
+                  {listing.store.name}
+                </Link>
+                {isOfficialStore && (
+                  <span className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap text-[11px] font-medium text-gray-500">
+                    <BadgeCheck className="h-3.5 w-3.5 text-orange-600" />
+                    Cuenta oficial
+                  </span>
+                )}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 min-w-0">
+                <Link href={`/users/${listing.profile.username}`} className="text-sm font-semibold hover:underline truncate">
+                  {listing.profile.display_name}
+                </Link>
+                {listing.profile.username === 'ventastecate' && (
+                  <span className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap text-[11px] font-medium text-gray-500">
+                    <BadgeCheck className="h-3.5 w-3.5 text-orange-600" />
+                    Cuenta oficial
+                  </span>
+                )}
+                {isLocalReporter(listing.profile) && (
+                  <span className="shrink-0 whitespace-nowrap">
+                    <ReporterBadge />
+                  </span>
+                )}
+              </span>
+            )}
+            <p className="text-xs text-gray-500 mt-0.5 whitespace-nowrap">
+              {minutes} min de lectura · {shortDate}
+            </p>
+            {/* The description lives in the rail on desktop (lg+),
+                is hidden on phones, and shows compactly on tablets
+                (sm–lg) where there is no rail. */}
+            {entityDescription && (
+              <p className="hidden sm:block lg:hidden text-xs text-gray-600 mt-1 line-clamp-2">{entityDescription}</p>
+            )}
+          </div>
+        </div>
+        {/* Like / save / share + Follow in their own row on mobile
+            (aligned under the text column, pl-9), back in the byline
+            row on sm+. The bar's 'byline' variant has no padding
+            and no hairlines. */}
+        <div className="flex items-center gap-4 pl-9 sm:pl-0 sm:shrink-0">
+          <div className="shrink-0">
+            <ListingEngagementBar
+              listingId={listing.id}
+              likesCount={likesCount}
+              savesCount={savesCount}
+              variant="byline"
+            />
+          </div>
+          {/* Entity-aware Follow — the line-176 gate that suppressed
+              Follow for store authors is gone: a store-authored post
+              follows the store. Mobile only: on desktop the rail
+              owns the Follow button. FollowButton returns null for
+              the author themselves. */}
+          <div className="lg:hidden shrink-0">{followButton}</div>
+          {isOwner && (
+            <Button asChild size="sm" variant="outline" className="shrink-0">
+              <Link href={`/listings/${listing.id}/edit`}>Editar</Link>
+            </Button>
           )}
         </div>
-        <div className="flex-1 min-w-0">
-          {listing.store ? (
-            <span className="flex flex-wrap items-center gap-2">
-              <Link href={`/stores/${listing.store.slug}`} className="text-sm font-semibold hover:underline">
-                {listing.store.name}
-              </Link>
-              {isOfficialStore && (
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-gray-500">
-                  <BadgeCheck className="h-3.5 w-3.5 text-orange-600" />
-                  Cuenta oficial
-                </span>
-              )}
-            </span>
-          ) : (
-            <span className="flex flex-wrap items-center gap-2">
-              <Link href={`/users/${listing.profile.username}`} className="text-sm font-semibold hover:underline">
-                {listing.profile.display_name}
-              </Link>
-              {listing.profile.username === 'ventastecate' && (
-                <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-gray-500">
-                  <BadgeCheck className="h-3.5 w-3.5 text-orange-600" />
-                  Cuenta oficial
-                </span>
-              )}
-              {isLocalReporter(listing.profile) && <ReporterBadge />}
-            </span>
-          )}
-          <p className="text-xs text-gray-500 mt-0.5">
-            {minutes} min de lectura · {shortDate}
-          </p>
-          {/* Mobile only: the description lives in the rail on
-              desktop, so the byline carries it compactly here. */}
-          {entityDescription && (
-            <p className="lg:hidden text-xs text-gray-600 mt-1 line-clamp-2">{entityDescription}</p>
-          )}
-        </div>
-        {/* Like / save / share in the byline row — the bar's
-            'byline' variant has no padding and no hairlines. */}
-        <div className="shrink-0">
-          <ListingEngagementBar
-            listingId={listing.id}
-            likesCount={likesCount}
-            savesCount={savesCount}
-            variant="byline"
-          />
-        </div>
-        {/* Entity-aware Follow — the line-176 gate that suppressed
-            Follow for store authors is gone: a store-authored post
-            follows the store. Mobile only: on desktop the rail
-            owns the Follow button. FollowButton returns null for
-            the author themselves. */}
-        <div className="lg:hidden shrink-0">{followButton}</div>
-        {isOwner && (
-          <Button asChild size="sm" variant="outline" className="shrink-0">
-            <Link href={`/listings/${listing.id}/edit`}>Editar</Link>
-          </Button>
-        )}
       </div>
 
       {/* Hero — video takes the slot when it exists (the clip is the

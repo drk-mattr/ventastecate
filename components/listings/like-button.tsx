@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition, type CSSProperties } from 'react'
 import { Heart } from 'lucide-react'
 import { createBrowserClient } from '@supabase/ssr'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -24,6 +24,10 @@ export function LikeButton({ listingId, initialLiked, initialCount, size = 'sm',
   const [count, setCount] = useState(initialCount)
   const [animating, setAnimating] = useState(false)
   const [isPending, startTransition] = useTransition()
+  // Fallback timer for the burst cleanup: the pop clears state on
+  // animationend, but under prefers-reduced-motion no animation
+  // runs at all, so the timer guarantees the state resets.
+  const burstTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -46,7 +50,8 @@ export function LikeButton({ listingId, initialLiked, initialCount, size = 'sm',
 
     if (!wasLiked) {
       setAnimating(true)
-      setTimeout(() => setAnimating(false), 400)
+      if (burstTimer.current) clearTimeout(burstTimer.current)
+      burstTimer.current = setTimeout(() => setAnimating(false), 550)
     }
 
     startTransition(async () => {
@@ -72,6 +77,17 @@ export function LikeButton({ listingId, initialLiked, initialCount, size = 'sm',
 
   const iconSize = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5'
   const textSize = size === 'sm' ? 'text-xs' : 'text-sm'
+  // Burst particles (2026-11-18): six dots radiating from the
+  // heart's center at 60° steps, ~14px out. Monochrome gray-900,
+  // matching the filled heart. Only rendered while animating.
+  const burstOffsets: [number, number][] = [
+    [14, 0],
+    [7, -12],
+    [-7, -12],
+    [-14, 0],
+    [-7, 12],
+    [7, 12],
+  ]
 
   return (
     <button
@@ -84,12 +100,32 @@ export function LikeButton({ listingId, initialLiked, initialCount, size = 'sm',
       } ${textSize}`}
       aria-label={liked ? 'Quitar me gusta' : 'Me gusta'}
     >
-      <Heart
-        strokeWidth={strokeWidth}
-        className={`${iconSize} transition-transform duration-300 ${
-          animating ? 'scale-125' : 'scale-100'
-        } ${liked ? 'fill-current' : ''}`}
-      />
+      <span className="relative inline-flex">
+        <Heart
+          strokeWidth={strokeWidth}
+          className={`heart-pop-target ${iconSize} ${liked ? 'fill-current' : ''}`}
+          style={animating ? { animation: 'heart-pop 500ms ease-out' } : undefined}
+          onAnimationEnd={() => {
+            if (burstTimer.current) clearTimeout(burstTimer.current)
+            setAnimating(false)
+          }}
+        />
+        {animating &&
+          burstOffsets.map(([x, y], i) => (
+            <span
+              key={i}
+              aria-hidden="true"
+              className="heart-burst-particle pointer-events-none absolute left-1/2 top-1/2 -ml-0.5 -mt-0.5 h-1 w-1 rounded-full bg-gray-900"
+              style={
+                {
+                  '--tx': `${x}px`,
+                  '--ty': `${y}px`,
+                  animation: 'heart-particle 500ms ease-out forwards',
+                } as CSSProperties
+              }
+            />
+          ))}
+      </span>
       {count > 0 && <span className="tabular-nums">{count}</span>}
     </button>
   )

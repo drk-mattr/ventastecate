@@ -215,7 +215,7 @@ export function NewsArticle({
             {listing.title}
           </h1>
           {dek && (
-            <p className="font-news text-[19px] leading-snug sm:text-[21px] text-gray-600 text-center mb-6">
+            <p className="font-sans text-[15px] leading-relaxed sm:text-base text-gray-500 text-center mb-6">
               {dek}
             </p>
           )}

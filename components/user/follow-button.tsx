@@ -9,9 +9,13 @@ import { useRouter } from 'next/navigation'
 interface FollowButtonProps {
   profileId: string
   initialIsFollowing?: boolean
+  // quiet: smaller outline button for the publication rail (and the
+  // byline, which shares the same control) — the solid charcoal
+  // button reads too big and in the way there.
+  quiet?: boolean
 }
 
-export function FollowButton({ profileId, initialIsFollowing = false }: FollowButtonProps) {
+export function FollowButton({ profileId, initialIsFollowing = false, quiet = false }: FollowButtonProps) {
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing)
   const [loading, setLoading] = useState(false)
   const { user } = useAuth()
@@ -93,9 +97,9 @@ export function FollowButton({ profileId, initialIsFollowing = false }: FollowBu
     <Button
       onClick={handleFollow}
       disabled={loading}
-      variant={isFollowing ? 'outline' : 'default'}
+      variant={quiet || isFollowing ? 'outline' : 'default'}
       size="sm"
-      className="h-8 px-4 text-xs"
+      className={quiet ? 'h-7 px-3 text-[11px]' : 'h-8 px-4 text-xs'}
     >
       {loading ? '...' : isFollowing ? 'Siguiendo' : 'Seguir'}
     </Button>

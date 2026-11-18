@@ -137,7 +137,7 @@ export function NewsArticle({
   const followButton = listing.store ? (
     <StoreFollowButton storeId={listing.store.id} initialFollowing={initialIsFollowingStore} ownerId={listing.store.owner?.id} />
   ) : (
-    <FollowButton profileId={listing.profile.id} initialIsFollowing={initialIsFollowingProfile} />
+    <FollowButton profileId={listing.profile.id} initialIsFollowing={initialIsFollowingProfile} quiet />
   )
 
   const seBuscaStrip = isLostPost ? (

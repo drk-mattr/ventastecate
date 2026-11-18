@@ -7,7 +7,8 @@ import { Wrench, Megaphone, Store, Play, ThumbsUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { ListingWithImages } from '@/lib/types/database'
 import { formatPrice } from '@/lib/listings/format-price'
-import { formatEventRange, isEventPast } from '@/lib/listings/event-dates'
+import { formatEventRange, isEventPast, eventDateChip } from '@/lib/listings/event-dates'
+import { resolveCardColor } from '@/lib/listings/card-colors'
 import { ListingTitleCard } from './listing-title-card'
 import { VideoPlayer } from './video-player'
 import { nativeVideoOf, listingVideoPublicUrl } from '@/lib/video/types'
@@ -206,13 +207,6 @@ export function ListingCard({ listing }: ListingCardProps) {
   const eventEndsAt = listing.event_ends_at ?? null
   const eventDateLine = listingType === 'event' ? formatEventRange(eventStartsAt, eventEndsAt) : null
   const eventPast = listingType === 'event' && isEventPast(eventStartsAt, eventEndsAt)
-  // Title-card subtitle (A4): the date line when there is one, then
-  // the venue (or town). Price already rides as a chip at the bottom
-  // of the card, so it is not repeated here.
-  const eventSubtitle = listingType === 'event'
-    ? [eventDateLine, listing.event_venue || listing.location].filter(Boolean).join(' · ') || null
-    : null
-
   const soldOverlay = (
     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
       <Badge variant="secondary" className="text-xs">
@@ -325,6 +319,40 @@ export function ListingCard({ listing }: ListingCardProps) {
     const lede = newsLede(body)
     const sourceHost = sourceUrl ? sourceDomain(sourceUrl).replace(/^www\./, '') : null
 
+    // ── Avisos (Anuncios Comunitarios): a community notice, not a
+    // news story — text-first, NO photo slot at all. The whole card
+    // is the text area, at exactly the same total height as its
+    // row-mates (the padding trick from EditorialNewsTextArea, full
+    // 5/4 W + 90px). AVISO label + location, serif title, the
+    // notice itself, time pinned to the bottom. A photo on the
+    // listing still shows on the detail page — the card just
+    // doesn't lead with it.
+    if (listing.category === 'Anuncios Comunitarios') {
+      return (
+        <CardShell id={listing.id}>
+          <div className="relative w-full shrink-0 pb-[calc(125%+90px)]">
+            <div className="absolute inset-0 px-2.5 pt-2.5 pb-2 flex flex-col">
+              <p className="text-[9px] font-bold uppercase tracking-wider mb-1.5 leading-none">
+                <span className="text-red-600">Aviso</span>
+                {listing.location && (
+                  <span className="ml-1 text-gray-500">· {listing.location}</span>
+                )}
+              </p>
+              <h3 className="font-forum font-bold text-[16px] leading-snug line-clamp-3 mb-1.5 group-hover:underline">
+                {listing.title}
+              </h3>
+              {lede && (
+                <p className="text-[13px] text-gray-600 leading-snug line-clamp-4">{lede}</p>
+              )}
+              <div className="flex items-center gap-2 mt-auto">
+                <span className="text-[10px] text-gray-400">{timeAgo(listing.created_at)}</span>
+              </div>
+            </div>
+          </div>
+        </CardShell>
+      )
+    }
+
     // Photo-less news: the orange title card fills the 16:9 media
     // slot instead of 4:5 (title still white on orange, same
     // treatment, just wider/shorter). A native video is not
@@ -332,14 +360,21 @@ export function ListingCard({ listing }: ListingCardProps) {
     if (!primaryImage && !nativeVideo) {
       return (
         <CardShell id={listing.id}>
-          <div className="relative aspect-video w-full shrink-0">
-            <ListingTitleCard
-              title={listing.title}
-              cardColor={listing.card_color}
-              size="card"
-              className="absolute inset-0"
-            />
-            {listing.status === 'sold' && soldOverlay}
+          {/* Inset (2026-11-17): the image does not bleed to the card
+              edges — a blog/news figure with a white margin and
+              rounded corners. The slot keeps its exact 16:9 box, so
+              the card height is unchanged; the margin lives inside
+              it. Same treatment for the photo and the clip below. */}
+          <div className="relative aspect-video w-full shrink-0 p-2.5">
+            <div className="relative h-full w-full rounded-lg overflow-hidden">
+              <ListingTitleCard
+                title={listing.title}
+                cardColor={listing.card_color}
+                size="card"
+                className="absolute inset-0"
+              />
+              {listing.status === 'sold' && soldOverlay}
+            </div>
           </div>
           <EditorialNewsTextArea listing={listing} categoryColor={categoryColor} lede={lede} sourceHost={sourceHost} />
         </CardShell>
@@ -353,19 +388,23 @@ export function ListingCard({ listing }: ListingCardProps) {
              The photo (if any) stays on the detail page gallery.
              The clip letterboxes (object-contain) in the 16:9 slot —
              it shows fully, never cropped, at the uniform height. */
-          <VideoPlayer
-            src={nativeVideoUrl}
-            posterUrl={nativeVideo.thumbnailUrl}
-            durationSeconds={nativeVideo.durationSeconds}
-            title={listing.title}
-            autoplayInView
-            className="aspect-video w-full shrink-0"
-          />
+          <div className="relative aspect-video w-full shrink-0 p-2.5">
+            <VideoPlayer
+              src={nativeVideoUrl}
+              posterUrl={nativeVideo.thumbnailUrl}
+              durationSeconds={nativeVideo.durationSeconds}
+              title={listing.title}
+              autoplayInView
+              className="h-full w-full rounded-lg overflow-hidden"
+            />
+          </div>
         ) : (
-          <div className="relative aspect-video w-full shrink-0 overflow-hidden">
-            <Image src={primaryImage!} alt={listing.title} fill className="object-cover"
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
-            {listing.status === 'sold' && soldOverlay}
+          <div className="relative aspect-video w-full shrink-0 p-2.5">
+            <div className="relative h-full w-full rounded-lg overflow-hidden">
+              <Image src={primaryImage!} alt={listing.title} fill className="object-cover"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
+              {listing.status === 'sold' && soldOverlay}
+            </div>
           </div>
         )}
         <EditorialNewsTextArea listing={listing} categoryColor={categoryColor} lede={lede} sourceHost={sourceHost} />
@@ -408,16 +447,37 @@ export function ListingCard({ listing }: ListingCardProps) {
     )
   }
 
-  // ── Photo-less event: the title card fills the 4:5 media slot
-  // (title only — the subtitle moved to the fixed text area below,
-  // so it is not repeated inside the orange block). The price rides
-  // as the bold first line of the text area when there is one;
-  // the time lives in the meta row. No overlay chips.
+  // ── Photo-less event: DATE-FIRST (2026-11-17). The orange block
+  // leads with the calendar — a white date chip (day + month) and an
+  // EVENTO · town label up top, the serif title at the bottom — so
+  // the card reads as an event at a glance, not as an item for sale.
+  // Same 4:5 slot and h-[90px] text area as every row-mate. The text
+  // area splits what used to be one joined subtitle: the date line
+  // bold on its own line, the venue below it. Poster events are
+  // untouched — the poster already carries the date.
   if (listingType === 'event' && !primaryImage) {
+    const chip = eventDateChip(eventStartsAt)
+    const eventColor = resolveCardColor(listing.card_color).hex
     return (
       <CardShell id={listing.id}>
-        <div className="relative aspect-[4/5] w-full shrink-0">
-          <ListingTitleCard title={listing.title} cardColor={listing.card_color} size="card" className="absolute inset-0" />
+        <div className="relative aspect-[4/5] w-full shrink-0" style={{ backgroundColor: eventColor }}>
+          <div className="absolute inset-0 flex flex-col p-3">
+            <div className="flex items-start gap-2">
+              {chip && (
+                <div className="bg-white rounded-lg px-2 py-1 text-center leading-none shrink-0">
+                  <div className="text-[18px] font-extrabold text-gray-900 leading-none">{chip.day}</div>
+                  <div className="text-[9px] font-bold tracking-wide text-gray-900 mt-0.5">{chip.month}</div>
+                </div>
+              )}
+              <span className="text-[10px] font-bold uppercase tracking-wider text-white/90 pt-1">
+                Evento · {listing.location}
+              </span>
+            </div>
+            <div className="flex-1" />
+            <h3 className="font-forum font-bold text-white text-[19px] leading-snug line-clamp-4">
+              {listing.title}
+            </h3>
+          </div>
           {listing.status === 'sold' && soldOverlay}
           {eventPast && (
             <div className="absolute top-2 right-2 z-[5] bg-black/45 text-white text-[10px] px-2 py-0.5 rounded-full">
@@ -431,9 +491,14 @@ export function ListingCard({ listing }: ListingCardProps) {
               {formattedPrice}
             </p>
           )}
-          {eventSubtitle && (
-            <p className="text-[13px] text-gray-700 line-clamp-2 leading-snug">
-              {eventSubtitle}
+          {eventDateLine && (
+            <p className="text-[13px] font-semibold text-gray-900 line-clamp-1 leading-snug">
+              {eventDateLine}
+            </p>
+          )}
+          {(listing.event_venue || listing.location) && (
+            <p className="text-[13px] text-gray-700 line-clamp-1 leading-snug">
+              {listing.event_venue || listing.location}
             </p>
           )}
           <div className="flex items-center gap-2 mt-1">

@@ -68,6 +68,16 @@ export function isDateOnly(iso: string): boolean {
   return Boolean(p && p.hour === 0 && p.minute === 0 && p.second === 0)
 }
 
+/** Date chip for the date-first event card: { day: "20", month: "NOV" }.
+ * Null when there is no start date. Months are Spanish abbreviations. */
+const MONTH_ABBR = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC']
+export function eventDateChip(iso: string | null | undefined): { day: string; month: string } | null {
+  if (!iso) return null
+  const parts = partsInTz(iso)
+  if (!parts) return null
+  return { day: String(parts.day), month: MONTH_ABBR[parts.month - 1] }
+}
+
 /** Short day: "vie 20 nov". Periods stripped (ICU varies: "vie." vs "vie"). */
 export function formatEventDay(iso: string): string {
   const d = new Date(iso)

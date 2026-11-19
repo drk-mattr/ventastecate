@@ -659,15 +659,13 @@ function NewListingForm() {
     // B2: description is required only for news; for product / service /
     // event it is optional, so a blank box no longer blocks the publish.
     if (listingType === 'news' && !description.trim()) errors.description = 'Escribe una descripción'
-    // A mention's caption IS the post — it needs at least a few
-    // characters, or the derived title fails the 3-char minimum.
-    if (listingType === 'mention' && description.trim().length < 3) errors.description = 'Escribe qué recomiendas'
-    if (showPrice && !priceConsultar && !isFree && !price) errors.price = 'Escribe un precio, o marca Precio a consultar / Gratis'
+    // Mentions have no required fields (user, 2026-11-19): a mention
+    // publishes with just a photo, just a caption, just a tag, or any
+    // combination, so no rule here may block Siguiente / Publicar —
+    // no minimum caption length, and a tag without a business no
+    // longer blocks (the tag simply can't attach without one).
     if (storeType === 'general' && !category && listingType !== 'mention') errors.category = 'Elige una categoría'
-    // A tag without a business can't attach (item-tags route, decision
-    // 4): the mention can still publish with neither, but not with a
-    // tag and no business.
-    if (listingType === 'mention' && selectedItems.length > 0 && !taggedBusiness) errors.business = 'Elige el negocio para guardar la etiqueta'
+    if (showPrice && !priceConsultar && !isFree && !price) errors.price = 'Escribe un precio, o marca Precio a consultar / Gratis'
     // Native video (migration 050): one video per post, and the
     // self-filmed declaration is required for uploads. The file's
     // size / MIME / duration were checked when it was picked.
@@ -758,7 +756,11 @@ function NewListingForm() {
       if (firstId) scrollToField(firstId)
       return
     }
-    goToStep(3)
+    // Mentions run photo (3) → caption (2) → location (4) over the
+    // same 1–4 step state, so from the caption step the next step is
+    // 4 (location + publish) — plain 3 would bounce the user back
+    // to the photo step and they could never reach Publicar.
+    goToStep(isMention ? 4 : 3)
   }
 
   // ── Media (photos + one native clip, one picker) ──
@@ -1197,15 +1199,30 @@ function NewListingForm() {
       const parsedPrice = parseFloat(price)
       const finalPrice = listingType === 'news' || listingType === 'mention' ? 0 : (priceConsultar || isFree) ? 0 : (Number.isFinite(parsedPrice) ? parsedPrice : 0)
 
-      // Mentions have no title field — the title is the caption's
-      // first 80 chars. validateForm already guarantees the caption
-      // is at least 3 chars, so the derived title passes the schema.
-      const effectiveTitle = listingType === 'mention' ? description.trim().slice(0, 80) : title
+      // Mentions have no required fields (user, 2026-11-19): a mention
+      // publishes with just a photo, just a caption, just a tag, or any
+      // combination. The shared schema still requires a ≥3-char title
+      // and a non-empty description, so derive both with fallbacks —
+      // caption, then the primary tag's name, then 'Recomendación' —
+      // instead of blocking. A literally-empty mention (no photo, no
+      // caption, no tag) therefore publishes as a 'Recomendación'
+      // stub; that edge is the user's call, not a new rule.
+      const primaryTagName = selectedItems[0]?.kindName?.trim() || ''
+      const effectiveTitle = listingType === 'mention'
+        ? (description.trim().length >= 3
+          ? description.trim().slice(0, 80)
+          : primaryTagName.length >= 3
+            ? primaryTagName.slice(0, 80)
+            : 'Recomendación')
+        : title
+      const effectiveDescription = listingType === 'mention'
+        ? (description.trim() || primaryTagName || 'Recomendación')
+        : description.trim()
 
       // Validate user input before touching the DB.
       const validationError = firstListingError({
         title: effectiveTitle,
-        description,
+        description: effectiveDescription,
         price: finalPrice,
         listingType,
         hasVideoUpload: !!videoFile,
@@ -1242,7 +1259,7 @@ function NewListingForm() {
         user_id: user.id,
         store_id: activeStore?.id || null,
         listing_type: listingType,
-        title: effectiveTitle, description: description.trim(),
+        title: effectiveTitle, description: effectiveDescription,
         price: finalPrice,
         category: finalCategory,
         location: location || activeStore?.location || '',
@@ -1338,7 +1355,11 @@ function NewListingForm() {
       // optional — a failure here must not strand the user on the
       // form with a published listing (a retry would duplicate it).
       let itemTagsFailed = false
-      if (selectedItems.length > 0) {
+      // No business, no attachable tags (item-tags route, decision 4):
+      // a tag without a business can't attach, so don't call the route
+      // and don't strand the user on a warning for a listing that is
+      // already published.
+      if (selectedItems.length > 0 && taggedBusiness) {
         itemTagsFailed = !(await postItemTags(listing.id))
       }
 
@@ -1818,7 +1839,7 @@ function NewListingForm() {
               with its detail block directly below. */}
           <div className="py-6 first:pt-0">
             <p className="text-base font-semibold text-gray-900 mb-3">
-              Fotos y video {(listingType === 'news' || listingType === 'event') && (
+              Fotos y video {(listingType === 'news' || listingType === 'event' || listingType === 'mention') && (
                 <span className="text-gray-500 font-normal text-sm">(opcional)</span>
               )}
             </p>
@@ -2084,7 +2105,7 @@ function NewListingForm() {
                     chars). */}
                 <div className="space-y-1.5">
                   <Label htmlFor="mention-caption" className="text-sm">
-                    ¿Qué recomiendas? <span className="text-red-400">*</span>
+                    ¿Qué recomiendas? <span className="text-gray-500 font-normal">(opcional)</span>
                   </Label>
                   <Textarea
                     id="mention-caption"
@@ -2135,7 +2156,7 @@ function NewListingForm() {
                       >
                         {tag.kindName}
                         {index === 0 ? (
-                          <span className="text-[10px] text-gray-300">Principal</span>
+                          <span className="text-[10px] text-gray-500">Principal</span>
                         ) : (
                           <button
                             type="button"
@@ -2222,10 +2243,12 @@ function NewListingForm() {
                 {typeSpecificFields}
               </>
             )}
-            {/* Mention entry point (items engine, 034B): what business
-                is this post about, and what did you try or buy there.
-                Collapsed by default so Paso 2 stays short; tagging is
-                optional — a post without it publishes exactly as before. */}
+            {/* Tagging for the full form (034B, restored PR #176):
+                business + item pickers, collapsed by default so Paso 2
+                stays short. Hidden in the mention flow — Recomendar has
+                its own inline business + tag pickers above, and rendering
+                these too showed both pickers twice on Paso 2. */}
+            {!isMention && (
             <div className="border-t border-gray-200 pt-5">
               <button
                 type="button"
@@ -2267,6 +2290,7 @@ function NewListingForm() {
                 </div>
               )}
             </div>
+            )}
           </div>
           )}
 

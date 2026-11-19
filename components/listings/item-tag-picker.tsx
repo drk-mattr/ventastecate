@@ -124,7 +124,7 @@ export function ItemTagPicker({
                 tag.kindName
               )}
               {index === 0 ? (
-                <span className="text-[10px] text-gray-300">Principal</span>
+                <span className="text-[10px] text-gray-500">Principal</span>
               ) : (
                 <button
                   type="button"

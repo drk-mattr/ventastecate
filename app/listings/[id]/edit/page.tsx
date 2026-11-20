@@ -158,6 +158,15 @@ export default function EditListingPage() {
   const [lotM2, setLotM2] = useState('')
   const [parkingSpots, setParkingSpots] = useState('')
 
+  // Terreno sync (same rule as the new-listing form): a terreno is
+  // only land, so switching the type to terreno drops the house
+  // fields — they must never store, or the terreno renders
+  // "0 Recámaras, 0 Baños" on its detail page.
+  const handlePropertyTypePick = (v: string) => {
+    setPropertyType(v)
+    if (v === 'terreno') { setBedrooms(''); setBathrooms(''); setConstructionM2(''); setParkingSpots('') }
+  }
+
   // Automotive metadata
   const [make, setMake] = useState('')
   const [model, setModel] = useState('')
@@ -672,7 +681,7 @@ export default function EditListingPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Tipo de Propiedad</Label>
-                      <Select value={propertyType} onValueChange={setPropertyType}>
+                      <Select value={propertyType} onValueChange={handlePropertyTypePick}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="casa">Casa</SelectItem>
@@ -694,25 +703,30 @@ export default function EditListingPage() {
                       </Select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Recámaras</Label>
-                      <Input type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} placeholder="3" />
+                  {/* A terreno is only land — the house fields never apply. */}
+                  {propertyType !== 'terreno' && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Recámaras</Label>
+                        <Input type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} placeholder="3" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Baños</Label>
+                        <Input type="number" min="0" step="0.5" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} placeholder="2" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Estacionamientos</Label>
+                        <Input type="number" min="0" value={parkingSpots} onChange={(e) => setParkingSpots(e.target.value)} placeholder="2" />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Baños</Label>
-                      <Input type="number" min="0" step="0.5" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} placeholder="2" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Estacionamientos</Label>
-                      <Input type="number" min="0" value={parkingSpots} onChange={(e) => setParkingSpots(e.target.value)} placeholder="2" />
-                    </div>
-                  </div>
+                  )}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>m² Construidos</Label>
-                      <Input type="number" min="0" value={constructionM2} onChange={(e) => setConstructionM2(e.target.value)} placeholder="120" />
-                    </div>
+                    {propertyType !== 'terreno' && (
+                      <div className="space-y-2">
+                        <Label>m² Construidos</Label>
+                        <Input type="number" min="0" value={constructionM2} onChange={(e) => setConstructionM2(e.target.value)} placeholder="120" />
+                      </div>
+                    )}
                     <div className="space-y-2">
                       <Label>m² Terreno</Label>
                       <Input type="number" min="0" value={lotM2} onChange={(e) => setLotM2(e.target.value)} placeholder="200" />

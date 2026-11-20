@@ -309,6 +309,22 @@ function NewListingForm() {
   const [lotM2, setLotM2] = useState('')
   const [parkingSpots, setParkingSpots] = useState('')
 
+  // Terreno sync: a terreno is only land, so picking the Terrenos
+  // category (or the terreno property type) sets the type and drops
+  // the house fields — they must never store, or the terreno renders
+  // "0 Recámaras, 0 Baños" on its detail page.
+  const clearHouseFields = () => {
+    setBedrooms(''); setBathrooms(''); setConstructionM2(''); setParkingSpots('')
+  }
+  const handleCategoryPick = (v: string) => {
+    setCategory(v); clearFieldError('category')
+    if (v === 'Terrenos') { setPropertyType('terreno'); clearHouseFields() }
+  }
+  const handlePropertyTypePick = (v: string) => {
+    setPropertyType(v)
+    if (v === 'terreno') clearHouseFields()
+  }
+
   // Automotive metadata
   const [make, setMake] = useState('')
   const [model, setModel] = useState('')
@@ -435,6 +451,12 @@ function NewListingForm() {
     setConstructionM2(d.constructionM2 || '')
     setLotM2(d.lotM2 || '')
     setParkingSpots(d.parkingSpots || '')
+    // A restored terreno draft never keeps house fields (see the
+    // terreno sync above) — pre-fix drafts may still carry them.
+    if (d.category === 'Terrenos') {
+      setPropertyType('terreno')
+      setBedrooms(''); setBathrooms(''); setConstructionM2(''); setParkingSpots('')
+    }
     setMake(d.make || '')
     setModel(d.model || '')
     setYear(d.year || '')
@@ -1530,7 +1552,7 @@ function NewListingForm() {
       <Label htmlFor="category" className="text-sm">
         Categoría <span className="text-red-400">*</span>
       </Label>
-      <Select value={category} onValueChange={(v) => { setCategory(v); clearFieldError('category') }} required>
+      <Select value={category} onValueChange={handleCategoryPick} required>
         <SelectTrigger className="w-full border-gray-300">
           <SelectValue placeholder="Elige una categoría" />
         </SelectTrigger>
@@ -1548,7 +1570,7 @@ function NewListingForm() {
       {suggestedCategory && !category && (
         <button
           type="button"
-          onClick={() => { setCategory(suggestedCategory); clearFieldError('category') }}
+          onClick={() => handleCategoryPick(suggestedCategory)}
           className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-gray-50 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-100"
         >
           ¿{t.categories.find(c => c.value === suggestedCategory)?.label ?? suggestedCategory}?
@@ -1660,7 +1682,7 @@ function NewListingForm() {
         <>
           <div className="space-y-1.5">
             <Label className="text-sm">Tipo de Propiedad *</Label>
-            <Select value={propertyType} onValueChange={setPropertyType}>
+            <Select value={propertyType} onValueChange={handlePropertyTypePick}>
               <SelectTrigger className="w-full border-gray-300"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="casa">Casa</SelectItem>
@@ -1671,13 +1693,20 @@ function NewListingForm() {
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="space-y-1.5"><Label className="text-sm">Recámaras</Label><Input className="border-gray-300" type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} placeholder="3" /></div>
-            <div className="space-y-1.5"><Label className="text-sm">Baños</Label><Input className="border-gray-300" type="number" min="0" step="0.5" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} placeholder="2" /></div>
-            <div className="space-y-1.5"><Label className="text-sm">Estacionamientos</Label><Input className="border-gray-300" type="number" min="0" value={parkingSpots} onChange={(e) => setParkingSpots(e.target.value)} placeholder="2" /></div>
-          </div>
+          {/* A terreno is only land — the house fields never apply,
+              so hide them instead of letting a 0 (or a stale value)
+              store and render as "0 Recámaras" on the detail page. */}
+          {propertyType !== 'terreno' && (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="space-y-1.5"><Label className="text-sm">Recámaras</Label><Input className="border-gray-300" type="number" min="0" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} placeholder="3" /></div>
+              <div className="space-y-1.5"><Label className="text-sm">Baños</Label><Input className="border-gray-300" type="number" min="0" step="0.5" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} placeholder="2" /></div>
+              <div className="space-y-1.5"><Label className="text-sm">Estacionamientos</Label><Input className="border-gray-300" type="number" min="0" value={parkingSpots} onChange={(e) => setParkingSpots(e.target.value)} placeholder="2" /></div>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5"><Label className="text-sm">m² Construidos</Label><Input className="border-gray-300" type="number" min="0" value={constructionM2} onChange={(e) => setConstructionM2(e.target.value)} placeholder="120" /></div>
+            {propertyType !== 'terreno' && (
+              <div className="space-y-1.5"><Label className="text-sm">m² Construidos</Label><Input className="border-gray-300" type="number" min="0" value={constructionM2} onChange={(e) => setConstructionM2(e.target.value)} placeholder="120" /></div>
+            )}
             <div className="space-y-1.5"><Label className="text-sm">m² Terreno</Label><Input className="border-gray-300" type="number" min="0" value={lotM2} onChange={(e) => setLotM2(e.target.value)} placeholder="200" /></div>
           </div>
         </>

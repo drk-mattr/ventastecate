@@ -686,6 +686,13 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 {listing.metadata && (listing.metadata as ListingMetadata).type === 'real_estate' && (() => {
                   const meta = listing.metadata as RealEstateMetadata
                   const propertyLabels: Record<string, string> = { casa: 'Casa', departamento: 'Depto', terreno: 'Terreno', local: 'Local', oficina: 'Oficina' }
+                  // A terreno is only land: no bedrooms, baths, built
+                  // area or parking — show only the lot size, whatever
+                  // the stored data says. Every other spec shows only
+                  // when it actually exists (> 0), so a stored 0 never
+                  // renders as "0 Recámaras".
+                  const isTerreno = meta.property_type === 'terreno'
+                  const hasSpec = (v: number | null | undefined) => v != null && v > 0
                   return (
                     <div className="pt-4 border-t">
                       <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -697,31 +704,31 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                         </Badge>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        {meta.bedrooms != null && (
+                        {!isTerreno && hasSpec(meta.bedrooms) && (
                           <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{meta.bedrooms}</p>
                             <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Bed className="h-3 w-3" /> Recámaras</div>
                           </div>
                         )}
-                        {meta.bathrooms != null && (
+                        {!isTerreno && hasSpec(meta.bathrooms) && (
                           <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{meta.bathrooms}</p>
                             <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Droplets className="h-3 w-3" /> Baños</div>
                           </div>
                         )}
-                        {meta.construction_m2 != null && (
+                        {!isTerreno && hasSpec(meta.construction_m2) && (
                           <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{meta.construction_m2}</p>
                             <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Ruler className="h-3 w-3" /> m² Const.</div>
                           </div>
                         )}
-                        {meta.lot_m2 != null && (
+                        {hasSpec(meta.lot_m2) && (
                           <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{meta.lot_m2}</p>
                             <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Home className="h-3 w-3" /> m² Terreno</div>
                           </div>
                         )}
-                        {meta.parking_spots != null && (
+                        {!isTerreno && hasSpec(meta.parking_spots) && (
                           <div className="text-center p-3 bg-gray-50 rounded-xl">
                             <p className="text-lg font-semibold">{meta.parking_spots}</p>
                             <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Car className="h-3 w-3" /> Estacion.</div>

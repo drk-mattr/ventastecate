@@ -155,7 +155,10 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       if (hasCurrencyFilter && ((l.currency ?? 'MXN') !== currency)) return false
       if (bedrooms && Number(m.bedrooms ?? 0) < Number(bedrooms)) return false
       if (bathrooms && Number(m.bathrooms ?? 0) < Number(bathrooms)) return false
-      if (m2 && Number(m.construction_m2 ?? 0) < Number(m2)) return false
+      // Minimum size is the bigger of built area and lot — a terreno
+      // has no construction_m2, so comparing only that would filter
+      // every terreno out.
+      if (m2 && Math.max(Number(m.construction_m2 ?? 0), Number(m.lot_m2 ?? 0)) < Number(m2)) return false
       return true
     })
 

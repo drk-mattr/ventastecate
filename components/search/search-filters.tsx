@@ -108,6 +108,8 @@ export function SearchFilters({
   const router = useRouter()
 
   const isRealEstate = !!category && REAL_ESTATE_CATEGORIES.includes(category)
+  // A terreno is only land — bedroom/bath facets never apply to it.
+  const isTerrenoCategory = category === 'Terrenos'
   const locationOverridesRegion = !!location && regionLabel !== 'Todas'
 
   const handleDetectLocation = () => {
@@ -150,8 +152,8 @@ export function SearchFilters({
     set('maxPrice', maxPrice || undefined)
     set('currency', currency || undefined)
     set('sort', sort !== 'newest' ? sort : undefined)
-    set('bedrooms', isRealEstate ? bedrooms || undefined : undefined)
-    set('bathrooms', isRealEstate ? bathrooms || undefined : undefined)
+    set('bedrooms', isRealEstate && !isTerrenoCategory ? bedrooms || undefined : undefined)
+    set('bathrooms', isRealEstate && !isTerrenoCategory ? bathrooms || undefined : undefined)
     set('m2', isRealEstate ? m2 || undefined : undefined)
     return params
   }
@@ -283,34 +285,37 @@ export function SearchFilters({
         {/* Real-estate facets — only for Casas en Renta / Venta */}
         {isRealEstate && (
           <>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-gray-500">Recámaras</Label>
-                <Select value={bedrooms || 'any'} onValueChange={(v) => setBedrooms(v === 'any' ? '' : v)}>
-                  <SelectTrigger className="h-10 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="z-[80]">
-                    {['any', '1', '2', '3', '4'].map((v) => (
-                      <SelectItem key={v} value={v}>{v === 'any' ? 'Cualquiera' : `${v}+`}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Bedrooms/baths never apply to a terreno (only land). */}
+            {!isTerrenoCategory && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-gray-500">Recámaras</Label>
+                  <Select value={bedrooms || 'any'} onValueChange={(v) => setBedrooms(v === 'any' ? '' : v)}>
+                    <SelectTrigger className="h-10 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="z-[80]">
+                      {['any', '1', '2', '3', '4'].map((v) => (
+                        <SelectItem key={v} value={v}>{v === 'any' ? 'Cualquiera' : `${v}+`}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-gray-500">Baños</Label>
+                  <Select value={bathrooms || 'any'} onValueChange={(v) => setBathrooms(v === 'any' ? '' : v)}>
+                    <SelectTrigger className="h-10 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="z-[80]">
+                      {['any', '1', '2', '3'].map((v) => (
+                        <SelectItem key={v} value={v}>{v === 'any' ? 'Cualquiera' : `${v}+`}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-gray-500">Baños</Label>
-                <Select value={bathrooms || 'any'} onValueChange={(v) => setBathrooms(v === 'any' ? '' : v)}>
-                  <SelectTrigger className="h-10 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="z-[80]">
-                    {['any', '1', '2', '3'].map((v) => (
-                      <SelectItem key={v} value={v}>{v === 'any' ? 'Cualquiera' : `${v}+`}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="m2" className="text-xs font-medium text-gray-500">Tamaño mín. (m²)</Label>
               <Input

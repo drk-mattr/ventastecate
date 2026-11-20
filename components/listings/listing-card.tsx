@@ -47,7 +47,7 @@ const NEWS_CATEGORY_COLORS: Record<string, string> = {
 }
 
 // Lost posts look like a printed missing-pet poster: "SE BUSCA" in
-// plain red letters as the top strip INSIDE the 4:5 media slot, the
+// plain red letters as the top strip INSIDE the 1:1 media slot, the
 // image inset with a generous white margin on all sides — no banner
 // strip. The feed photo is black-and-white (grayscale) and shows
 // FULLY (object-contain in the media slot — it is the evidence for
@@ -77,19 +77,19 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
 }
 
-// Uniform grid construction (2026-11-11, tightened 2026-11-18): every
-// variant is the SAME height in a grid row, by construction — media
-// slot aspect-[4/5] of the column width + a fixed h-[78px] text area,
-// top-aligned, nothing bottom-pinned, no mt-auto. The 78px fits the
-// tallest standard text content (2-line title + meta row, ~73px);
-// shorter variants carry the slack as bottom padding inside their
-// text block. The card is only as tall as those two blocks: no
-// h-full, so a tall neighbor cannot stretch it (the grids use
-// items-start). Total: 5/4 W + 78px. Exceptions, all compensated to
-// the same total: editorial news cards (non-lost only) use a 3:2
-// media slot (2/3 W) with the text area at 7/12 W + 78px, and
-// date-first events keep a 90px text area (a priced event needs
-// ~88px) with the media slot trimmed 12px (5/4 W − 12px) to match.
+// Uniform grid construction (2026-11-11, tightened 2026-11-18, shortened
+// 2026-11-20): every variant is the SAME height in a grid row, by
+// construction — media slot aspect-[1/1] of the column width + a fixed
+// h-[78px] text area, top-aligned, nothing bottom-pinned, no mt-auto.
+// The 78px fits the tallest standard text content (2-line title +
+// meta row, ~73px); shorter variants carry the slack as bottom
+// padding inside their text block. The card is only as tall as those
+// two blocks: no h-full, so a tall neighbor cannot stretch it (the
+// grids use items-start). Total: W + 78px. Exceptions, all
+// compensated to the same total: editorial news cards (non-lost
+// only) use a 3:2 media slot (2/3 W) with the text area at 1/3 W +
+// 78px, and date-first events keep a 90px text area (a priced event
+// needs ~88px) with the media slot trimmed 12px (W − 12px) to match.
 // Lost posts are no exception: the SE BUSCA heading sits INSIDE
 // the media slot as its top strip (2026-11-17).
 function CardShell({ id, children }: { id: string; children: React.ReactNode }) {
@@ -105,14 +105,17 @@ function CardShell({ id, children }: { id: string; children: React.ReactNode }) 
 // Editorial news text area (non-lost news only, 2026-11-17; 3:2 media
 // since the 2026-11-18 tighten): the media slot is 3:2 (2/3 W), so
 // this area is taller than the 78px of every other variant by
-// exactly the height the photo lost vs 4:5 — 7/12 × the column
+// exactly the height the photo lost vs 1:1 — 1/3 × the column
 // width — keeping the card's total height identical to its
-// row-mates: 2/3 W + (7/12 W + 78px) = 5/4 W + 78px. The height
+// row-mates: 2/3 W + (1/3 W + 78px) = W + 78px. The height
 // is padding-bottom (percentages resolve against the card width),
 // with the content absolutely positioned inside; content is
 // top-aligned, nothing bottom-pinned. Worst-case content is ~161px
 // (eyebrow + 3-line headline + 2-line lede + source line), so the
-// area fits it at any card width ≥ ~143px (viewport ≥ ~330px).
+// area fits it only at card widths ≥ ~249px; at phone widths
+// (W ≈ 173px the area is ~136px) the longest news cards may clip
+// the source line and part of the lede — known tension, 2026-11-20,
+// clamps deliberately not trimmed (editorial decision for the user).
 // Contents: red NOTICIA marker + category eyebrow, serif headline
 // (font-forum, the news typeface), a two-line lede, source domain
 // + time. No lede → no lede line, no gap.
@@ -128,7 +131,7 @@ function EditorialNewsTextArea({
   sourceHost: string | null
 }) {
   return (
-    <div className="relative w-full shrink-0 pb-[calc(58.33%+78px)]">
+    <div className="relative w-full shrink-0 pb-[calc(33.33%+78px)]">
       <div className="absolute inset-0 px-2.5 pt-2 pb-2 flex flex-col">
         <p className="text-[9px] font-bold uppercase tracking-wider mb-1.5 leading-none">
           <span className="text-red-600">Noticia</span>
@@ -213,13 +216,13 @@ export function ListingCard({ listing }: ListingCardProps) {
     // slot, the photo inset with a white margin, grayscale,
     // object-contain (it shows FULLY — it is the evidence for
     // identifying the animal). This branch is untouched by the
-    // editorial news change below: same 4:5 slot, same h-[78px]
+    // editorial news change below: same 1:1 slot, same h-[78px]
     // text area, and the card now matches its row-mates exactly.
     if (isLostPost) {
       if (!primaryImage && !nativeVideo) {
         return (
           <CardShell id={listing.id}>
-            <div className="relative aspect-[4/5] w-full shrink-0 bg-white flex flex-col">
+            <div className="relative aspect-[1/1] w-full shrink-0 bg-white flex flex-col">
               {SE_BUSCA_HEADING}
               <div className="relative flex-1 min-h-0 mx-4 mb-2">
                 <ListingTitleCard
@@ -243,7 +246,7 @@ export function ListingCard({ listing }: ListingCardProps) {
       return (
         <CardShell id={listing.id}>
           {/* Lost post: a printed-poster look — SE BUSCA in red
-             letters as the top strip INSIDE the 4:5 media slot, the
+             letters as the top strip INSIDE the 1:1 media slot, the
              photo inset with a white margin below it. The photo
              shows FULLY (object-contain) — it is the evidence for
              identifying the animal. No category eyebrow — the
@@ -251,7 +254,7 @@ export function ListingCard({ listing }: ListingCardProps) {
              from the slot, so the card is exactly the same height
              as every other card in its row. A native video takes
              the same slot below the heading. */}
-          <div className="relative aspect-[4/5] w-full shrink-0 bg-white flex flex-col">
+          <div className="relative aspect-[1/1] w-full shrink-0 bg-white flex flex-col">
             {SE_BUSCA_HEADING}
             {nativeVideo && nativeVideoUrl ? (
               /* Native clip: muted autoplay in view, tap for sound.
@@ -310,14 +313,14 @@ export function ListingCard({ listing }: ListingCardProps) {
     // news story — text-first, NO photo slot at all. The whole card
     // is the text area, at exactly the same total height as its
     // row-mates (the padding trick from EditorialNewsTextArea, full
-    // 5/4 W + 78px). AVISO label + location, serif title, the
+    // W + 78px). AVISO label + location, serif title, the
     // notice itself, time pinned to the bottom. A photo on the
     // listing still shows on the detail page — the card just
     // doesn't lead with it.
     if (listing.category === 'Anuncios Comunitarios') {
       return (
         <CardShell id={listing.id}>
-          <div className="relative w-full shrink-0 pb-[calc(125%+78px)]">
+          <div className="relative w-full shrink-0 pb-[calc(100%+78px)]">
             <div className="absolute inset-0 px-2.5 pt-2.5 pb-2 flex flex-col">
               <p className="text-[9px] font-bold uppercase tracking-wider mb-1.5 leading-none">
                 <span className="text-red-600">Aviso</span>
@@ -341,7 +344,7 @@ export function ListingCard({ listing }: ListingCardProps) {
     }
 
     // Photo-less news: the orange title card fills the 3:2 media
-    // slot instead of 4:5 (title still white on orange, same
+    // slot instead of 1:1 (title still white on orange, same
     // treatment, just wider/shorter). A native video is not
     // photo-less — it takes the media slot below instead.
     if (!primaryImage && !nativeVideo) {
@@ -400,7 +403,7 @@ export function ListingCard({ listing }: ListingCardProps) {
   }
 
   // ── Event card: the poster IS the content — it must show fully,
-  // never cropped. Printed-poster treatment: the 4:5 media slot is
+  // never cropped. Printed-poster treatment: the 1:1 media slot is
   // full column width and the poster sits inset with a white margin
   // inside it, object-contain, so a portrait poster fills it and a
   // landscape image letterboxes on white matting instead of being
@@ -410,7 +413,7 @@ export function ListingCard({ listing }: ListingCardProps) {
   if (listingType === 'event' && primaryImage) {
     return (
       <CardShell id={listing.id}>
-        <div className="relative aspect-[4/5] w-full shrink-0 bg-white">
+        <div className="relative aspect-[1/1] w-full shrink-0 bg-white">
           <div className="absolute inset-x-4 top-2.5 bottom-2.5">
             <Image src={primaryImage} alt={listing.title} fill className="object-contain"
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />
@@ -440,7 +443,7 @@ export function ListingCard({ listing }: ListingCardProps) {
   // the card reads as an event at a glance, not as an item for sale.
   // The text area keeps 90px (a priced event needs ~88px: price +
   // date line + venue + time), so the media slot is trimmed 12px
-  // (pb-[calc(125%-12px)]) to keep the total at 5/4 W + 78px like
+  // (pb-[calc(100%-12px)]) to keep the total at W + 78px like
   // every row-mate. The text area splits what used to be one joined
   // subtitle: the date line bold on its own line, the venue below
   // it. Poster events are untouched — the poster already carries
@@ -450,7 +453,7 @@ export function ListingCard({ listing }: ListingCardProps) {
     const eventColor = resolveCardColor(listing.card_color).hex
     return (
       <CardShell id={listing.id}>
-        <div className="relative w-full shrink-0 pb-[calc(125%-12px)]" style={{ backgroundColor: eventColor }}>
+        <div className="relative w-full shrink-0 pb-[calc(100%-12px)]" style={{ backgroundColor: eventColor }}>
           <div className="absolute inset-0 flex flex-col p-3">
             <div className="flex items-start gap-2">
               {chip && (
@@ -502,8 +505,8 @@ export function ListingCard({ listing }: ListingCardProps) {
   // ── Standard card (products, services) ───────────────────────────
   return (
     <CardShell id={listing.id}>
-      {/* Image area — 4:5 media slot, same as every variant. */}
-      <div className="relative aspect-[4/5] bg-gray-100 shrink-0">
+      {/* Image area — 1:1 media slot, same as every variant. */}
+      <div className="relative aspect-[1/1] bg-gray-100 shrink-0">
         {primaryImage ? (
           <Image src={primaryImage} alt={listing.title} fill className="object-cover"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" />

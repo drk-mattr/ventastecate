@@ -17,7 +17,6 @@ import {
   splitSources,
   splitParagraphs,
   tagLinks,
-  sourceDomain,
 } from '@/lib/listings/article-helpers'
 import type { ListingComment } from '@/lib/types/database'
 

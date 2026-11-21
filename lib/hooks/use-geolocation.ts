@@ -36,7 +36,6 @@ export function useGeolocation() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         if (isMounted) {
-          // eslint-disable-next-line react-hooks/set-state-in-effect
           setLocation({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -47,7 +46,6 @@ export function useGeolocation() {
       },
       (error) => {
         if (isMounted) {
-          // eslint-disable-next-line react-hooks/set-state-in-effect
           setLocation({
             latitude: null,
             longitude: null,

@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { KNOWN_TOWNS, TOWN_REGIONS } from '@/lib/business-regions'
+import { TOWN_REGIONS } from '@/lib/business-regions'
 
 /**
  * Add a business to the index. No ownership required: any logged-in user can

@@ -12,8 +12,6 @@ import { MobileActionBar } from "@/components/layout/mobile-action-bar";
 import { AuthModalProvider } from "@/lib/auth/auth-modal-context";
 import { ReportModalProvider } from "@/lib/report/report-modal-context";
 
-import localFont from "next/font/local";
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

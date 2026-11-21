@@ -76,8 +76,10 @@ type MapOptions = {
 // Grayscale base map (the standard silver style): gray roads,
 // labels, parks, and water. The TrafficLayer is a separate tile
 // overlay and is NOT restyled by this — its red/yellow/green
-// stays, because those colors are the data.
-const MAP_STYLES: MapTypeStyle[] = [
+// stays, because those colors are the data. Exported for the
+// terreno detail map, which reuses the same monochrome base (its
+// marker, not the map, carries the orange).
+export const MAP_STYLES: MapTypeStyle[] = [
   { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
   { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },

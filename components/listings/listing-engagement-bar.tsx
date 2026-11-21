@@ -14,10 +14,13 @@ interface ListingEngagementBarProps {
   // 'byline' (2026-11-17): the icons live in the article byline
   // row — no padding, no hairlines, lighter 1.8 stroke. 'article'
   // is the repeated bottom row; 'bar' is the product/event detail.
+  // 'bare' (2026-11-20): docked into a title row — no hairline,
+  // no padding, same icons.
   variant?: 'bar' | 'article' | 'byline'
+  bare?: boolean
 }
 
-export function ListingEngagementBar({ listingId, likesCount, savesCount, variant = 'bar' }: ListingEngagementBarProps) {
+export function ListingEngagementBar({ listingId, likesCount, savesCount, variant = 'bar', bare = false }: ListingEngagementBarProps) {
   const { user } = useAuth()
   const [userLiked, setUserLiked] = useState(false)
   const [userSaved, setUserSaved] = useState(false)
@@ -107,7 +110,9 @@ export function ListingEngagementBar({ listingId, likesCount, savesCount, varian
         ? 'flex items-center gap-4'
         : article
           ? 'flex items-center gap-5 py-3 border-y border-gray-100'
-          : 'flex items-center gap-1 pt-3 mt-1 border-t'
+          : bare
+            ? 'flex items-center gap-1'
+            : 'flex items-center gap-1 pt-3 mt-1 border-t'
     }>
       <span className={pill}>
         <LikeButton

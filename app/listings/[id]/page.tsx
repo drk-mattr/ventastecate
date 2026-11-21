@@ -659,8 +659,53 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           /* ── Default layout: single stacked column ── */
           <>
           <div className="max-w-3xl mx-auto space-y-5">
-            {/* Gallery + details, stacked */}
+            {/* Gallery + details, stacked — title first,
+                Airbnb-style: the what and the price before the
+                photos, specs right under the gallery. */}
             <div className="min-w-0 space-y-5">
+              {/* Title + price on top. Engagement docks to the
+                  title row on desktop (bare, no hairline) and
+                  sits directly under the title on mobile. */}
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-xl font-semibold leading-snug mb-1">{listing.title}</h1>
+                  <p className="text-2xl font-semibold text-gray-900 mb-2">{formattedPrice}</p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-gray-500">
+                    {listing.metadata && (listing.metadata as ListingMetadata).type === 'real_estate' && (
+                      <Badge variant="secondary" className="text-[11px] font-normal text-gray-600">
+                        {(listing.metadata as RealEstateMetadata).transaction_type === 'renta' ? 'En Renta' : 'En Venta'}
+                      </Badge>
+                    )}
+                    {listing.location && (
+                      <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 shrink-0" />{listing.location}</span>
+                    )}
+                    <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 shrink-0" />{formatPostedDate(listing.created_at)}</span>
+                    {listing.category && (
+                      <Badge variant="secondary" className="text-[11px] font-normal text-gray-600">{listing.category}</Badge>
+                    )}
+                  </div>
+                </div>
+                <div className="hidden shrink-0 pt-1 md:block">
+                  <ListingEngagementBar
+                    listingId={listing.id}
+                    likesCount={likesCount}
+                    savesCount={savesCount}
+                    bare
+                  />
+                </div>
+              </div>
+
+              {/* Like / save / share on mobile — directly under
+                  the title, above the gallery. */}
+              <div className="md:hidden">
+                <ListingEngagementBar
+                  listingId={listing.id}
+                  likesCount={likesCount}
+                  savesCount={savesCount}
+                  bare
+                />
+              </div>
+
               <ListingImageGallery
                 images={sortedImages}
                 listingTitle={listing.title}
@@ -669,40 +714,25 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 fullBleed
               />
 
-              {/* Like / save / share — quiet row below the picture
-                  card, all widths. No overlay on the image. */}
-              <ListingEngagementBar
-                listingId={listing.id}
-                likesCount={likesCount}
-                savesCount={savesCount}
-              />
-
-              {/* Video embed — native clip first, link embed otherwise */}
+              {/* Video embed — native clip first, link embed
+                  otherwise; media stays together, right after
+                  the gallery. */}
               {videoBlock && (
                 <div className="max-w-2xl">
                   {videoBlock}
                 </div>
               )}
 
-              {/* Title + price under the gallery */}
-              <div>
-                <h1 className="text-xl font-semibold leading-snug mb-1">{listing.title}</h1>
-                <p className="text-2xl font-semibold text-gray-900 mb-2">{formattedPrice}</p>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-gray-500">
-                  {listing.location && (
-                    <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 shrink-0" />{listing.location}</span>
-                  )}
-                  <span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 shrink-0" />{formatPostedDate(listing.created_at)}</span>
-                  {listing.category && (
-                    <Badge variant="secondary" className="text-[11px] font-normal text-gray-600">{listing.category}</Badge>
-                  )}
-                </div>
-              </div>
-
-                {/* Specs Grid for specialized listings */}
+                {/* Specs Grid for specialized listings — directly
+                    below the gallery. The En Venta/En Renta badge
+                    lives with the title now; the property-type
+                    badge is gone — the category badge already says
+                    it ("Terrenos", "Casas en Venta"). A lone spec
+                    (every terreno: just the lot size) renders as
+                    an inline stat strip, not a single tile lost
+                    in a 4-column grid. */}
                 {listing.metadata && (listing.metadata as ListingMetadata).type === 'real_estate' && (() => {
                   const meta = listing.metadata as RealEstateMetadata
-                  const propertyLabels: Record<string, string> = { casa: 'Casa', departamento: 'Depto', terreno: 'Terreno', local: 'Local', oficina: 'Oficina' }
                   // A terreno is only land: no bedrooms, baths, built
                   // area or parking — show only the lot size, whatever
                   // the stored data says. Every other spec shows only
@@ -710,47 +740,33 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   // renders as "0 Recámaras".
                   const isTerreno = meta.property_type === 'terreno'
                   const hasSpec = (v: number | null | undefined) => v != null && v > 0
+                  const specs: { icon: React.ReactNode; value: string; label: string }[] = []
+                  if (!isTerreno && hasSpec(meta.bedrooms)) specs.push({ icon: <Bed className="h-4 w-4 text-gray-500" />, value: String(meta.bedrooms), label: 'Recámaras' })
+                  if (!isTerreno && hasSpec(meta.bathrooms)) specs.push({ icon: <Droplets className="h-4 w-4 text-gray-500" />, value: String(meta.bathrooms), label: 'Baños' })
+                  if (!isTerreno && hasSpec(meta.construction_m2)) specs.push({ icon: <Ruler className="h-4 w-4 text-gray-500" />, value: String(meta.construction_m2), label: 'm² Const.' })
+                  if (hasSpec(meta.lot_m2)) specs.push({ icon: <Home className="h-4 w-4 text-gray-500" />, value: String(meta.lot_m2), label: 'm² Terreno' })
+                  if (!isTerreno && hasSpec(meta.parking_spots)) specs.push({ icon: <Car className="h-4 w-4 text-gray-500" />, value: String(meta.parking_spots), label: 'Estacion.' })
+                  if (specs.length === 0) return null
+                  if (specs.length === 1) {
+                    return (
+                      <div className="pt-4 border-t">
+                        <p className="flex items-center gap-2 text-sm text-gray-700">
+                          {specs[0].icon}
+                          <span className="text-base font-semibold text-gray-900">{specs[0].value}</span>
+                          <span className="text-gray-500">{specs[0].label}</span>
+                        </p>
+                      </div>
+                    )
+                  }
                   return (
                     <div className="pt-4 border-t">
-                      <div className="flex flex-wrap items-center gap-2 mb-4">
-                        <Badge variant="secondary" className="text-xs">
-                          {meta.transaction_type === 'renta' ? 'En Renta' : 'En Venta'}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {propertyLabels[meta.property_type] || meta.property_type}
-                        </Badge>
-                      </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        {!isTerreno && hasSpec(meta.bedrooms) && (
-                          <div className="text-center p-3 bg-gray-50 rounded-xl">
-                            <p className="text-lg font-semibold">{meta.bedrooms}</p>
-                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Bed className="h-3 w-3" /> Recámaras</div>
+                        {specs.map((spec) => (
+                          <div key={spec.label} className="text-center p-3 bg-gray-50 rounded-xl">
+                            <p className="text-lg font-semibold">{spec.value}</p>
+                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1">{spec.icon} {spec.label}</div>
                           </div>
-                        )}
-                        {!isTerreno && hasSpec(meta.bathrooms) && (
-                          <div className="text-center p-3 bg-gray-50 rounded-xl">
-                            <p className="text-lg font-semibold">{meta.bathrooms}</p>
-                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Droplets className="h-3 w-3" /> Baños</div>
-                          </div>
-                        )}
-                        {!isTerreno && hasSpec(meta.construction_m2) && (
-                          <div className="text-center p-3 bg-gray-50 rounded-xl">
-                            <p className="text-lg font-semibold">{meta.construction_m2}</p>
-                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Ruler className="h-3 w-3" /> m² Const.</div>
-                          </div>
-                        )}
-                        {hasSpec(meta.lot_m2) && (
-                          <div className="text-center p-3 bg-gray-50 rounded-xl">
-                            <p className="text-lg font-semibold">{meta.lot_m2}</p>
-                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Home className="h-3 w-3" /> m² Terreno</div>
-                          </div>
-                        )}
-                        {!isTerreno && hasSpec(meta.parking_spots) && (
-                          <div className="text-center p-3 bg-gray-50 rounded-xl">
-                            <p className="text-lg font-semibold">{meta.parking_spots}</p>
-                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Car className="h-3 w-3" /> Estacion.</div>
-                          </div>
-                        )}
+                        ))}
                       </div>
                     </div>
                   )
@@ -764,6 +780,39 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   // that exist, so an unbranded truck never renders
                   // leading spaces or "undefined".
                   const vehicleTitle = [meta.make, meta.model, meta.year?.toString()].filter(Boolean).join(' ')
+                  // Same single-spec rule as real estate: one spec
+                  // alone renders as an inline stat strip, not a
+                  // lone tile in a 4-column grid.
+                  const specs: { icon: React.ReactNode; value: string; label: string }[] = []
+                  if (meta.year != null) specs.push({ icon: <Calendar className="h-4 w-4 text-gray-500" />, value: String(meta.year), label: 'Año' })
+                  if (meta.mileage_km != null) specs.push({ icon: <Gauge className="h-4 w-4 text-gray-500" />, value: meta.mileage_km.toLocaleString(), label: 'km' })
+                  if (meta.transmission) specs.push({ icon: <Settings className="h-4 w-4 text-gray-500" />, value: transLabels[meta.transmission] || meta.transmission, label: 'Trans.' })
+                  if (meta.fuel_type) specs.push({ icon: <Fuel className="h-4 w-4 text-gray-500" />, value: fuelLabels[meta.fuel_type] || meta.fuel_type, label: 'Comb.' })
+                  if (meta.color) specs.push({ icon: <Palette className="h-4 w-4 text-gray-500" />, value: meta.color, label: 'Color' })
+                  if (meta.doors != null) specs.push({ icon: <DoorOpen className="h-4 w-4 text-gray-500" />, value: String(meta.doors), label: 'Puertas' })
+                  if (specs.length === 0) return vehicleTitle ? (
+                    <div className="pt-4 border-t">
+                      <p className="text-base font-medium text-gray-700">
+                        {vehicleTitle}
+                      </p>
+                    </div>
+                  ) : null
+                  if (specs.length === 1) {
+                    return (
+                      <div className="pt-4 border-t">
+                        {vehicleTitle && (
+                          <p className="text-base font-medium text-gray-700 mb-4">
+                            {vehicleTitle}
+                          </p>
+                        )}
+                        <p className="flex items-center gap-2 text-sm text-gray-700">
+                          {specs[0].icon}
+                          <span className="text-base font-semibold text-gray-900">{specs[0].value}</span>
+                          <span className="text-gray-500">{specs[0].label}</span>
+                        </p>
+                      </div>
+                    )
+                  }
                   return (
                     <div className="pt-4 border-t">
                       {vehicleTitle && (
@@ -772,53 +821,26 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                         </p>
                       )}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        {meta.year != null && (
-                          <div className="text-center p-3 bg-gray-50 rounded-xl">
-                            <p className="text-lg font-semibold">{meta.year}</p>
-                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Calendar className="h-3 w-3" /> Año</div>
+                        {specs.map((spec) => (
+                          <div key={spec.label} className="text-center p-3 bg-gray-50 rounded-xl">
+                            <p className="text-lg font-semibold">{spec.value}</p>
+                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1">{spec.icon} {spec.label}</div>
                           </div>
-                        )}
-                        {meta.mileage_km != null && (
-                          <div className="text-center p-3 bg-gray-50 rounded-xl">
-                            <p className="text-lg font-semibold">{meta.mileage_km.toLocaleString()}</p>
-                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Gauge className="h-3 w-3" /> km</div>
-                          </div>
-                        )}
-                        {meta.transmission && (
-                          <div className="text-center p-3 bg-gray-50 rounded-xl">
-                            <p className="text-lg font-semibold">{transLabels[meta.transmission] || meta.transmission}</p>
-                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Settings className="h-3 w-3" /> Trans.</div>
-                          </div>
-                        )}
-                        {meta.fuel_type && (
-                          <div className="text-center p-3 bg-gray-50 rounded-xl">
-                            <p className="text-lg font-semibold">{fuelLabels[meta.fuel_type] || meta.fuel_type}</p>
-                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Fuel className="h-3 w-3" /> Comb.</div>
-                          </div>
-                        )}
-                        {meta.color && (
-                          <div className="text-center p-3 bg-gray-50 rounded-xl">
-                            <p className="text-lg font-semibold">{meta.color}</p>
-                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><Palette className="h-3 w-3" /> Color</div>
-                          </div>
-                        )}
-                        {meta.doors != null && (
-                          <div className="text-center p-3 bg-gray-50 rounded-xl">
-                            <p className="text-lg font-semibold">{meta.doors}</p>
-                            <div className="text-xs text-gray-500 flex items-center justify-center gap-1"><DoorOpen className="h-3 w-3" /> Puertas</div>
-                          </div>
-                        )}
+                        ))}
                       </div>
                     </div>
                   )
                 })()}
 
-                {/* Description */}
+                {/* Description — the "Ver en el mapa" pin line is
+                    skipped when the embedded map renders right
+                    below; the event layout keeps it, it is the
+                    only map affordance there. */}
                 <div className="pt-1">
                   <h2 className="text-base font-semibold mb-3">Descripción</h2>
                   <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{listing.description}</p>
                   {hashtagChips}
-                  {pinLine}
+                  {!terrenoMap && pinLine}
                 </div>
 
                 {/* Terreno map — renders only for terrenos with coords */}

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { MAP_STYLES } from '@/components/border/garita-traffic-map'
 
 // Terreno detail map — an embedded Google Map showing where the
 // lot is, rendered only on terreno detail pages that carry
@@ -11,10 +10,12 @@ import { MAP_STYLES } from '@/components/border/garita-traffic-map'
 //
 // Reuses the /garita pattern: the browser key is fetched at
 // runtime from /api/garita/maps-key (never baked into a build
-// artifact), the Maps JS API loads once per page, and the base
-// map is the same grayscale style as /garita — monochrome, with
-// the orange carried by the marker pin only. No traffic layer:
-// this map answers "where is it", not "how is the line".
+// artifact) and the Maps JS API loads once per page. The base
+// map is NOT the /garita grayscale style — this map is the
+// default full-color Google roadmap (no custom styles), because
+// the grayscale wash made sparse areas read as nearly blank.
+// The orange is carried by the marker pin only. No traffic
+// layer: this map answers "where is it", not "how is the line".
 //
 // Lazy by design: nothing loads — not even the key fetch — until
 // the section scrolls into view (IntersectionObserver). If the
@@ -24,22 +25,9 @@ import { MAP_STYLES } from '@/components/border/garita-traffic-map'
 // Minimal local typings for the Maps JS pieces we use — no new
 // dependency (@types/google.maps is not installed).
 type LatLngLiteral = { lat: number; lng: number }
-type MapTypeStyler = {
-  color?: string
-  visibility?: string
-  saturation?: number
-  lightness?: number
-  weight?: number
-}
-type MapTypeStyle = {
-  featureType?: string
-  elementType?: string
-  stylers: MapTypeStyler[]
-}
 type MapOptions = {
   center: LatLngLiteral
   zoom: number
-  styles?: MapTypeStyle[]
   gestureHandling: string
   streetViewControl: boolean
   fullscreenControl: boolean
@@ -172,7 +160,8 @@ export function ListingMap({
         const map = new google.maps.Map(el, {
           center: position,
           zoom: ZOOM,
-          styles: MAP_STYLES,
+          // Full-color default Google roadmap: no custom styles —
+          // the /garita grayscale wash read as nearly blank here.
           // Cooperative gestures: a one-finger scroll still scrolls
           // the page on mobile; the map only zooms with two fingers.
           gestureHandling: 'cooperative',

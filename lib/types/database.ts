@@ -50,6 +50,13 @@ export type RealEstateMetadata = {
   construction_m2?: number
   lot_m2?: number
   parking_spots?: number
+  // Terrenos only (optional, no migration — schemaless jsonb):
+  // lot dimensions in metres, services, and title status.
+  frente_m?: number
+  fondo_m?: number
+  luz?: boolean
+  agua?: boolean
+  escriturado?: boolean
 }
 
 export type AutomotiveMetadata = {

@@ -157,6 +157,12 @@ export default function EditListingPage() {
   const [constructionM2, setConstructionM2] = useState('')
   const [lotM2, setLotM2] = useState('')
   const [parkingSpots, setParkingSpots] = useState('')
+  // Terreno extras (optional): lot dimensions, services, title.
+  const [frenteM, setFrenteM] = useState('')
+  const [fondoM, setFondoM] = useState('')
+  const [hasLuz, setHasLuz] = useState(false)
+  const [hasAgua, setHasAgua] = useState(false)
+  const [isEscriturado, setIsEscriturado] = useState(false)
 
   // Terreno sync (same rule as the new-listing form): a terreno is
   // only land, so switching the type to terreno drops the house
@@ -165,6 +171,7 @@ export default function EditListingPage() {
   const handlePropertyTypePick = (v: string) => {
     setPropertyType(v)
     if (v === 'terreno') { setBedrooms(''); setBathrooms(''); setConstructionM2(''); setParkingSpots('') }
+    else { setFrenteM(''); setFondoM(''); setHasLuz(false); setHasAgua(false); setIsEscriturado(false) }
   }
 
   // Automotive metadata
@@ -259,6 +266,11 @@ export default function EditListingPage() {
         setConstructionM2(meta.construction_m2?.toString() || '')
         setLotM2(meta.lot_m2?.toString() || '')
         setParkingSpots(meta.parking_spots?.toString() || '')
+        setFrenteM(meta.frente_m?.toString() || '')
+        setFondoM(meta.fondo_m?.toString() || '')
+        setHasLuz(meta.luz ?? false)
+        setHasAgua(meta.agua ?? false)
+        setIsEscriturado(meta.escriturado ?? false)
       } else if (meta?.type === 'automotive') {
         setMetadataType('automotive')
         setMake(meta.make || '')
@@ -352,6 +364,13 @@ export default function EditListingPage() {
           ...(constructionM2 && { construction_m2: parseInt(constructionM2) }),
           ...(lotM2 && { lot_m2: parseInt(lotM2) }),
           ...(parkingSpots && { parking_spots: parseInt(parkingSpots) }),
+          // Terreno extras (optional, terrenos only): omit empties
+          // and unchecked boxes instead of storing 0 / false.
+          ...(propertyType === 'terreno' && frenteM && { frente_m: parseInt(frenteM) }),
+          ...(propertyType === 'terreno' && fondoM && { fondo_m: parseInt(fondoM) }),
+          ...(propertyType === 'terreno' && hasLuz && { luz: true }),
+          ...(propertyType === 'terreno' && hasAgua && { agua: true }),
+          ...(propertyType === 'terreno' && isEscriturado && { escriturado: true }),
         } as RealEstateMetadata
       } else if (metadataType === 'automotive') {
         // Same as the new form: year/make/model are optional —
@@ -732,6 +751,40 @@ export default function EditListingPage() {
                       <Input type="number" min="0" value={lotM2} onChange={(e) => setLotM2(e.target.value)} placeholder="200" />
                     </div>
                   </div>
+                  {/* Terreno extras (optional): dimensions, services,
+                      title. All optional — a terreno still saves
+                      with none of them filled. */}
+                  {propertyType === 'terreno' && (
+                    <div className="space-y-5">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Frente (m)</Label>
+                          <Input type="number" min="0" value={frenteM} onChange={(e) => setFrenteM(e.target.value)} placeholder="20" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Fondo (m)</Label>
+                          <Input type="number" min="0" value={fondoM} onChange={(e) => setFondoM(e.target.value)} placeholder="8" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Servicios</Label>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1">
+                          <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                            <input type="checkbox" checked={hasLuz} onChange={(e) => setHasLuz(e.target.checked)} className="rounded" />
+                            Luz
+                          </label>
+                          <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                            <input type="checkbox" checked={hasAgua} onChange={(e) => setHasAgua(e.target.checked)} className="rounded" />
+                            Agua
+                          </label>
+                        </div>
+                      </div>
+                      <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                        <input type="checkbox" checked={isEscriturado} onChange={(e) => setIsEscriturado(e.target.checked)} className="rounded" />
+                        Escriturado
+                      </label>
+                    </div>
+                  )}
                 </>
               )}
 

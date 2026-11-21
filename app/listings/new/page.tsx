@@ -308,6 +308,12 @@ function NewListingForm() {
   const [constructionM2, setConstructionM2] = useState('')
   const [lotM2, setLotM2] = useState('')
   const [parkingSpots, setParkingSpots] = useState('')
+  // Terreno extras (optional): lot dimensions, services, title.
+  const [frenteM, setFrenteM] = useState('')
+  const [fondoM, setFondoM] = useState('')
+  const [hasLuz, setHasLuz] = useState(false)
+  const [hasAgua, setHasAgua] = useState(false)
+  const [isEscriturado, setIsEscriturado] = useState(false)
 
   // Terreno sync: a terreno is only land, so picking the Terrenos
   // category (or the terreno property type) sets the type and drops
@@ -316,6 +322,11 @@ function NewListingForm() {
   const clearHouseFields = () => {
     setBedrooms(''); setBathrooms(''); setConstructionM2(''); setParkingSpots('')
   }
+  // Switching away from terreno drops the terreno extras, so a
+  // house never stores (or shows) frente, servicios or escriturado.
+  const clearTerrenoFields = () => {
+    setFrenteM(''); setFondoM(''); setHasLuz(false); setHasAgua(false); setIsEscriturado(false)
+  }
   const handleCategoryPick = (v: string) => {
     setCategory(v); clearFieldError('category')
     if (v === 'Terrenos') { setPropertyType('terreno'); clearHouseFields() }
@@ -323,6 +334,7 @@ function NewListingForm() {
   const handlePropertyTypePick = (v: string) => {
     setPropertyType(v)
     if (v === 'terreno') clearHouseFields()
+    else clearTerrenoFields()
   }
 
   // Automotive metadata
@@ -1186,6 +1198,13 @@ function NewListingForm() {
           ...(constructionM2 && { construction_m2: parseInt(constructionM2) }),
           ...(lotM2 && { lot_m2: parseInt(lotM2) }),
           ...(parkingSpots && { parking_spots: parseInt(parkingSpots) }),
+          // Terreno extras (optional, terrenos only): omit empties
+          // and unchecked boxes instead of storing 0 / false.
+          ...(prop === 'terreno' && frenteM && { frente_m: parseInt(frenteM) }),
+          ...(prop === 'terreno' && fondoM && { fondo_m: parseInt(fondoM) }),
+          ...(prop === 'terreno' && hasLuz && { luz: true }),
+          ...(prop === 'terreno' && hasAgua && { agua: true }),
+          ...(prop === 'terreno' && isEscriturado && { escriturado: true }),
         } as RealEstateMetadata
       } else if (isAutomotive) {
         // Year/make/model are optional: an unbranded truck often
@@ -1709,6 +1728,34 @@ function NewListingForm() {
             )}
             <div className="space-y-1.5"><Label className="text-sm">m² Terreno</Label><Input className="border-gray-300" type="number" min="0" value={lotM2} onChange={(e) => setLotM2(e.target.value)} placeholder="200" /></div>
           </div>
+          {/* Terreno extras (optional): dimensions, services, title.
+              All optional — a terreno still publishes with none of
+              them filled. */}
+          {propertyType === 'terreno' && (
+            <div className="space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5"><Label className="text-sm">Frente (m)</Label><Input className="border-gray-300" type="number" min="0" value={frenteM} onChange={(e) => setFrenteM(e.target.value)} placeholder="20" /></div>
+                <div className="space-y-1.5"><Label className="text-sm">Fondo (m)</Label><Input className="border-gray-300" type="number" min="0" value={fondoM} onChange={(e) => setFondoM(e.target.value)} placeholder="8" /></div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Servicios</Label>
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+                    <input type="checkbox" checked={hasLuz} onChange={(e) => setHasLuz(e.target.checked)} className="rounded border-gray-300" />
+                    Luz
+                  </label>
+                  <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+                    <input type="checkbox" checked={hasAgua} onChange={(e) => setHasAgua(e.target.checked)} className="rounded border-gray-300" />
+                    Agua
+                  </label>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer select-none">
+                <input type="checkbox" checked={isEscriturado} onChange={(e) => setIsEscriturado(e.target.checked)} className="rounded border-gray-300" />
+                Escriturado
+              </label>
+            </div>
+          )}
         </>
       )}
       {isAutomotive && (

@@ -459,7 +459,12 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       />
       <div className="min-h-screen bg-white">
         <div className="hidden md:block"><Header /></div>
-        <DetailBackButton />
+        {/* Fixed back button — news, events, and listings with no
+            photos, where it sits over the poster or nothing at all.
+            The default layout docks it onto the photo hero instead
+            (see the gallery's backButton prop below), so it can
+            never sit on the title text. */}
+        {(isNews || isEvent || sortedImages.length === 0) && <DetailBackButton />}
       <main className="container mx-auto px-4 pt-0 pb-6 md:py-6 max-w-7xl">
 
         {isNews ? (
@@ -659,17 +664,20 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           /* ── Default layout: single stacked column ── */
           <>
           <div className="max-w-3xl mx-auto space-y-5">
-            {/* Gallery + details, stacked — title first,
-                Airbnb-style: the what and the price before the
-                photos, specs right under the gallery. */}
-            <div className="min-w-0 space-y-5">
-              {/* Title + price on top. Engagement docks to the
-                  title row on desktop (bare, no hairline) and
-                  sits directly under the title on mobile. */}
-              <div className="flex items-start justify-between gap-4">
+            {/* Gallery + details, stacked — desktop: title first,
+                Airbnb-style (PR #212). Mobile: photo first, then
+                the title — the hero is the first thing a phone
+                sees, the back button sits on the photo, and the
+                title is never clipped. Flex order does the swap;
+                gap (not space-y) so spacing follows visual order. */}
+            <div className="min-w-0 flex flex-col gap-4 md:gap-5">
+              {/* Title + price on top on desktop. Engagement docks
+                  to the title row on desktop (bare, no hairline)
+                  and sits directly under the title on mobile. */}
+              <div className="order-2 md:order-1 flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <h1 className="text-xl font-semibold leading-snug mb-1">{listing.title}</h1>
-                  <p className="text-2xl font-semibold text-gray-900 mb-2">{formattedPrice}</p>
+                  <p className="text-2xl font-semibold text-gray-900 mb-1 md:mb-2">{formattedPrice}</p>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-gray-500">
                     {listing.metadata && (listing.metadata as ListingMetadata).type === 'real_estate' && (
                       <Badge variant="secondary" className="text-[11px] font-normal text-gray-600">
@@ -696,8 +704,9 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               </div>
 
               {/* Like / save / share on mobile — directly under
-                  the title, above the gallery. */}
-              <div className="md:hidden">
+                  the title, above the gallery on desktop order,
+                  below the title on mobile order. */}
+              <div className="order-3 md:hidden">
                 <ListingEngagementBar
                   listingId={listing.id}
                   likesCount={likesCount}
@@ -706,19 +715,25 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 />
               </div>
 
+              {/* Photo first on mobile (order-1), after the title
+                  on desktop (order-2). The back button docks onto
+                  the hero on mobile, so it never overlaps text. */}
+              <div className="order-1 md:order-2">
               <ListingImageGallery
                 images={sortedImages}
                 listingTitle={listing.title}
                 isSold={listing.status === 'sold'}
                 listingType={listingType}
                 fullBleed
+                backButton={sortedImages.length > 0 ? <DetailBackButton inHero /> : undefined}
               />
+              </div>
 
               {/* Video embed — native clip first, link embed
                   otherwise; media stays together, right after
                   the gallery. */}
               {videoBlock && (
-                <div className="max-w-2xl">
+                <div className="max-w-2xl order-4">
                   {videoBlock}
                 </div>
               )}
@@ -768,7 +783,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   if (meta.escriturado) specs.push({ icon: <BadgeCheck className="h-3 w-3" />, value: 'Sí', label: 'Escriturado' })
                   if (specs.length === 0) return null
                   return (
-                    <div className="pt-4 border-t">
+                    <div className="pt-4 border-t order-5">
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         {specs.map((spec) => (
                           <div key={spec.label} className="text-center p-3 bg-gray-50 rounded-xl">
@@ -797,14 +812,14 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   if (meta.color) specs.push({ icon: <Palette className="h-3 w-3" />, value: meta.color, label: 'Color' })
                   if (meta.doors != null) specs.push({ icon: <DoorOpen className="h-3 w-3" />, value: String(meta.doors), label: 'Puertas' })
                   if (specs.length === 0) return vehicleTitle ? (
-                    <div className="pt-4 border-t">
+                    <div className="pt-4 border-t order-5">
                       <p className="text-base font-medium text-gray-700">
                         {vehicleTitle}
                       </p>
                     </div>
                   ) : null
                   return (
-                    <div className="pt-4 border-t">
+                    <div className="pt-4 border-t order-5">
                       {vehicleTitle && (
                         <p className="text-base font-medium text-gray-700 mb-4">
                           {vehicleTitle}
@@ -826,7 +841,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                     skipped when the embedded map renders right
                     below; the event layout keeps it, it is the
                     only map affordance there. */}
-                <div className="pt-1">
+                <div className="pt-1 order-6">
                   <h2 className="text-base font-semibold mb-3">Descripción</h2>
                   <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{listing.description}</p>
                   {hashtagChips}
@@ -834,10 +849,14 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 </div>
 
                 {/* Terreno map — renders only for terrenos with coords */}
-                {terrenoMap}
+                {terrenoMap && (
+                  <div className="order-7">{terrenoMap}</div>
+                )}
 
                 {/* Tagged business */}
-                {taggedBusinessCard}
+                {taggedBusinessCard && (
+                  <div className="order-8">{taggedBusinessCard}</div>
+                )}
             </div>
 
             {/* Seller — Airbnb-style host row: identity left,

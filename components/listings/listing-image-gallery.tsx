@@ -21,9 +21,13 @@ interface ListingImageGalleryProps {
   /** Optional strip rendered across the top of the hero (e.g. the
       SE BUSCA banner on lost posts). */
   banner?: React.ReactNode
+  /** Optional node rendered inside the mobile hero (default branch
+      only) — e.g. the back button docked onto the photo, so it can
+      never sit on text. */
+  backButton?: React.ReactNode
 }
 
-export function ListingImageGallery({ images, listingTitle, isSold, listingType = 'product', variant = 'default', fullBleed = false, banner }: ListingImageGalleryProps) {
+export function ListingImageGallery({ images, listingTitle, isSold, listingType = 'product', variant = 'default', fullBleed = false, banner, backButton }: ListingImageGalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [selected, setSelected] = useState(0)
 
@@ -193,14 +197,19 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
 
   return (
     <>
-      <div className={fullBleed ? '-mx-4 sm:mx-0 mb-6' : 'mb-6'}>
+      <div className={fullBleed ? '-mx-4 sm:mx-0 mb-4 sm:mb-6' : 'mb-4 sm:mb-6'}>
         {/* Mobile: hero + thumbnail strip, exactly as before —
-            the hero already crops to fill (object-cover) here. */}
+            the hero already crops to fill (object-cover) here.
+            Capped at 4/3 (2026-11-20): the old 68svh hero ate the
+            whole first viewport on phones and pushed the title
+            below the fold. The back button docks onto the photo
+            here when passed — never over text. */}
         <div className="sm:hidden">
           <div
-            className="relative h-[68svh] rounded-none overflow-hidden bg-gray-100 cursor-pointer"
+            className="relative aspect-[4/3] rounded-none overflow-hidden bg-gray-100 cursor-pointer"
             onClick={() => openLightbox(heroIdx)}
           >
+            {backButton}
             <Image
               src={hero.image_url}
               alt={listingTitle}

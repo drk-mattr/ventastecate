@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { ListingMetadata, RealEstateMetadata, AutomotiveMetadata, ListingType, ListingComment } from '@/lib/types/database'
 import { ListingImageGallery } from '@/components/listings/listing-image-gallery'
+import { ListingMap } from '@/components/listings/listing-map'
 import { ListingTitleCard } from '@/components/listings/listing-title-card'
 import { NewsArticle } from '@/components/listings/news-article'
 import { CommentSection } from '@/components/listings/comment-section'
@@ -438,6 +439,21 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     </p>
   ) : null
 
+  // Terreno map (2026-11-20): embedded Google Map on terreno
+  // detail pages only, and only when the listing carries
+  // coordinates. No coords (Adrian's listing today) = no map —
+  // never a guessed location. Defined once, reused in both
+  // layouts below (event + default); the event branch can never
+  // be a terreno, so it renders there only in theory.
+  const isTerrenoListing =
+    listing.metadata &&
+    (listing.metadata as ListingMetadata).type === 'real_estate' &&
+    (listing.metadata as RealEstateMetadata).property_type === 'terreno'
+  const terrenoMap =
+    isTerrenoListing && listing.latitude != null && listing.longitude != null ? (
+      <ListingMap latitude={listing.latitude} longitude={listing.longitude} title={listing.title} />
+    ) : null
+
   return (
     <>
       {/* JSON-LD Structured Data */}
@@ -565,6 +581,9 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 {hashtagChips}
                 {pinLine}
               </div>
+
+              {/* Terreno map — renders only for terrenos with coords */}
+              {terrenoMap}
 
               {/* Tagged business */}
               {taggedBusinessCard}
@@ -803,6 +822,9 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   {hashtagChips}
                   {pinLine}
                 </div>
+
+                {/* Terreno map — renders only for terrenos with coords */}
+                {terrenoMap}
 
                 {/* Tagged business */}
                 {taggedBusinessCard}

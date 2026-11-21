@@ -166,68 +166,123 @@ export function ListingImageGallery({ images, listingTitle, isSold, listingType 
     )
   }
 
+  // ── Default branch: Airbnb-style photo grid on sm+ screens,
+  // hero + thumbnail strip on mobile (unchanged). The old desktop
+  // hero letterboxed the image (object-contain + blurred backdrop);
+  // every grid cell is object-cover, so no blurred bars and no
+  // letterbox. Tapping any cell opens the lightbox at that index
+  // (the black fullscreen viewer stays). News and event/poster
+  // branches above are untouched.
+  const visibleCount = Math.min(images.length, 5)
+  const overflowCount = images.length - visibleCount
+
+  // Grid geometry (sm+ only): the first photo is large on the
+  // left, the rest fill a 2×2 on the right. Fewer photos
+  // collapse: 1 photo is a single wide cell, 2 photos are equal
+  // halves, 3 photos are big left + two stacked right, 4 photos
+  // are big left + one wide + two small on the right.
+  const gridCols =
+    images.length === 1 ? 'grid-cols-1' : images.length === 2 ? 'grid-cols-2' : 'grid-cols-4 grid-rows-2'
+  const gridAspect = images.length === 1 ? 'aspect-[16/9]' : 'aspect-[2/1]'
+  const cellClass = (idx: number): string => {
+    if (images.length <= 2) return ''
+    if (idx === 0) return 'col-span-2 row-span-2'
+    if (images.length === 3 || (images.length === 4 && idx === 1)) return 'col-span-2'
+    return ''
+  }
+
   return (
     <>
       <div className={fullBleed ? '-mx-4 sm:mx-0 mb-6' : 'mb-6'}>
-        {/* Hero — mobile: full-bleed, capped to the first viewport,
-            cropped to fill (object-cover); desktop: 460px box with
-            the image letterboxed, as before. */}
-        <div
-          className="relative h-[68svh] sm:h-[460px] rounded-none sm:rounded-xl overflow-hidden bg-gray-100 cursor-pointer"
-          onClick={() => openLightbox(heroIdx)}
-        >
-          {/* Blurred backdrop fills the letterbox area */}
-          <Image
-            src={hero.image_url}
-            alt=""
-            aria-hidden
-            fill
-            className="object-cover scale-110 blur-2xl opacity-30"
-            sizes="(max-width: 1024px) 100vw, 55vw"
-          />
-          {/* The actual image — cropped to fill on mobile (the hero
-              is the first viewport), letterboxed on desktop as before. */}
-          <Image
-            src={hero.image_url}
-            alt={listingTitle}
-            fill
-            className="object-cover sm:object-contain transition-opacity hover:opacity-[0.98]"
-            sizes="(max-width: 1024px) 100vw, 55vw"
-            priority
-          />
-          {banner}
-          {soldOverlay}
+        {/* Mobile: hero + thumbnail strip, exactly as before —
+            the hero already crops to fill (object-cover) here. */}
+        <div className="sm:hidden">
+          <div
+            className="relative h-[68svh] rounded-none overflow-hidden bg-gray-100 cursor-pointer"
+            onClick={() => openLightbox(heroIdx)}
+          >
+            <Image
+              src={hero.image_url}
+              alt={listingTitle}
+              fill
+              className="object-cover transition-opacity hover:opacity-[0.98]"
+              sizes="(max-width: 1024px) 100vw, 55vw"
+              priority
+            />
+            {banner}
+            {soldOverlay}
+            {images.length > 1 && (
+              <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[11px] px-2 py-0.5 rounded-full">
+                {heroIdx + 1} / {images.length}
+              </div>
+            )}
+          </div>
+
+          {/* Caption under the current photo, El Imparcial-style —
+              small gray text, only when the seller wrote one. */}
+          {hero.caption && (
+            <p className="mt-2 text-sm text-gray-500">{hero.caption}</p>
+          )}
+
+          {/* Thumbnail strip */}
           {images.length > 1 && (
-            <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[11px] px-2 py-0.5 rounded-full">
-              {heroIdx + 1} / {images.length}
+            <div className="flex gap-2 mt-2 overflow-x-auto pb-1 -mx-1 px-1">
+              {images.map((image, idx) => (
+                <button
+                  key={image.id}
+                  type="button"
+                  onClick={() => setSelected(idx)}
+                  aria-label={`Ver imagen ${idx + 1}`}
+                  className={`relative h-16 w-16 sm:h-[72px] sm:w-[72px] shrink-0 rounded-lg overflow-hidden transition-all ${
+                    idx === heroIdx ? 'ring-2 ring-gray-900' : 'opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <Image src={image.image_url} alt="" fill className="object-cover" sizes="72px" />
+                </button>
+              ))}
             </div>
           )}
         </div>
 
-        {/* Caption under the current photo, El Imparcial-style —
-            small gray text, only when the seller wrote one. */}
-        {hero.caption && (
-          <p className="mt-2 text-sm text-gray-500">{hero.caption}</p>
-        )}
-
-        {/* Thumbnail strip */}
-        {images.length > 1 && (
-          <div className="flex gap-2 mt-2 overflow-x-auto pb-1 -mx-1 px-1">
-            {images.map((image, idx) => (
-              <button
+        {/* Desktop: Airbnb-style photo grid — every cell fills its
+            frame (object-cover), no blurred backdrop, no letterbox. */}
+        <div className="hidden sm:block">
+          <div className={`relative grid ${gridCols} ${gridAspect} gap-2 rounded-xl overflow-hidden bg-gray-100`}>
+            {images.slice(0, visibleCount).map((image, idx) => (
+              <div
                 key={image.id}
-                type="button"
-                onClick={() => setSelected(idx)}
-                aria-label={`Ver imagen ${idx + 1}`}
-                className={`relative h-16 w-16 sm:h-[72px] sm:w-[72px] shrink-0 rounded-lg overflow-hidden transition-all ${
-                  idx === heroIdx ? 'ring-2 ring-gray-900' : 'opacity-70 hover:opacity-100'
-                }`}
+                className={`relative overflow-hidden cursor-pointer ${cellClass(idx)}`}
+                onClick={() => openLightbox(idx)}
               >
-                <Image src={image.image_url} alt="" fill className="object-cover" sizes="72px" />
-              </button>
+                <Image
+                  src={image.image_url}
+                  alt={idx === 0 ? listingTitle : ''}
+                  fill
+                  className="object-cover hover:opacity-95 transition-opacity"
+                  sizes={idx === 0 ? '(max-width: 1024px) 100vw, 50vw' : '(max-width: 1024px) 50vw, 25vw'}
+                  priority={idx === 0}
+                />
+                {idx === visibleCount - 1 && overflowCount > 0 && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <span className="text-white text-base font-semibold">+{overflowCount} fotos</span>
+                  </div>
+                )}
+                {idx === visibleCount - 1 && overflowCount === 0 && images.length > 1 && (
+                  <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[11px] px-2 py-0.5 rounded-full">
+                    {heroIdx + 1} / {images.length}
+                  </div>
+                )}
+              </div>
             ))}
+            {banner}
+            {soldOverlay}
           </div>
-        )}
+
+          {/* Caption under the current photo, El Imparcial-style. */}
+          {hero.caption && (
+            <p className="mt-2 text-sm text-gray-500">{hero.caption}</p>
+          )}
+        </div>
       </div>
 
       {lightboxOpen && (

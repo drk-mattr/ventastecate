@@ -149,6 +149,7 @@ async function StoryReportPreview({ storyId }: { storyId: string }) {
   return (
     <div className="mt-3">
       {/* Plain img: the story may already be expired by review time. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={story.image_url} alt="Historia reportada" className="max-h-64 rounded-lg object-contain bg-gray-100" />
       {story.listing_id && <p className="text-sm mt-2"><Link href={`/listings/${story.listing_id}`} className="underline">Ver anuncio enlazado</Link></p>}
       {story.business_id && <p className="text-sm mt-2"><Link href={`/businesses/${story.business_id}`} className="underline">Ver negocio enlazado</Link></p>}

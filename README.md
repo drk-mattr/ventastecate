@@ -68,6 +68,14 @@ NEXT_PUBLIC_GTM_ID=GTM-XXXXXXX        # Google Tag Manager container (required f
 RESEND_API_KEY=your-resend-key
 DISCORD_WEBHOOK_URL=...               # report form
 DISCORD_NEW_USER_WEBHOOK_URL=...      # new-registration notifications
+NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX        # GA4 measurement ID (falls back to the prod ID)
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=...   # browser key for the /garita map; served at runtime by
+                                      # /api/garita/maps-key, keep it referrer-restricted
+
+# Server-only secrets (set as Worker secrets, never NEXT_PUBLIC_)
+SUPABASE_SERVICE_ROLE_KEY=...         # bypasses RLS; used only in API routes / server code
+INTERNAL_POST_TOKEN=...               # Bearer token for /api/internal/* (agents, mail Worker)
+COMMUNITY_USERNAME=ventastecate       # profile that internal posts are published under
 ```
 
 > ⚠️ `NEXT_PUBLIC_GTM_ID` must be set in the production environment (Cloudflare) or
@@ -75,8 +83,17 @@ DISCORD_NEW_USER_WEBHOOK_URL=...      # new-registration notifications
 
 ## Key Pages
 
-`/` home · `/search` · `/listings/new` · `/listings/[id]` · `/my-listings` ·
-`/stores/[slug]` · `/messages` · `/users/[username]` · `/profile/edit`
+| Area | Routes |
+| --- | --- |
+| Home & discovery | `/` · `/search` · `/tipos/[slug]` · `/gastro` |
+| Listings | `/listings/new` · `/listings/[id]` · `/listings/[id]/edit` · `/my-listings` |
+| Businesses | `/businesses` · `/businesses/categorias` · `/businesses/new` · `/businesses/[id]` (+ `reclamar`, `agregar-informacion`) |
+| Stores | `/stores/new` · `/stores/[slug]` · `/stores/[slug]/edit` · `/my-stores` |
+| Garita (border wait times) | `/garita` |
+| People & messaging | `/users/[username]` (+ `seguidores`, `siguiendo`) · `/messages` · `/cuenta` · `/profile/edit` |
+| Auth | `/login` · `/signup` · `/forgot-password` · `/reset-password` |
+| Admin (superadmin only) | `/admin/reports` · `/admin/claim-requests` · `/admin/alerts` · `/admin/liquidity` |
+| Legal | `/terms` · `/privacy` |
 
 ## Deployment
 

@@ -24,8 +24,19 @@ export function FollowButton({ profileId, initialIsFollowing = false, quiet = fa
   const router = useRouter()
 
   useEffect(() => {
-    if (user && user.id !== profileId) {
-      checkFollowStatus()
+    if (!user || user.id === profileId) return
+    let cancelled = false
+    createClient()
+      .from('follows')
+      .select('id')
+      .eq('follower_id', user.id)
+      .eq('following_id', profileId)
+      .single()
+      .then(({ data }) => {
+        if (!cancelled) setIsFollowing(!!data)
+      })
+    return () => {
+      cancelled = true
     }
   }, [user, profileId])
 
@@ -36,19 +47,6 @@ export function FollowButton({ profileId, initialIsFollowing = false, quiet = fa
   useEffect(() => {
     setIsFollowing(initialIsFollowing)
   }, [initialIsFollowing])
-
-  const checkFollowStatus = async () => {
-    if (!user) return
-
-    const { data } = await supabase
-      .from('follows')
-      .select('id')
-      .eq('follower_id', user.id)
-      .eq('following_id', profileId)
-      .single()
-
-    setIsFollowing(!!data)
-  }
 
   const handleFollow = async () => {
     if (!user) {

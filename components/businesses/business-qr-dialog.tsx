@@ -293,6 +293,7 @@ export function BusinessQrDialog({ businessId, businessName, businessTown, asLin
         <div ref={containerRef} className="hidden" aria-hidden="true" />
         <div className="flex justify-center py-2">
           {cardUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- cardUrl is a locally composed data/blob URL; next/image can't optimize it
             <img
               src={cardUrl}
               alt={`Código QR de ${businessName}`}

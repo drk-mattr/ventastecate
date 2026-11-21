@@ -22,6 +22,12 @@ type ContactSellerButtonProps = {
   /** Compact horizontal layout for the sticky mobile bar: the two
       contact paths sit side by side in one row instead of stacked. */
   compact?: boolean
+  /** Row layout for the desktop host row: the two contact paths
+      sit side by side at content width instead of stacked
+      full-width. Unlike compact, the buttons are NOT flex-1 —
+      they size to their labels. Labels are short in row mode:
+      'Contactar' (via the label prop) and 'WhatsApp'. */
+  row?: boolean
   /** Hide ONLY the in-site message button (the WhatsApp path, when
       the seller opted in, still renders). Used for the official
       @ventastecate account: nobody should message the community
@@ -62,6 +68,7 @@ export function ContactSellerButton({
   variant = 'default',
   className = '',
   compact = false,
+  row = false,
   hideMessage = false,
 }: ContactSellerButtonProps) {
   const { user } = useAuth()
@@ -76,23 +83,28 @@ export function ContactSellerButton({
 
   if (isOwner || !isActive || (!showMessage && !showWhatsapp)) return null
 
+  // Widths: compact (sticky bar) stretches both paths to fill the
+  // bar; row (desktop host row) sizes each button to its label;
+  // default stacks both full-width.
+  const btnWidth = compact ? 'flex-1' : row ? '' : 'w-full'
+
   return (
-    <div className={compact ? `flex flex-row gap-2 ${className}` : `flex flex-col gap-2 ${className}`}>
+    <div className={row || compact ? `flex flex-row gap-2 ${className}` : `flex flex-col gap-2 ${className}`}>
       {showMessage && (user ? (
-        <Button asChild size={size} variant={variant} className={compact ? 'flex-1' : 'w-full'}>
+        <Button asChild size={size} variant={variant} className={btnWidth}>
           <Link href={`/messages?listing=${listingId}&seller=${sellerId}`}>{label}</Link>
         </Button>
       ) : (
-        <Button asChild size={size} variant={variant} className={compact ? 'flex-1' : 'w-full'}>
+        <Button asChild size={size} variant={variant} className={btnWidth}>
           <Link href={`/login?redirect=${encodeURIComponent(`/listings/${listingId}`)}`}>
-            {compact ? 'Entrar para contactar' : 'Iniciar sesión para contactar'}
+            {row || compact ? 'Entrar para contactar' : 'Iniciar sesión para contactar'}
           </Link>
         </Button>
       ))}
       {showWhatsapp && (
-        <Button asChild size={size} variant="outline" className={compact ? 'flex-1' : 'w-full'}>
+        <Button asChild size={size} variant="outline" className={btnWidth}>
           <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
-            {compact ? 'WhatsApp' : 'WhatsApp al vendedor'}
+            {row || compact ? 'WhatsApp' : 'WhatsApp al vendedor'}
           </a>
         </Button>
       )}

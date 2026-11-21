@@ -329,10 +329,6 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sortedImages = listing.images.sort((a: any, b: any) => a.order_index - b.order_index)
-  const memberSince = new Date(listing.profile.created_at).toLocaleDateString('es-MX', {
-    year: 'numeric',
-    month: 'long',
-  })
 
   // Structured data for SEO (JSON-LD). News articles get
   // NewsArticle (headline / datePublished / author / image);
@@ -588,7 +584,9 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
               {/* Tagged business */}
               {taggedBusinessCard}
 
-              {/* Organizer — stacked: identity, then full-width contact below */}
+              {/* Organizer — identity, then contact paths side by
+                  side at content width (row), not stacked
+                  full-width. */}
               <div className="space-y-3 pt-1">
                 <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Organizador</p>
 
@@ -638,7 +636,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                   label="Contactar"
                   size="sm"
                   variant="outline"
-                  className="w-full"
+                  row
                   hideMessage={isOfficial}
                 />
                 {isOwner && (
@@ -830,49 +828,47 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                 {taggedBusinessCard}
             </div>
 
-            {/* Seller — plain identity row + actions, no card chrome */}
+            {/* Seller — Airbnb-style host row: identity left,
+                contact actions right at content width, no card
+                chrome. The member-since line is gone — name +
+                handle is all the contact moment needs. On mobile
+                the sticky bar below is the contact action, so the
+                in-flow actions hide below md — otherwise the page
+                shows two "Contactar" buttons at once. On desktop
+                there is no sticky bar, so the in-flow row is the
+                only one. */}
             <div className="space-y-3 pt-1">
+              <div className="flex items-center gap-3">
                 {listing.store ? (
-                  <div className="flex items-center gap-3">
+                  <>
                     <Link href={`/stores/${listing.store.slug}`} className="relative h-11 w-11 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden shrink-0">
                       {listing.store.avatar_url ? (
                         <Image src={listing.store.avatar_url} alt={listing.store.name} fill className="object-cover" />
                       ) : <Store className="h-5 w-5 text-gray-400" />}
                     </Link>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <Link href={`/stores/${listing.store.slug}`} className="text-sm font-semibold hover:underline block truncate">
                         {listing.store.name}
                       </Link>
                       <p className="text-xs text-gray-500 truncate">{listing.store.location || 'Tienda'}</p>
                     </div>
-                  </div>
+                  </>
                 ) : (
-                  <div className="flex items-center gap-3">
+                  <>
                     <div className="relative h-11 w-11 rounded-full bg-gray-200 flex items-center justify-center text-base font-semibold overflow-hidden shrink-0">
                       {listing.profile.avatar_url ? (
                         <Image src={listing.profile.avatar_url} alt={listing.profile.display_name} fill className="object-cover" />
                       ) : listing.profile.display_name[0].toUpperCase()}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <Link href={`/users/${listing.profile.username}`} className="text-sm font-semibold hover:underline block truncate">
                         {listing.profile.display_name}
                       </Link>
                       <p className="text-xs text-gray-500 truncate">@{listing.profile.username}</p>
-                      <p className="text-xs text-gray-400">Desde {memberSince}</p>
                     </div>
-                  </div>
+                  </>
                 )}
-
-                {/* One contact CTA per viewport: on mobile the
-                    sticky bar below is the contact action, so this
-                    in-flow button hides below md — otherwise the
-                    page shows two big black "Contactar" buttons at
-                    once. On desktop there is no sticky bar, so the
-                    in-flow button is the only one. The news/event
-                    layout's quiet outline button is untouched: it
-                    has no sticky bar for non-owners, so nothing
-                    duplicates there. */}
-                <div className="hidden md:block">
+                <div className="hidden shrink-0 md:block">
                   <ContactSellerButton
                     listingId={listing.id}
                     sellerId={listing.user_id}
@@ -880,14 +876,15 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
                     listingTitle={listing.title}
                     isOwner={isOwner}
                     isActive={listing.status === 'active'}
-                    label={isService ? 'Contactar' : 'Contactar Vendedor'}
-                    className="w-full"
+                    label="Contactar"
+                    row
                     hideMessage={isOfficial}
                   />
                 </div>
-                {isOwner && (
-                  <ListingOwnerMenu listingId={listing.id} initialSold={listing.status === 'sold'} />
-                )}
+              </div>
+              {isOwner && (
+                <ListingOwnerMenu listingId={listing.id} initialSold={listing.status === 'sold'} />
+              )}
             </div>
           </div>
 
